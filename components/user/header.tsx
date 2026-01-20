@@ -90,11 +90,17 @@ export function UserHeader() {
   const pathname = usePathname()
   const { user, isAuthenticated, isOtpVerified, isLoading, logout } = useAuth()
 
+  const [mounted, setMounted] = useState(false)
   const [mobileOpen, setMobileOpen] = useState(false)
   const [authModal, setAuthModal] = useState<{ isOpen: boolean; view: 'LOGIN' | 'REGISTER' | 'OTP' | 'FORGOT_PASSWORD' }>({
     isOpen: false,
     view: 'LOGIN',
   })
+
+  // Prevent hydration mismatch
+  useEffect(() => {
+    setMounted(true)
+  }, [])
 
   // Force OTP if authenticated but not verified
   useEffect(() => {
@@ -142,7 +148,10 @@ export function UserHeader() {
 
           {/* Right: Auth / Menu */}
           <div className="flex items-center gap-2">
-            {isLoggedIn ? (
+            {!mounted ? (
+              // Skeleton/Placeholder to prevent layout shift or just empty
+              <div className="w-[100px] h-9" />
+            ) : isLoggedIn ? (
               <div className="flex items-center gap-4">
                 {/* Balance Display */}
                 <div className="hidden md:flex flex-col items-end mr-2">
@@ -205,7 +214,7 @@ export function UserHeader() {
               </div>
             ) : (
               <div className="flex items-center gap-2">
-                <Button variant="ghost" size="sm" className="hidden sm:flex text-primary font-semibold hover:text-primary/80" onClick={() => openAuthModal('LOGIN')}>
+                <Button variant="ghost" size="sm" className="hidden sm:flex text-primary font-semibold hover:text-[#00C805] hover:bg-[#00C805]/10" onClick={() => openAuthModal('LOGIN')}>
                   Log in
                 </Button>
                 <Button size="sm" className="font-semibold bg-primary hover:bg-primary/90 text-primary-foreground" onClick={() => openAuthModal('REGISTER')}>

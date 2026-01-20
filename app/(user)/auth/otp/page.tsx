@@ -24,10 +24,10 @@ export default function OTPPage() {
   useEffect(() => {
     // Redirect if not authenticated
     if (!getTokens('user')) {
-      router.push('/auth/login')
+      router.push('/')
       return
     }
-    
+
     // Redirect if already verified
     if (isOtpVerified) {
       router.push('/app')
@@ -43,7 +43,7 @@ export default function OTPPage() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-    
+
     if (code.length !== 6) {
       toast.error('Digite o codigo de 6 digitos')
       return

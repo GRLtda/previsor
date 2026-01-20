@@ -53,10 +53,10 @@ export default function ForgotPasswordPage() {
             </CardDescription>
           </CardHeader>
           <CardFooter className="flex flex-col gap-4">
-            <Link href="/auth/login" className="w-full">
+            <Link href="/" className="w-full">
               <Button variant="outline" className="w-full bg-transparent">
                 <ArrowLeft className="h-4 w-4 mr-2" />
-                Voltar para Login
+                Voltar para Inicio
               </Button>
             </Link>
           </CardFooter>
@@ -98,9 +98,9 @@ export default function ForgotPasswordPage() {
             <Button type="submit" className="w-full" disabled={isLoading}>
               {isLoading ? 'Enviando...' : 'Enviar Email'}
             </Button>
-            <Link href="/auth/login" className="text-sm text-muted-foreground hover:text-primary">
+            <Link href="/" className="text-sm text-muted-foreground hover:text-primary">
               <ArrowLeft className="h-3 w-3 inline mr-1" />
-              Voltar para Login
+              Voltar para Inicio
             </Link>
           </CardFooter>
         </form>

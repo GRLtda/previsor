@@ -18,7 +18,7 @@ import Loading from './loading'
 function ResetPasswordForm({ token }: { token: string }) {
   const router = useRouter()
   const { resetPassword } = useAuth()
-  
+
   const [password, setPassword] = useState('')
   const [confirmPassword, setConfirmPassword] = useState('')
   const [showPassword, setShowPassword] = useState(false)
@@ -69,8 +69,8 @@ function ResetPasswordForm({ token }: { token: string }) {
           </CardDescription>
         </CardHeader>
         <CardFooter>
-          <Link href="/auth/login" className="w-full">
-            <Button className="w-full">Ir para Login</Button>
+          <Link href="/" className="w-full">
+            <Button className="w-full">Ir para Inicio</Button>
           </Link>
         </CardFooter>
       </Card>

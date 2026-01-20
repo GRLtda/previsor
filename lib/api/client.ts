@@ -249,7 +249,7 @@ export const userApi = {
     baseFetch<{ success: true; data: { sent: boolean; expires_in: number } }>(
       'user',
       '/v1/auth/otp/resend',
-      { method: 'POST' }
+      { method: 'POST', body: {} }
     ),
 
   logout: () =>
@@ -322,7 +322,7 @@ export const userApi = {
     ),
 
   // Events & Markets
-  getEvents: (params?: { status?: string; category?: string; limit?: number; offset?: number }) =>
+  getEvents: (params?: { status?: string; category?: string; title?: string; limit?: number; offset?: number }) =>
     baseFetch<{ events: import('@/lib/types').Event[]; totalCount: number; limit: number; offset: number }>(
       'user',
       '/v1/events',

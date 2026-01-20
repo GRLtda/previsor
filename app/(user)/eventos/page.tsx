@@ -1,7 +1,8 @@
 'use client'
 
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, Suspense } from 'react'
 import { userApi, ApiClientError } from '@/lib/api/client'
+import { useSearchParams } from 'next/navigation'
 import type { Event } from '@/lib/types'
 import { EventCard } from '@/components/user/event-card'
 import { Button } from '@/components/ui/button'
@@ -14,7 +15,7 @@ import {
   SelectValue,
 } from '@/components/ui/select'
 import { Skeleton } from '@/components/ui/skeleton'
-import { Search, ChevronLeft, ChevronRight, TrendingUp } from 'lucide-react'
+import { ChevronLeft, ChevronRight } from 'lucide-react'
 import { toast } from 'sonner'
 
 const CATEGORIES = [
@@ -29,12 +30,22 @@ const CATEGORIES = [
 const LIMIT = 12
 
 export default function EventosPage() {
+  return (
+    <Suspense fallback={<div>Loading...</div>}>
+      <EventsContent />
+    </Suspense>
+  )
+}
+
+function EventsContent() {
+  const searchParams = useSearchParams()
   const [events, setEvents] = useState<Event[]>([])
   const [isLoading, setIsLoading] = useState(true)
   const [totalCount, setTotalCount] = useState(0)
   const [offset, setOffset] = useState(0)
-  const [category, setCategory] = useState('all')
-  const [search, setSearch] = useState('')
+
+  const category = searchParams.get('category') || 'all'
+  const search = searchParams.get('search') || ''
 
   const fetchEvents = useCallback(async () => {
     setIsLoading(true)
@@ -42,6 +53,7 @@ export default function EventosPage() {
       const response = await userApi.getEvents({
         status: 'active',
         category: category === 'all' ? undefined : category,
+        title: search || undefined,
         limit: LIMIT,
         offset,
       })
@@ -57,63 +69,22 @@ export default function EventosPage() {
     } finally {
       setIsLoading(false)
     }
-  }, [category, offset])
+  }, [category, search, offset])
 
   useEffect(() => {
     fetchEvents()
   }, [fetchEvents])
 
-  const filteredEvents = events.filter(
-    (event) =>
-      search === '' ||
-      event.title.toLowerCase().includes(search.toLowerCase()) ||
-      event.description.toLowerCase().includes(search.toLowerCase())
-  )
+  useEffect(() => {
+    setOffset(0)
+  }, [category, search])
+
 
   const totalPages = Math.ceil(totalCount / LIMIT)
   const currentPage = Math.floor(offset / LIMIT) + 1
 
   return (
     <div className="container mx-auto px-4 py-8">
-      {/* Hero Section */}
-      <div className="mb-12 text-center">
-        <div className="flex justify-center mb-4">
-          <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-primary">
-            <TrendingUp className="h-8 w-8 text-primary-foreground" />
-          </div>
-        </div>
-        <h1 className="text-4xl font-bold mb-4">Mercado de Previsoes</h1>
-        <p className="text-muted-foreground text-lg max-w-2xl mx-auto">
-          Faca suas previsoes sobre eventos do mundo real. Compre posicoes YES ou NO 
-          e ganhe se sua previsao estiver correta.
-        </p>
-      </div>
-
-      {/* Filters */}
-      <div className="flex flex-col sm:flex-row gap-4 mb-8">
-        <div className="relative flex-1">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-          <Input
-            placeholder="Buscar eventos..."
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            className="pl-10"
-          />
-        </div>
-        <Select value={category} onValueChange={(value) => { setCategory(value); setOffset(0) }}>
-          <SelectTrigger className="w-full sm:w-[200px]">
-            <SelectValue placeholder="Categoria" />
-          </SelectTrigger>
-          <SelectContent>
-            {CATEGORIES.map((cat) => (
-              <SelectItem key={cat.value} value={cat.value}>
-                {cat.label}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-      </div>
-
       {/* Events Grid */}
       {isLoading ? (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
@@ -126,17 +97,17 @@ export default function EventosPage() {
             </div>
           ))}
         </div>
-      ) : filteredEvents.length === 0 ? (
+      ) : events.length === 0 ? (
         <div className="text-center py-16">
           <p className="text-muted-foreground text-lg">Nenhum evento encontrado</p>
           <p className="text-sm text-muted-foreground mt-2">
-            Tente ajustar os filtros ou volte mais tarde
+            Tente ajustar os filtros ou tente outra busca
           </p>
         </div>
       ) : (
         <>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {filteredEvents.map((event) => (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+            {events.map((event) => (
               <EventCard key={event.id} event={event} />
             ))}
           </div>

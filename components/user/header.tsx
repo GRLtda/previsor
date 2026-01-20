@@ -1,222 +1,257 @@
-'use client'
 
+import { Suspense, useCallback, useEffect, useState } from 'react'
 import Link from 'next/link'
-import { usePathname } from 'next/navigation'
+import { usePathname, useRouter, useSearchParams } from 'next/navigation'
 import { Button } from '@/components/ui/button'
+import { Search, Menu, User, LogOut, Wallet, ScrollText } from 'lucide-react'
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
+  DropdownMenuLabel,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
+import { Avatar, AvatarFallback } from '@/components/ui/avatar'
 import { useAuth } from '@/contexts/auth-context'
-import { TrendingUp, User, Wallet, LogOut, Menu, LayoutDashboard, History } from 'lucide-react'
 import { cn } from '@/lib/utils'
+import { Input } from '@/components/ui/input'
 import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet'
-import { useState } from 'react'
 
-const navLinks = [
-  { href: '/eventos', label: 'Eventos' },
-]
+import { SubHeader } from './sub-header'
+import { AuthModal } from '@/components/auth/auth-modal'
 
-export function UserHeader() {
-  const pathname = usePathname()
-  const { user, isAuthenticated, isOtpVerified, logout, isLoading } = useAuth()
-  const [mobileOpen, setMobileOpen] = useState(false)
+function SearchInput() {
+  // Debounce hook
+  const useDebounce = (value: string, delay: number) => {
+    const [debouncedValue, setDebouncedValue] = useState(value)
 
-  const isLoggedIn = isAuthenticated && !isLoading
+    useEffect(() => {
+      const handler = setTimeout(() => {
+        setDebouncedValue(value)
+      }, delay)
+
+      return () => {
+        clearTimeout(handler)
+      }
+    }, [value, delay])
+
+    return debouncedValue
+  }
+
+  const router = useRouter()
+  const searchParams = useSearchParams()
+  const initialSearch = searchParams.get('search') || ''
+  const [value, setValue] = useState(initialSearch)
+  const debouncedValue = useDebounce(value, 500)
+
+  const createQueryString = useCallback(
+    (name: string, value: string) => {
+      const params = new URLSearchParams(searchParams.toString())
+      if (value) {
+        params.set(name, value)
+      } else {
+        params.delete(name)
+      }
+      return params.toString()
+    },
+    [searchParams]
+  )
+
+  useEffect(() => {
+    // Only push if the value has changed from what's in URL to avoid loops
+    // and only if it matches current input (handled by debounce)
+    const currentSearch = searchParams.get('search') || ''
+    if (debouncedValue !== currentSearch) {
+      router.push(`/eventos?${createQueryString('search', debouncedValue)}`)
+    }
+  }, [debouncedValue, createQueryString, router, searchParams])
+
+  const handleSearch = (term: string) => {
+    setValue(term)
+  }
 
   return (
-    <header className="sticky top-0 z-50 w-full border-b border-border bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
-      <div className="container mx-auto px-4">
-        <div className="flex h-16 items-center justify-between">
-          {/* Logo */}
-          <div className="flex items-center gap-8">
-            <Link href="/eventos" className="flex items-center gap-2">
-              <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary">
-                <TrendingUp className="h-5 w-5 text-primary-foreground" />
-              </div>
-              <span className="text-xl font-bold">Previzor</span>
+    <>
+      <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+      <Input
+        type="search"
+        placeholder="Search markets or profiles"
+        className="w-full bg-muted/50 pl-9 border-none focus-visible:ring-1"
+        value={value}
+        onChange={(e) => handleSearch(e.target.value)}
+      />
+    </>
+  )
+}
+
+export function UserHeader() {
+  const router = useRouter()
+  const pathname = usePathname()
+  const { user, isAuthenticated, isOtpVerified, isLoading, logout } = useAuth()
+
+  const [mobileOpen, setMobileOpen] = useState(false)
+  const [authModal, setAuthModal] = useState<{ isOpen: boolean; view: 'LOGIN' | 'REGISTER' | 'OTP' | 'FORGOT_PASSWORD' }>({
+    isOpen: false,
+    view: 'LOGIN',
+  })
+
+  // Force OTP if authenticated but not verified
+  useEffect(() => {
+    if (!isLoading && isAuthenticated && !isOtpVerified) {
+      setAuthModal({ isOpen: true, view: 'OTP' })
+    }
+  }, [isLoading, isAuthenticated, isOtpVerified])
+
+  const openAuthModal = (view: 'LOGIN' | 'REGISTER') => {
+    setAuthModal({ isOpen: true, view })
+  }
+
+  const isLoggedIn = isAuthenticated
+
+  const navLinks = [
+    { href: '/eventos', label: 'Markets' },
+    { href: '/live', label: 'Live' },
+    { href: '/ideas', label: 'Ideas' },
+    { href: '/api', label: 'API' },
+  ]
+
+  return (
+    <header className="sticky top-0 z-50 w-full bg-background">
+      {/* Top Bar */}
+      <div className="border-b border-border">
+        <div className="container mx-auto px-4 h-14 flex items-center justify-between gap-4">
+
+          {/* Left: Logo & Nav */}
+          <div className="flex items-center gap-6">
+            <Link href="/" className="flex items-center gap-2">
+              <span className="text-xl font-bold text-primary">Previzor</span>
             </Link>
 
-            {/* Desktop Nav */}
-            <nav className="hidden md:flex items-center gap-6">
-              {navLinks.map((link) => (
-                <Link
-                  key={link.href}
-                  href={link.href}
-                  className={cn(
-                    'text-sm font-medium transition-colors hover:text-primary',
-                    pathname === link.href
-                      ? 'text-foreground'
-                      : 'text-muted-foreground'
-                  )}
-                >
-                  {link.label}
-                </Link>
-              ))}
-            </nav>
+
           </div>
 
-          {/* Desktop Actions */}
-          <div className="hidden md:flex items-center gap-4">
+          {/* Center: Search (Hidden on small mobile) */}
+          <div className="hidden sm:flex flex-1 max-w-xl mx-4">
+            <div className="relative w-full">
+              <Suspense fallback={null}>
+                <SearchInput />
+              </Suspense>
+            </div>
+          </div>
+
+          {/* Right: Auth / Menu */}
+          <div className="flex items-center gap-2">
             {isLoggedIn ? (
-              <>
-                {isOtpVerified && user && (
-                  <Link href="/app/carteira">
-                    <Button variant="outline" size="sm" className="gap-2 bg-transparent">
-                      <Wallet className="h-4 w-4" />
-                      R$ {((user.wallet?.balance || 0) / 100).toFixed(2)}
-                    </Button>
-                  </Link>
-                )}
+              <div className="flex items-center gap-4">
+                {/* Balance Display */}
+                <div className="hidden md:flex flex-col items-end mr-2">
+                  <div className="flex items-center gap-1 text-xs text-muted-foreground">
+                    <span>Saldo</span>
+                    <div className="rounded-full border border-muted-foreground/30 p-[1px]">
+                      <span className="sr-only">Info</span>
+                      <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="w-2.5 h-2.5 opacity-70"><circle cx="12" cy="12" r="10" /><path d="M12 16v-4" /><path d="M12 8h.01" /></svg>
+                    </div>
+                  </div>
+                  <span className="text-sm font-bold text-[#00C805] tabular-nums">
+                    {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format((user?.wallet?.balance || 0) / 100)}
+                  </span>
+                </div>
+
+                {/* Deposit Button */}
+                <Button
+                  className="bg-[#0055FF] hover:bg-[#0044CC] text-white font-semibold h-9 px-6 rounded-md hidden sm:flex transition-colors"
+                >
+                  Depositar
+                </Button>
+
                 <DropdownMenu>
                   <DropdownMenuTrigger asChild>
-                    <Button variant="ghost" size="sm" className="gap-2">
-                      <User className="h-4 w-4" />
-                      {user?.full_name || user?.email?.split('@')[0] || 'Minha Conta'}
+                    <Button variant="ghost" className="relative h-9 w-9 rounded-full ml-1">
+                      <Avatar className="h-9 w-9 border border-border/50">
+                        <AvatarFallback className="bg-muted text-muted-foreground font-medium">
+                          {user?.full_name?.[0]?.toUpperCase() || 'U'}
+                        </AvatarFallback>
+                      </Avatar>
                     </Button>
                   </DropdownMenuTrigger>
-                  <DropdownMenuContent align="end" className="w-48">
-                    <DropdownMenuItem asChild>
-                      <Link href="/app" className="flex items-center gap-2">
-                        <LayoutDashboard className="h-4 w-4" />
-                        Dashboard
-                      </Link>
+                  <DropdownMenuContent className="w-56" align="end" forceMount>
+                    <DropdownMenuLabel className="font-normal">
+                      <div className="flex flex-col space-y-1">
+                        <p className="text-sm font-medium leading-none">{user?.full_name}</p>
+                        <p className="text-xs leading-none text-muted-foreground">{user?.email}</p>
+                      </div>
+                    </DropdownMenuLabel>
+                    <DropdownMenuSeparator />
+                    <DropdownMenuItem onClick={() => router.push('/app/perfil')}>
+                      <User className="mr-2 h-4 w-4" />
+                      <span>Profile</span>
                     </DropdownMenuItem>
-                    <DropdownMenuItem asChild>
-                      <Link href="/app/carteira" className="flex items-center gap-2">
-                        <Wallet className="h-4 w-4" />
-                        Carteira
-                      </Link>
+                    <DropdownMenuItem onClick={() => router.push('/app/carteira')}>
+                      <Wallet className="mr-2 h-4 w-4" />
+                      <span>Carteira</span>
                     </DropdownMenuItem>
-                    <DropdownMenuItem asChild>
-                      <Link href="/app/posicoes" className="flex items-center gap-2">
-                        <History className="h-4 w-4" />
-                        Minhas Posicoes
-                      </Link>
-                    </DropdownMenuItem>
-                    <DropdownMenuItem asChild>
-                      <Link href="/app/perfil" className="flex items-center gap-2">
-                        <User className="h-4 w-4" />
-                        Perfil
-                      </Link>
+                    <DropdownMenuItem onClick={() => router.push('/app/posicoes')}>
+                      <ScrollText className="mr-2 h-4 w-4" />
+                      <span>Minhas Previsões</span>
                     </DropdownMenuItem>
                     <DropdownMenuSeparator />
-                    <DropdownMenuItem onClick={() => logout()} className="text-destructive">
-                      <LogOut className="h-4 w-4 mr-2" />
-                      Sair
+                    <DropdownMenuItem onClick={() => logout()}>
+                      <LogOut className="mr-2 h-4 w-4" />
+                      <span>Log out</span>
                     </DropdownMenuItem>
                   </DropdownMenuContent>
                 </DropdownMenu>
-              </>
+              </div>
             ) : (
-              <>
-                <Link href="/auth/login">
-                  <Button variant="ghost" size="sm">
-                    Entrar
-                  </Button>
-                </Link>
-                <Link href="/auth/cadastro">
-                  <Button size="sm">Criar Conta</Button>
-                </Link>
-              </>
+              <div className="flex items-center gap-2">
+                <Button variant="ghost" size="sm" className="hidden sm:flex text-primary font-semibold hover:text-primary/80" onClick={() => openAuthModal('LOGIN')}>
+                  Log in
+                </Button>
+                <Button size="sm" className="font-semibold bg-primary hover:bg-primary/90 text-primary-foreground" onClick={() => openAuthModal('REGISTER')}>
+                  Sign up
+                </Button>
+              </div>
             )}
-          </div>
 
-          {/* Mobile Menu */}
-          <Sheet open={mobileOpen} onOpenChange={setMobileOpen}>
-            <SheetTrigger asChild className="md:hidden">
-              <Button variant="ghost" size="icon">
-                <Menu className="h-5 w-5" />
-              </Button>
-            </SheetTrigger>
-            <SheetContent side="right" className="w-[300px]">
-              <nav className="flex flex-col gap-4 mt-8">
-                {navLinks.map((link) => (
-                  <Link
-                    key={link.href}
-                    href={link.href}
-                    onClick={() => setMobileOpen(false)}
-                    className={cn(
-                      'text-lg font-medium transition-colors hover:text-primary',
-                      pathname === link.href
-                        ? 'text-foreground'
-                        : 'text-muted-foreground'
-                    )}
-                  >
-                    {link.label}
-                  </Link>
-                ))}
-                <hr className="my-4" />
-                {isLoggedIn ? (
-                  <>
+            {/* Mobile Menu Trigger */}
+            <Sheet open={mobileOpen} onOpenChange={setMobileOpen}>
+              <SheetTrigger asChild className="md:hidden">
+                <Button variant="ghost" size="icon">
+                  <Menu className="h-5 w-5" />
+                </Button>
+              </SheetTrigger>
+              <SheetContent side="right" className="w-[300px]">
+                <nav className="flex flex-col gap-4 mt-8">
+                  {navLinks.map((link) => (
                     <Link
-                      href="/app"
+                      key={link.href}
+                      href={link.href}
                       onClick={() => setMobileOpen(false)}
-                      className="flex items-center gap-2 text-muted-foreground hover:text-foreground"
+                      className="text-lg font-medium"
                     >
-                      <LayoutDashboard className="h-4 w-4" />
-                      Dashboard
+                      {link.label}
                     </Link>
-                    <Link
-                      href="/app/carteira"
-                      onClick={() => setMobileOpen(false)}
-                      className="flex items-center gap-2 text-muted-foreground hover:text-foreground"
-                    >
-                      <Wallet className="h-4 w-4" />
-                      Carteira
-                    </Link>
-                    <Link
-                      href="/app/posicoes"
-                      onClick={() => setMobileOpen(false)}
-                      className="flex items-center gap-2 text-muted-foreground hover:text-foreground"
-                    >
-                      <History className="h-4 w-4" />
-                      Minhas Posicoes
-                    </Link>
-                    <Link
-                      href="/app/perfil"
-                      onClick={() => setMobileOpen(false)}
-                      className="flex items-center gap-2 text-muted-foreground hover:text-foreground"
-                    >
-                      <User className="h-4 w-4" />
-                      Perfil
-                    </Link>
-                    <button
-                      onClick={() => {
-                        logout()
-                        setMobileOpen(false)
-                      }}
-                      className="flex items-center gap-2 text-destructive"
-                    >
-                      <LogOut className="h-4 w-4" />
-                      Sair
-                    </button>
-                  </>
-                ) : (
-                  <>
-                    <Link
-                      href="/auth/login"
-                      onClick={() => setMobileOpen(false)}
-                      className="text-muted-foreground hover:text-foreground"
-                    >
-                      Entrar
-                    </Link>
-                    <Link
-                      href="/auth/cadastro"
-                      onClick={() => setMobileOpen(false)}
-                    >
-                      <Button className="w-full">Criar Conta</Button>
-                    </Link>
-                  </>
-                )}
-              </nav>
-            </SheetContent>
-          </Sheet>
+                  ))}
+                  <hr className="my-4" />
+                  {!isLoggedIn && (
+                    <div className="flex flex-col gap-2">
+                      <Button variant="outline" className="w-full justify-start" onClick={() => { setMobileOpen(false); openAuthModal('LOGIN'); }}>Log in</Button>
+                      <Button className="w-full justify-start" onClick={() => { setMobileOpen(false); openAuthModal('REGISTER'); }}>Sign up</Button>
+                    </div>
+                  )}
+                </nav>
+              </SheetContent>
+            </Sheet>
+          </div>
         </div>
       </div>
+      <SubHeader />
+      <AuthModal
+        isOpen={authModal.isOpen}
+        onOpenChange={(open) => setAuthModal((prev) => ({ ...prev, isOpen: open }))}
+        defaultView={authModal.view}
+      />
     </header>
   )
 }

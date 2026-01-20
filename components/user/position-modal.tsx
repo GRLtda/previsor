@@ -107,7 +107,7 @@ export function PositionModal({ market, open, onOpenChange, onSuccess }: Positio
                 type="button"
                 onClick={() => setSide('YES')}
                 className={cn(
-                  'p-4 rounded-lg border-2 transition-all',
+                  'p-4 rounded-lg border-2 transition-all cursor-pointer',
                   side === 'YES'
                     ? 'border-green-500 bg-green-50'
                     : 'border-border hover:border-green-300'
@@ -125,7 +125,7 @@ export function PositionModal({ market, open, onOpenChange, onSuccess }: Positio
                 type="button"
                 onClick={() => setSide('NO')}
                 className={cn(
-                  'p-4 rounded-lg border-2 transition-all',
+                  'p-4 rounded-lg border-2 transition-all cursor-pointer',
                   side === 'NO'
                     ? 'border-red-500 bg-red-50'
                     : 'border-border hover:border-red-300'

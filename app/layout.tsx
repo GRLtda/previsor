@@ -8,8 +8,8 @@ const _geist = Geist({ subsets: ["latin"], variable: "--font-sans" });
 const _geistMono = Geist_Mono({ subsets: ["latin"], variable: "--font-mono" });
 
 export const metadata: Metadata = {
-  title: 'Previzor - Mercado de Previsoes',
-  description: 'Plataforma de mercado de previsoes estilo Polymarket. Faca suas apostas em eventos do mundo real.',
+  title: 'Previzor',
+  description: 'Plataforma de mercado de previsoes. Faca suas previsoes em eventos do mundo real.',
 }
 
 export default function RootLayout({

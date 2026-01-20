@@ -322,18 +322,18 @@ export const userApi = {
     ),
 
   // Events & Markets
-getEvents: (params?: { status?: string; category?: string; limit?: number; offset?: number }) =>
-  baseFetch<{ events: import('@/lib/types').Event[]; totalCount: number; limit: number; offset: number }>(
-  'user',
-  '/v1/events',
-  { params }
-  ),
-  
+  getEvents: (params?: { status?: string; category?: string; limit?: number; offset?: number }) =>
+    baseFetch<{ events: import('@/lib/types').Event[]; totalCount: number; limit: number; offset: number }>(
+      'user',
+      '/v1/events',
+      { params }
+    ),
+
   getEvent: (slug: string) =>
-  baseFetch<import('@/lib/types').Event>(
-  'user',
-  `/v1/events/${slug}`
-  ),
+    baseFetch<import('@/lib/types').Event>(
+      'user',
+      `/v1/events/${slug}`
+    ),
 
   getMarket: (id: string) =>
     baseFetch<{ success: true; data: import('@/lib/types').Market }>(
@@ -356,7 +356,7 @@ getEvents: (params?: { status?: string; category?: string; limit?: number; offse
     ),
 
   getPositions: (params?: { status?: string; marketId?: string; limit?: number; offset?: number }) =>
-    baseFetch<{ success: true; data: { positions: import('@/lib/types').Position[]; totalCount: number; limit: number; offset: number } }>(
+    baseFetch<{ positions: import('@/lib/types').Position[]; totalCount: number; limit: number; offset: number }>(
       'user',
       '/v1/me/positions',
       { params }

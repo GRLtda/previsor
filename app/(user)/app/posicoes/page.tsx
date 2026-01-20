@@ -16,9 +16,9 @@ import { Skeleton } from '@/components/ui/skeleton'
 import { StatusBadge } from '@/components/shared/status-badge'
 import { toast } from 'sonner'
 import Link from 'next/link'
-import { 
-  History, 
-  TrendingUp, 
+import {
+  History,
+  TrendingUp,
   TrendingDown,
   ExternalLink,
   ChevronLeft,
@@ -42,8 +42,8 @@ export default function PositionsPage() {
         limit: LIMIT,
         offset,
       })
-      setPositions(response.data.positions)
-      setTotalCount(response.data.totalCount)
+      setPositions(response.positions)
+      setTotalCount(response.totalCount)
     } catch (err) {
       if (err instanceof ApiClientError) {
         toast.error(err.message)
@@ -149,9 +149,9 @@ export default function PositionsPage() {
                     </div>
                     <h3 className="font-semibold mb-1">{position.marketStatement}</h3>
                     <p className="text-sm text-muted-foreground">{position.eventTitle}</p>
-                    
+
                     {position.eventSlug && (
-                      <Link 
+                      <Link
                         href={`/eventos/${position.eventSlug}`}
                         className="inline-flex items-center gap-1 text-xs text-primary hover:underline mt-2"
                       >
@@ -166,7 +166,7 @@ export default function PositionsPage() {
                     <p className="font-semibold">
                       R$ {(position.amount / 100).toFixed(2)}
                     </p>
-                    
+
                     {position.status === 'settled' && (
                       <div className="mt-2">
                         <p className="text-sm text-muted-foreground">Retorno</p>

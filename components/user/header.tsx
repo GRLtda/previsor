@@ -3,7 +3,7 @@ import { Suspense, useCallback, useEffect, useState } from 'react'
 import Link from 'next/link'
 import { usePathname, useRouter, useSearchParams } from 'next/navigation'
 import { Button } from '@/components/ui/button'
-import { Search, Menu, User, LogOut, Wallet, ScrollText } from 'lucide-react'
+import { Search, User, LogOut, Wallet, ScrollText } from 'lucide-react'
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -16,7 +16,7 @@ import { Avatar, AvatarFallback } from '@/components/ui/avatar'
 import { useAuth } from '@/contexts/auth-context'
 import { cn } from '@/lib/utils'
 import { Input } from '@/components/ui/input'
-import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet'
+
 
 import { SubHeader } from './sub-header'
 import { AuthModal } from '@/components/auth/auth-modal'
@@ -91,7 +91,6 @@ export function UserHeader() {
   const { user, isAuthenticated, isOtpVerified, isLoading, logout } = useAuth()
 
   const [mounted, setMounted] = useState(false)
-  const [mobileOpen, setMobileOpen] = useState(false)
   const [authModal, setAuthModal] = useState<{ isOpen: boolean; view: 'LOGIN' | 'REGISTER' | 'OTP' | 'FORGOT_PASSWORD' }>({
     isOpen: false,
     view: 'LOGIN',
@@ -154,7 +153,7 @@ export function UserHeader() {
             ) : isLoggedIn ? (
               <div className="flex items-center gap-4">
                 {/* Balance Display */}
-                <div className="hidden md:flex flex-col items-end mr-2">
+                <div className="flex flex-col items-end mr-2">
                   <div className="flex items-center gap-1 text-xs text-muted-foreground">
                     <span>Saldo</span>
                     <div className="rounded-full border border-muted-foreground/30 p-[1px]">
@@ -169,7 +168,7 @@ export function UserHeader() {
 
                 {/* Deposit Button */}
                 <Button
-                  className="bg-[#0055FF] hover:bg-[#0044CC] text-white font-semibold h-9 px-6 rounded-md hidden sm:flex transition-colors"
+                  className="bg-[#0055FF] hover:bg-[#0044CC] text-white font-semibold h-9 px-6 rounded-md flex transition-colors"
                 >
                   Depositar
                 </Button>
@@ -214,7 +213,7 @@ export function UserHeader() {
               </div>
             ) : (
               <div className="flex items-center gap-2">
-                <Button variant="ghost" size="sm" className="hidden sm:flex text-primary font-semibold hover:text-[#00C805] hover:bg-[#00C805]/10" onClick={() => openAuthModal('LOGIN')}>
+                <Button variant="ghost" size="sm" className="flex text-primary font-semibold hover:text-[#00C805] hover:bg-[#00C805]/10" onClick={() => openAuthModal('LOGIN')}>
                   Log in
                 </Button>
                 <Button size="sm" className="font-semibold bg-primary hover:bg-primary/90 text-primary-foreground" onClick={() => openAuthModal('REGISTER')}>
@@ -223,35 +222,7 @@ export function UserHeader() {
               </div>
             )}
 
-            {/* Mobile Menu Trigger */}
-            <Sheet open={mobileOpen} onOpenChange={setMobileOpen}>
-              <SheetTrigger asChild className="md:hidden">
-                <Button variant="ghost" size="icon">
-                  <Menu className="h-5 w-5" />
-                </Button>
-              </SheetTrigger>
-              <SheetContent side="right" className="w-[300px]">
-                <nav className="flex flex-col gap-4 mt-8">
-                  {navLinks.map((link) => (
-                    <Link
-                      key={link.href}
-                      href={link.href}
-                      onClick={() => setMobileOpen(false)}
-                      className="text-lg font-medium"
-                    >
-                      {link.label}
-                    </Link>
-                  ))}
-                  <hr className="my-4" />
-                  {!isLoggedIn && (
-                    <div className="flex flex-col gap-2">
-                      <Button variant="outline" className="w-full justify-start" onClick={() => { setMobileOpen(false); openAuthModal('LOGIN'); }}>Log in</Button>
-                      <Button className="w-full justify-start" onClick={() => { setMobileOpen(false); openAuthModal('REGISTER'); }}>Sign up</Button>
-                    </div>
-                  )}
-                </nav>
-              </SheetContent>
-            </Sheet>
+
           </div>
         </div>
       </div>

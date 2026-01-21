@@ -293,11 +293,35 @@ export const userApi = {
       '/v1/me'
     ),
 
-  updateMe: (data: { phone?: string; preferences?: { notifications?: boolean; theme?: string } }) =>
+  updateMe: (data: { full_name?: string; phone?: string; preferences?: { notifications?: boolean; theme?: string } }) =>
     baseFetch<{ success: true; data: { updated: boolean } }>(
       'user',
       '/v1/me',
       { method: 'PATCH', body: data }
+    ),
+
+  // Public profile
+  getPublicProfile: (userId: string, params?: { status?: string; limit?: number; offset?: number }) =>
+    baseFetch<{
+      success: true
+      data: {
+        userId: string
+        stats: {
+          portfolioValue: number
+          profitLoss: number
+          volume: number
+          winRate: number
+          liveMarkets: number
+          marketsTraded: number
+          openPositions: number
+        }
+        positions: import('@/lib/types').Position[]
+        totalCount: number
+      }
+    }>(
+      'user',
+      `/v1/users/${userId}`,
+      { params }
     ),
 
   changePassword: (current_password: string, new_password: string) =>

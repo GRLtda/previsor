@@ -20,6 +20,7 @@ import { Input } from '@/components/ui/input'
 
 import { SubHeader } from './sub-header'
 import { AuthModal } from '@/components/auth/auth-modal'
+import { DepositModal } from '@/components/wallet/deposit-modal'
 
 function SearchInput() {
   // Debounce hook
@@ -95,6 +96,7 @@ export function UserHeader() {
     isOpen: false,
     view: 'LOGIN',
   })
+  const [depositModalOpen, setDepositModalOpen] = useState(false)
 
   // Prevent hydration mismatch
   useEffect(() => {
@@ -152,8 +154,12 @@ export function UserHeader() {
               <div className="w-[100px] h-9" />
             ) : isLoggedIn ? (
               <div className="flex items-center gap-4">
-                {/* Balance Display */}
-                <div className="flex flex-col items-end mr-2">
+                {/* Balance Display - Clickable */}
+                <div
+                  className="flex flex-col items-end mr-2 cursor-pointer hover:opacity-80 transition-opacity"
+                  onClick={() => router.push('/app/carteira')}
+                  title="Ver carteira"
+                >
                   <div className="flex items-center gap-1 text-xs text-muted-foreground">
                     <span>Saldo</span>
                     <div className="rounded-full border border-muted-foreground/30 p-[1px]">
@@ -169,6 +175,7 @@ export function UserHeader() {
                 {/* Deposit Button */}
                 <Button
                   className="bg-[#0055FF] hover:bg-[#0044CC] text-white font-semibold h-9 px-6 rounded-md flex transition-colors"
+                  onClick={() => setDepositModalOpen(true)}
                 >
                   Depositar
                 </Button>
@@ -191,9 +198,9 @@ export function UserHeader() {
                       </div>
                     </DropdownMenuLabel>
                     <DropdownMenuSeparator />
-                    <DropdownMenuItem onClick={() => router.push('/app/perfil')}>
+                    <DropdownMenuItem onClick={() => router.push(`/u/${user?.id}`)}>
                       <User className="mr-2 h-4 w-4" />
-                      <span>Profile</span>
+                      <span>Meu Perfil</span>
                     </DropdownMenuItem>
                     <DropdownMenuItem onClick={() => router.push('/app/carteira')}>
                       <Wallet className="mr-2 h-4 w-4" />
@@ -231,6 +238,10 @@ export function UserHeader() {
         isOpen={authModal.isOpen}
         onOpenChange={(open) => setAuthModal((prev) => ({ ...prev, isOpen: open }))}
         defaultView={authModal.view}
+      />
+      <DepositModal
+        isOpen={depositModalOpen}
+        onOpenChange={setDepositModalOpen}
       />
     </header>
   )

@@ -1,130 +1,107 @@
+'use client'
+
 import Link from 'next/link'
-import { Card } from '@/components/ui/card'
-import { Badge } from '@/components/ui/badge'
-import { Button } from '@/components/ui/button'
 import type { Event, Market } from '@/lib/types'
-import { cn } from '@/lib/utils'
+import { OutcomeRow } from '@/components/events/outcome-row'
 
 interface EventCardProps {
   event: Event
 }
 
-function formatVolume(amount: number): string {
-  const value = amount / 100
-  if (value >= 1000000) {
-    return `R$ ${(value / 1000000).toFixed(1)}m`
-  }
-  if (value >= 1000) {
-    return `R$ ${(value / 1000).toFixed(0)}k`
-  }
-  return `R$ ${value.toFixed(0)}`
+// Calculate multiplier from probability (1/prob)
+function calcMultiplier(prob: number): string {
+  if (prob <= 0) return '∞'
+  const mult = 100 / prob
+  if (mult >= 100) return '100.00x'
+  return `${mult.toFixed(2)}x`
 }
 
-function MarketRow({ market }: { market: Market }) {
-  const probYesPercent = Math.round(market.probYes)
-  const probNoPercent = 100 - probYesPercent
-
-  return (
-    <div className="flex items-center justify-between gap-2 py-1.5">
-      <div className='flex items-center gap-2 flex-1 min-w-0'>
-        {/*  Optionally show market image if available in future data */}
-        <span className="text-xs font-medium text-foreground/90 truncate">
-          {market.statement}
-        </span>
-      </div>
-
-      <div className="flex items-center gap-2 shrink-0">
-        <span className="text-sm font-bold text-emerald-600 dark:text-emerald-400">
-          {probYesPercent}%
-        </span>
-        <Button
-          size="sm"
-          variant="ghost"
-          className="h-7 px-3 text-xs font-semibold bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 min-w-[50px]"
-        >
-          Yes
-        </Button>
-        <Button
-          size="sm"
-          variant="ghost"
-          className="h-7 px-3 text-xs font-semibold bg-rose-500/10 hover:bg-rose-500/20 text-rose-600 dark:text-rose-400 min-w-[50px]"
-        >
-          No
-        </Button>
-      </div>
-    </div>
-  )
+function formatDate(dateStr: string): string {
+  const date = new Date(dateStr)
+  const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
+  return `${months[date.getMonth()]} ${date.getDate().toString().padStart(2, '0')}, ${date.getHours().toString().padStart(2, '0')}:${date.getMinutes().toString().padStart(2, '0')}`
 }
 
 export function EventCard({ event }: EventCardProps) {
   const markets = event.markets || []
-  const totalVolume = markets.reduce((acc, m) => acc + m.totalPool, 0)
   const hasMarkets = markets.length > 0
-  const isLive = event.status === 'active'
+  const endDate = event.endsAt ? formatDate(event.endsAt) : null
 
   return (
-    <Card className="group relative overflow-hidden transition-all hover:ring-1 hover:ring-primary/20 bg-card border-border/40 shadow-sm hover:shadow-md">
-      <Link href={`/eventos/${event.slug}`} className="absolute inset-0 z-10" />
-
-      <div className="p-3 space-y-3">
-        {/* Header with image and title */}
-        <div className="flex items-start gap-3">
+    <Link
+      href={`/eventos/${event.slug}`}
+      className="flex hover:shadow-md cursor-pointer min-w-[341px] h-[198px] dark:hover:shadow-none hover:dark:bg-white/[7%] w-full flex-col rounded-2xl border border-black/10 dark:border-transparent bg-white px-3 pt-3 text-start hover:cursor-pointer dark:bg-white/5 pb-0 transition-all"
+    >
+      {/* Header */}
+      <div className="flex h-auto w-full flex-col gap-y-2.5 lg:gap-y-3">
+        <div className="flex gap-x-2.5 items-start">
           {/* Event Image */}
-          <div className="shrink-0 relative">
-            <div className="w-10 h-10 rounded bg-muted flex items-center justify-center overflow-hidden">
-              {event.imageUrl ? (
-                <img
-                  src={event.imageUrl}
-                  alt={event.title}
-                  className="w-full h-full object-cover"
-                />
-              ) : (
-                <span className="text-lg">📊</span>
-              )}
-            </div>
-            {/* Live indicator over image optionally or keep badge separate */}
+          <div className="size-[40px] min-w-[40px] max-w-[40px] rounded-lg overflow-hidden bg-muted flex items-center justify-center">
+            {event.imageUrl ? (
+              <img
+                alt={event.title}
+                loading="lazy"
+                width={40}
+                height={40}
+                className="size-full object-cover"
+                src={event.imageUrl}
+              />
+            ) : (
+              <span className="text-lg">📊</span>
+            )}
           </div>
 
-          {/* Title and category */}
-          <div className="flex-1 min-w-0">
-            <h3 className="font-medium text-sm leading-snug line-clamp-2 text-foreground/90 group-hover:text-primary transition-colors">
+          {/* Title */}
+          <span className="flex flex-1">
+            <span className="text-sm font-semibold dark:text-white line-clamp-2">
               {event.title}
-            </h3>
+            </span>
+          </span>
 
-            <div className="flex items-center gap-2 mt-1">
-              {isLive && (
-                <span className="flex items-center gap-1 text-[10px] text-red-500 font-bold uppercase tracking-wider">
-                  <span className="relative flex h-1.5 w-1.5">
-                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75"></span>
-                    <span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-red-500"></span>
-                  </span>
-                  Live
-                </span>
-              )}
-              <span className="text-[10px] text-muted-foreground hidden sm:inline-block">
-                {formatVolume(totalVolume)} Vol.
-              </span>
-            </div>
+          {/* Actions */}
+          <div className="ml-auto flex items-center gap-x-2">
+            {/* Favorite Button */}
+            <button
+              className="flex size-7 items-center justify-center rounded-lg transition-colors hover:bg-black/5 dark:hover:bg-white/5 hover:[&_svg]:fill-[#f2be47]"
+              onClick={(e) => {
+                e.preventDefault()
+                e.stopPropagation()
+              }}
+            >
+              <svg width="12" height="12" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <path d="M11.4421 2.9252L12.9087 5.85853C13.1087 6.26686 13.6421 6.65853 14.0921 6.73353L16.7504 7.1752C18.4504 7.45853 18.8504 8.69186 17.6254 9.90853L15.5587 11.9752C15.2087 12.3252 15.0171 13.0002 15.1254 13.4835L15.7171 16.0419C16.1837 18.0669 15.1087 18.8502 13.3171 17.7919L10.8254 16.3169C10.3754 16.0502 9.63375 16.0502 9.17541 16.3169L6.68375 17.7919C4.90041 18.8502 3.81708 18.0585 4.28375 16.0419L4.87541 13.4835C4.98375 13.0002 4.79208 12.3252 4.44208 11.9752L2.37541 9.90853C1.15875 8.69186 1.55041 7.45853 3.25041 7.1752L5.90875 6.73353C6.35041 6.65853 6.88375 6.26686 7.08375 5.85853L8.55041 2.9252C9.35041 1.33353 10.6504 1.33353 11.4421 2.9252Z" stroke="#606E85" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+              </svg>
+            </button>
+
+            {/* Time Tooltip */}
+            {endDate && (
+              <div className="flex size-7 items-center justify-center rounded-lg bg-black/5 dark:bg-white/5">
+                <svg width="12" height="13" viewBox="0 0 12 13" fill="none" xmlns="http://www.w3.org/2000/svg">
+                  <path d="M11 6.5C11 9.26 8.76 11.5 6 11.5C3.24 11.5 1 9.26 1 6.5C1 3.74 3.24 1.5 6 1.5C8.76 1.5 11 3.74 11 6.5Z" stroke="#606E85" strokeWidth="1" strokeLinecap="round" strokeLinejoin="round" />
+                  <path d="M7.85494 8.09L6.30494 7.165C6.03494 7.005 5.81494 6.62 5.81494 6.305V4.255" stroke="#606E85" strokeWidth="1" strokeLinecap="round" strokeLinejoin="round" />
+                </svg>
+              </div>
+            )}
           </div>
-        </div>
-
-        {/* Markets list - Polymarket style usually shows top outcomes vertically or horizontally */}
-        <div className="space-y-1">
-          {hasMarkets ? (
-            markets.slice(0, 2).map((market) => ( // limit to 2 markets like polymarket dashboard cards
-              <MarketRow key={market.id} market={market} />
-            ))
-          ) : (
-            <div className="py-2 text-xs text-muted-foreground text-center bg-muted/30 rounded">
-              Aguardando mercados
-            </div>
-          )}
         </div>
       </div>
 
-      {/* Separate footer not needed if volume is up top, but polymarket sometimes has it at bottom right. 
-           Keeping it simple and compact as requested. 
-       */}
-    </Card>
+      {/* Markets List */}
+      <div className="w-full flex-1">
+        <div className="max-h-[135px] overflow-y-auto">
+          <div className="mt-3 flex size-full flex-col items-center justify-center gap-y-1">
+            {hasMarkets ? (
+              markets.map((market) => (
+                <OutcomeRow key={market.id} market={market} />
+              ))
+            ) : (
+              <div className="py-4 text-xs text-muted-foreground text-center">
+                Aguardando mercados
+              </div>
+            )}
+          </div>
+        </div>
+      </div>
+    </Link>
   )
 }

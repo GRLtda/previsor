@@ -365,11 +365,33 @@ export const userApi = {
       `/v1/markets/${id}`
     ),
 
+  getQuote: (marketId: string, side: 'YES' | 'NO', amount: number) =>
+    baseFetch<{
+      success: true
+      market: { id: string; statement: string; totalPool: number; probYes: number; probNo: number }
+      quote: {
+        side: 'YES' | 'NO'
+        amount: number
+        shares: number
+        avgPrice: number
+        priceImpact: number
+        slippageWarning: boolean
+        newProbYes: number
+        newProbNo: number
+        potentialPayout: number
+      }
+    }>(
+      'user',
+      `/v1/markets/${marketId}/quote`,
+      { params: { side, amount } }
+    ),
+
   openPosition: (marketId: string, side: 'YES' | 'NO', amount: number) =>
     baseFetch<{
       success: true
       data: {
         position: import('@/lib/types').Position
+        trade: { priceImpact: number; slippageWarning: boolean }
         newBalance: number
         market: { id: string; totalPool: number; poolYes: number; poolNo: number; probYes: number; probNo: number }
       }
@@ -377,6 +399,21 @@ export const userApi = {
       'user',
       `/v1/markets/${marketId}/positions`,
       { method: 'POST', body: { side, amount } }
+    ),
+
+  closePosition: (positionId: string, shares?: number) =>
+    baseFetch<{
+      success: true
+      data: {
+        position: { id: string; marketId: string; side: string; remainingShares: number; remainingAmount: number; status: string }
+        sale: { sharesSold: number; proceeds: number; avgPrice: number; priceImpact: number }
+        newBalance: number
+        market: { id: string; totalPool: number; poolYes: number; poolNo: number; probYes: number; probNo: number }
+      }
+    }>(
+      'user',
+      `/v1/positions/${positionId}/close`,
+      { method: 'POST', body: shares ? { shares } : {} }
     ),
 
   getPositions: (params?: { status?: string; marketId?: string; limit?: number; offset?: number }) =>

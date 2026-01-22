@@ -53,20 +53,32 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     try {
       const otpOk = isOtpVerified()
       setOtpVerifiedState(otpOk)
-      
+
       if (otpOk) {
         const response = await userApi.getMe()
+
+        // Validation: Verify if we received critical user data
+        if (!response.data || !response.data.id || !response.data.email) {
+          console.error('Invalid user data received', response.data)
+          throw new Error('Invalid user data')
+        }
+
         setUser(response.data)
       }
     } catch (err) {
-      if (err instanceof ApiClientError) {
-        if (err.code === 'USER_NOT_VERIFIED') {
-          setOtpVerifiedState(false)
-        } else if (err.status === 401) {
-          clearTokens('user')
-          setUser(null)
-        }
+      console.error('Error refreshing user:', err)
+
+      // If unauthorized or invalid data, clear session
+      if (
+        (err instanceof ApiClientError && err.status === 401) ||
+        (err instanceof Error && err.message === 'Invalid user data')
+      ) {
+        clearTokens('user')
+        setUser(null)
+        setOtpVerifiedState(false)
       }
+      // For other errors (e.g. network), we keep tokens but user might be null.
+      // Ideally UI handles this via error state or retry.
     } finally {
       setIsLoading(false)
     }
@@ -87,11 +99,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       })
       setOtpVerifiedState(response.data.verified_otp)
       setOtpVerified(response.data.verified_otp)
-      
+
       if (response.data.verified_otp) {
         await refreshUser()
       }
-      
+
       return { verified_otp: response.data.verified_otp }
     } catch (err) {
       if (err instanceof ApiClientError) {

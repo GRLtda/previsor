@@ -6,25 +6,17 @@ import { useSearchParams } from 'next/navigation'
 import type { Event } from '@/lib/types'
 import { EventCard } from '@/components/user/event-card'
 import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select'
 import { Skeleton } from '@/components/ui/skeleton'
 import { ChevronLeft, ChevronRight } from 'lucide-react'
 import { toast } from 'sonner'
 
 const CATEGORIES = [
-  { value: 'all', label: 'Todas Categorias' },
-  { value: 'esportes', label: 'Esportes' },
-  { value: 'politica', label: 'Politica' },
-  { value: 'economia', label: 'Economia' },
-  { value: 'tecnologia', label: 'Tecnologia' },
-  { value: 'entretenimento', label: 'Entretenimento' },
+  { value: 'all', label: 'Todas', icon: '🌐' },
+  { value: 'esportes', label: 'Esportes', icon: '⚽' },
+  { value: 'politica', label: 'Política', icon: '🏛️' },
+  { value: 'economia', label: 'Economia', icon: '💰' },
+  { value: 'tecnologia', label: 'Tecnologia', icon: '💻' },
+  { value: 'entretenimento', label: 'Entretenimento', icon: '🎬' },
 ]
 
 const LIMIT = 12
@@ -57,7 +49,6 @@ function EventsContent() {
         limit: LIMIT,
         offset,
       })
-      // API retorna diretamente { events, totalCount, limit, offset }
       setEvents(response.events || [])
       setTotalCount(response.totalCount || 0)
     } catch (err) {
@@ -79,34 +70,67 @@ function EventsContent() {
     setOffset(0)
   }, [category, search])
 
-
   const totalPages = Math.ceil(totalCount / LIMIT)
   const currentPage = Math.floor(offset / LIMIT) + 1
 
+  // Group events by category
+  const groupedEvents = events.reduce((acc, event) => {
+    const cat = event.category || 'outros'
+    if (!acc[cat]) acc[cat] = []
+    acc[cat].push(event)
+    return acc
+  }, {} as Record<string, Event[]>)
+
+  const categoryInfo = CATEGORIES.find(c => c.value === category)
+
   return (
-    <div className="container mx-auto px-4 py-8">
-      {/* Events Grid */}
+    <div className="w-full px-4 py-6">
+      {/* Category Section */}
       {isLoading ? (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {Array.from({ length: 6 }).map((_, i) => (
-            <div key={i} className="rounded-lg border border-border p-6">
-              <Skeleton className="h-6 w-3/4 mb-4" />
-              <Skeleton className="h-4 w-full mb-2" />
-              <Skeleton className="h-4 w-2/3 mb-6" />
-              <Skeleton className="h-20 w-full" />
-            </div>
-          ))}
+        <div className="mt-5 w-full max-sm:!overflow-hidden lg:overflow-visible pt-4 dark:bg-white/[2%] bg-white rounded-[20px] px-2.5 lg:px-4 pb-4">
+          <div className="flex items-center justify-between mb-4">
+            <Skeleton className="h-10 w-40" />
+          </div>
+          <div className="grid w-full grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3.5">
+            {Array.from({ length: 6 }).map((_, i) => (
+              <Skeleton key={i} className="h-[198px] w-full rounded-2xl" />
+            ))}
+          </div>
         </div>
       ) : events.length === 0 ? (
-        <div className="text-center py-16">
-          <p className="text-muted-foreground text-lg">Nenhum evento encontrado</p>
-          <p className="text-sm text-muted-foreground mt-2">
-            Tente ajustar os filtros ou tente outra busca
-          </p>
+        <div className="mt-5 w-full pt-4 dark:bg-white/[2%] bg-white rounded-[20px] px-4 pb-8">
+          <div className="text-center py-16">
+            <svg width="85" height="83" viewBox="0 0 85 83" fill="none" xmlns="http://www.w3.org/2000/svg" className="size-20 mx-auto mb-4 opacity-60">
+              <path d="M18.8867 72.4155V25.3873V2H57.2318L74.1543 18.7958V72.4155H18.8867Z" fill="#DFE3EA" />
+              <path d="M27.126 33.3101V29.127H64.9006V33.3101H27.126Z" fill="#14161B" />
+              <path d="M27.126 41.9927V37.8096H64.9006V41.9927H27.126Z" fill="#14161B" />
+              <path d="M27.126 50.9927V46.8096H64.9006V50.9927H27.126Z" fill="#14161B" />
+            </svg>
+            <p className="text-muted-foreground text-lg">Nenhum evento encontrado</p>
+            <p className="text-sm text-muted-foreground mt-2">
+              Tente ajustar os filtros ou tente outra busca
+            </p>
+          </div>
         </div>
       ) : (
-        <>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+        <div className="mt-5 w-full max-sm:!overflow-hidden lg:overflow-visible pt-4 dark:bg-white/[2%] bg-white rounded-[20px] px-2.5 lg:px-4 pb-4">
+          {/* Header */}
+          <div className="flex items-center justify-between mb-4">
+            <div className="flex items-center">
+              <div className="flex items-center gap-1.5">
+                {/* Category Icon */}
+                <div className="flex size-10 items-center justify-center rounded-[10px] bg-blue-500/5 dark:bg-white/5">
+                  <span className="text-lg">{categoryInfo?.icon || '📊'}</span>
+                </div>
+                <h3 className="text-xl font-bold dark:text-white">
+                  {category === 'all' ? 'Todos os Eventos' : categoryInfo?.label || category}
+                </h3>
+              </div>
+            </div>
+          </div>
+
+          {/* Events Grid - ALWAYS GRID */}
+          <div className="grid w-full grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3.5">
             {events.map((event) => (
               <EventCard key={event.id} event={event} />
             ))}
@@ -120,25 +144,27 @@ function EventsContent() {
                 size="sm"
                 onClick={() => setOffset(Math.max(0, offset - LIMIT))}
                 disabled={offset === 0}
+                className="rounded-lg"
               >
                 <ChevronLeft className="h-4 w-4 mr-1" />
                 Anterior
               </Button>
               <span className="text-sm text-muted-foreground">
-                Pagina {currentPage} de {totalPages}
+                Página {currentPage} de {totalPages}
               </span>
               <Button
                 variant="outline"
                 size="sm"
                 onClick={() => setOffset(offset + LIMIT)}
                 disabled={currentPage >= totalPages}
+                className="rounded-lg"
               >
-                Proximo
+                Próximo
                 <ChevronRight className="h-4 w-4 ml-1" />
               </Button>
             </div>
           )}
-        </>
+        </div>
       )}
     </div>
   )

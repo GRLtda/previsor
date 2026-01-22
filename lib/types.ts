@@ -105,6 +105,8 @@ export interface Position {
   marketId: string
   side: 'YES' | 'NO'
   amount: number
+  shares: number
+  avgPrice: number
   status: 'active' | 'settled' | 'refunded'
   payoutAmount: number | null
   createdAt: string

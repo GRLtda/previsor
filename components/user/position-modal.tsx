@@ -24,12 +24,13 @@ interface PositionModalProps {
   open: boolean
   onOpenChange: (open: boolean) => void
   onSuccess?: (market: Market) => void
+  defaultSide?: 'YES' | 'NO'
 }
 
-export function PositionModal({ market, open, onOpenChange, onSuccess }: PositionModalProps) {
+export function PositionModal({ market, open, onOpenChange, onSuccess, defaultSide = 'YES' }: PositionModalProps) {
   const router = useRouter()
   const { isAuthenticated, isOtpVerified, user } = useAuth()
-  const [side, setSide] = useState<'YES' | 'NO'>('YES')
+  const [side, setSide] = useState<'YES' | 'NO'>(defaultSide)
   const [amount, setAmount] = useState('')
   const [isLoading, setIsLoading] = useState(false)
 
@@ -61,7 +62,8 @@ export function PositionModal({ market, open, onOpenChange, onSuccess }: Positio
     setIsLoading(true)
     try {
       const response = await userApi.openPosition(market.id, side, amountCents)
-      toast.success('Posicao aberta com sucesso!')
+      const shares = response.data.position.shares
+      toast.success(`Posição aberta! Você recebeu ${shares.toLocaleString('pt-BR')} shares.`)
       onSuccess?.({
         ...market,
         totalPool: response.data.market.totalPool,
@@ -71,6 +73,7 @@ export function PositionModal({ market, open, onOpenChange, onSuccess }: Positio
         probNo: response.data.market.probNo,
       })
       setAmount('')
+      onOpenChange(false)
     } catch (err) {
       if (err instanceof ApiClientError) {
         toast.error(err.message)

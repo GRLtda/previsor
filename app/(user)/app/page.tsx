@@ -10,10 +10,10 @@ import { Skeleton } from '@/components/ui/skeleton'
 import { StatCard } from '@/components/shared/stat-card'
 import { StatusBadge } from '@/components/shared/status-badge'
 import Link from 'next/link'
-import { 
-  Wallet as WalletIcon, 
-  TrendingUp, 
-  History, 
+import {
+  Wallet as WalletIcon,
+  TrendingUp,
+  History,
   ArrowRight,
   AlertCircle,
   User,
@@ -40,7 +40,7 @@ export default function AppDashboardPage() {
           userApi.getPositions({ limit: 5 }),
         ])
         setWallet(walletRes.data.wallet)
-        setPositions(positionsRes.data.positions)
+        setPositions(positionsRes.positions)
       } catch (err) {
         if (err instanceof ApiClientError) {
           toast.error(err.message)
@@ -173,7 +173,7 @@ export default function AppDashboardPage() {
             </CardTitle>
             <CardDescription>Suas ultimas posicoes abertas</CardDescription>
           </div>
-          <Link href="/app/posicoes">
+          <Link href={`/u/${user?.id}`}>
             <Button variant="ghost" size="sm">
               Ver Todas
               <ArrowRight className="h-4 w-4 ml-1" />

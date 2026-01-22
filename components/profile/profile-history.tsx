@@ -1,18 +1,10 @@
 'use client'
 
 import { useState } from 'react'
-import { Input } from '@/components/ui/input'
-import {
-    Select,
-    SelectContent,
-    SelectItem,
-    SelectTrigger,
-    SelectValue,
-} from '@/components/ui/select'
-import { Search, ShoppingCart, TrendingDown, XCircle } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import Link from 'next/link'
 import type { Position } from '@/lib/types'
+import { CustomSelect } from '@/components/ui/custom-select'
 
 type ActivityType = 'bought' | 'sold' | 'lost' | 'won'
 
@@ -60,162 +52,177 @@ export function ProfileHistory({ positions, isLoading = false }: ProfileHistoryP
         })
 
     const formatCurrency = (value: number) => {
-        return new Intl.NumberFormat('pt-BR', {
-            style: 'currency',
-            currency: 'BRL',
-        }).format(value / 100)
+        return `R$${(value / 100).toFixed(2).replace('.', ',')}`
     }
 
-    const formatRelativeTime = (dateStr: string) => {
+    const formatDate = (dateStr: string) => {
+        if (!dateStr) return '-'
         const date = new Date(dateStr)
-        const now = new Date()
-        const diffMs = now.getTime() - date.getTime()
-        const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24))
-
-        if (diffDays === 0) return 'hoje'
-        if (diffDays === 1) return 'há 1 dia'
-        if (diffDays < 7) return `há ${diffDays} dias`
-        if (diffDays < 30) return `há ${Math.floor(diffDays / 7)} semanas`
         return date.toLocaleDateString('pt-BR')
     }
 
-    const getActivityIcon = (type: ActivityType) => {
-        switch (type) {
-            case 'bought':
-                return <ShoppingCart className="h-4 w-4" />
-            case 'sold':
-                return <TrendingDown className="h-4 w-4" />
-            case 'lost':
-                return <XCircle className="h-4 w-4" />
-            case 'won':
-                return <ShoppingCart className="h-4 w-4" />
-        }
-    }
-
-    const getActivityLabel = (type: ActivityType) => {
-        switch (type) {
-            case 'bought': return 'Comprado'
-            case 'sold': return 'Vendido'
-            case 'lost': return 'Perdido'
-            case 'won': return 'Ganhou'
-        }
-    }
-
-    const getActivityColor = (type: ActivityType) => {
-        switch (type) {
-            case 'bought': return 'text-blue-600'
-            case 'sold': return 'text-yellow-600'
-            case 'lost': return 'text-red-600'
-            case 'won': return 'text-green-600'
-        }
-    }
+    const sortOptions = [
+        { value: 'newest', label: 'Mais Recente' },
+        { value: 'oldest', label: 'Mais Antigo' },
+    ]
 
     return (
-        <div className="space-y-4">
+        <div className="mt-2 max-h-[calc(100%-80px)] overflow-auto lg:overflow-x-hidden">
             {/* Filters */}
-            <div className="flex flex-wrap items-center gap-3">
-                <div className="relative flex-1 min-w-[200px]">
-                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                    <Input
-                        placeholder="Procurar por mercados, tópicos..."
-                        value={search}
-                        onChange={(e) => setSearch(e.target.value)}
-                        className="pl-9"
-                    />
+            <div className="mt-3 flex items-center gap-x-1.5">
+                {/* Search */}
+                <div className="flex h-10 w-full items-center justify-between rounded-lg p-3.5 text-sm transition-all border border-transparent bg-black/5 hover:bg-black/10 dark:bg-white/5 hover:dark:bg-white/10 max-sm:col-span-2">
+                    <div className="flex h-10 w-full items-center gap-x-1.5">
+                        <svg width="14" height="15" viewBox="0 0 14 15" fill="none" xmlns="http://www.w3.org/2000/svg" className="size-4">
+                            <path fillRule="evenodd" clipRule="evenodd" d="M10.631 4.47459C9.79903 2.47688 7.84973 1.17334 5.68572 1.16756C3.35344 1.15527 1.27964 2.64918 0.552616 4.86529C-0.174403 7.08139 0.611446 9.51344 2.49776 10.8851C4.38408 12.2568 6.93994 12.2548 8.82405 10.8801L12.032 14.2691C12.2029 14.4397 12.4796 14.4397 12.6504 14.2691C12.821 14.0983 12.821 13.8216 12.6504 13.6508L9.49489 10.3142C11.0151 8.77413 11.4629 6.47229 10.631 4.47459ZM9.85097 8.2661C9.15245 9.94941 7.50821 11.0458 5.68572 11.0434V11.0201C3.21222 11.0169 1.20424 9.01934 1.18822 6.54589C1.18586 4.7234 2.2822 3.07916 3.96551 2.38064C5.64882 1.68211 7.58719 2.06703 8.87589 3.35572C10.1646 4.64442 10.5495 6.5828 9.85097 8.2661Z" fill="#606e85" stroke="#606e85" strokeWidth="0.571429" />
+                        </svg>
+                        <input
+                            placeholder="Procurar por mercados, tópicos.."
+                            className="flex w-full flex-1 bg-transparent outline-none placeholder:text-black/30 dark:text-white dark:placeholder:text-white/30"
+                            type="text"
+                            value={search}
+                            onChange={(e) => setSearch(e.target.value)}
+                        />
+                    </div>
                 </div>
 
-                <div className="flex-1" />
-
-                <Select value={sortOrder} onValueChange={setSortOrder}>
-                    <SelectTrigger className="w-[160px]">
-                        <SelectValue placeholder="Ordenar" />
-                    </SelectTrigger>
-                    <SelectContent>
-                        <SelectItem value="newest">Ordenar: Mais Recente</SelectItem>
-                        <SelectItem value="oldest">Ordenar: Mais Antigo</SelectItem>
-                    </SelectContent>
-                </Select>
+                {/* Sort Dropdown */}
+                <CustomSelect
+                    options={sortOptions}
+                    value={sortOrder}
+                    onChange={setSortOrder}
+                    prefix="Ordenar"
+                    className="min-w-44"
+                />
             </div>
 
             {/* Info Banner */}
-            <div className="bg-muted/50 rounded-lg px-4 py-3 text-sm text-muted-foreground text-center">
-                Apenas mercados resolvidos são exibidos aqui. Suas previsões ativas estão disponíveis na aba Previsões.
+            <div className="mt-3 flex h-[34px] items-center justify-center rounded-lg border border-black/5 bg-transparent dark:border-none dark:bg-white/5">
+                <span className="text-xs font-medium text-muted-foreground">
+                    Apenas mercados resolvidos são exibidos aqui. Suas previsões ativas estão disponíveis na aba Previsões.
+                </span>
             </div>
 
-            {/* Activity List */}
-            <div className="rounded-lg border border-border overflow-hidden">
-                {/* Header */}
-                <div className="grid grid-cols-[120px_1fr_150px_120px] gap-4 px-4 py-3 bg-muted/30 text-sm font-medium text-muted-foreground">
-                    <div>Activity</div>
-                    <div>Mercado - Resultado Previsto</div>
-                    <div className="text-right">Previu No Valor De</div>
-                    <div className="text-right">Data De Fechamento</div>
-                </div>
-
-                {/* Items */}
-                <div className="divide-y divide-border">
+            {/* Table */}
+            <table className="h-full min-w-full divide-y divide-[#E5E5E5] dark:divide-white/5">
+                <thead className="h-11 border-[#E5E5E5] dark:border-white/5 border-t-0">
+                    <tr>
+                        <th scope="col" className="whitespace-nowrap px-6 py-3 text-left text-xs font-normal capitalize tracking-wider text-muted-foreground lg:px-3">
+                            <div className="relative w-full text-left text-xs">Activity</div>
+                        </th>
+                        <th scope="col" className="whitespace-nowrap px-6 py-3 text-left text-xs font-normal capitalize tracking-wider text-muted-foreground lg:px-3">
+                            <span className="relative ml-auto w-full text-right text-xs">Mercado - Resultado Previsto</span>
+                        </th>
+                        <th scope="col" className="whitespace-nowrap px-6 py-3 text-left text-xs font-normal capitalize tracking-wider text-muted-foreground lg:px-3">
+                            <span className="ml-auto block text-right">Previu no valor de</span>
+                        </th>
+                        <th scope="col" className="whitespace-nowrap px-6 py-3 text-left text-xs font-normal capitalize tracking-wider text-muted-foreground lg:px-3">
+                            <span className="ml-auto block text-right">Data de Fechamento</span>
+                        </th>
+                    </tr>
+                </thead>
+                <tbody>
                     {isLoading ? (
                         Array.from({ length: 3 }).map((_, i) => (
-                            <div key={i} className="px-4 py-4">
-                                <div className="animate-pulse bg-muted h-12 rounded" />
-                            </div>
+                            <tr key={i} className="lg:transition-all lg:duration-150 lg:ease-in-out cursor-default hover:bg-black/[3%] dark:lg:hover:bg-white/5">
+                                <td colSpan={4} className="px-5 py-4 text-center">
+                                    <div className="animate-pulse bg-muted h-4 w-48 mx-auto rounded" />
+                                </td>
+                            </tr>
                         ))
                     ) : filteredActivities.length === 0 ? (
-                        <div className="px-4 py-12 text-center text-muted-foreground">
-                            Nenhuma atividade encontrada
-                        </div>
+                        <tr>
+                            <td colSpan={4} className="text-center py-20 text-muted-foreground">
+                                <svg width="85" height="83" viewBox="0 0 85 83" fill="none" xmlns="http://www.w3.org/2000/svg" className="size-20 mx-auto mb-4 opacity-60">
+                                    <path d="M18.8867 72.4155V25.3873V2H57.2318L74.1543 18.7958V72.4155H18.8867Z" fill="#DFE3EA" />
+                                    <path d="M27.126 33.3101V29.127H64.9006V33.3101H27.126Z" fill="#14161B" />
+                                    <path d="M27.126 41.9927V37.8096H64.9006V41.9927H27.126Z" fill="#14161B" />
+                                    <path d="M27.126 50.9927V46.8096H64.9006V50.9927H27.126Z" fill="#14161B" />
+                                </svg>
+                                <p>Nenhuma atividade encontrada</p>
+                            </td>
+                        </tr>
                     ) : (
                         filteredActivities.map((activity) => (
-                            <div
-                                key={activity.id}
-                                className="grid grid-cols-[120px_1fr_150px_120px] gap-4 px-4 py-4 items-center hover:bg-muted/30 transition-colors"
-                            >
-                                {/* Activity Type */}
-                                <div className={cn("flex items-center gap-2", getActivityColor(activity.type))}>
-                                    {getActivityIcon(activity.type)}
-                                    <span className="text-sm font-medium">{getActivityLabel(activity.type)}</span>
-                                </div>
+                            <tr key={activity.id} className="lg:transition-all lg:duration-150 lg:ease-in-out cursor-default hover:bg-black/[3%] dark:lg:hover:bg-white/5">
+                                {/* Activity */}
+                                <td className="px-5 py-4 text-sm first-of-type:rounded-l-[10px] last-of-type:rounded-r-[10px] lg:px-3">
+                                    <span className="ml-auto block pl-1 text-right text-xs font-medium lg:text-sm">
+                                        <span className="flex items-center gap-x-1">
+                                            {/* Plus Icon */}
+                                            <svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg" className="text-green-500">
+                                                <circle cx="8" cy="8" r="7" stroke="currentColor" strokeWidth="1.5" />
+                                                <path d="M8 5V11M5 8H11" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
+                                            </svg>
+                                            Comprado
+                                        </span>
+                                    </span>
+                                </td>
 
-                                {/* Market Info */}
-                                <div className="flex items-center gap-3">
-                                    <div className="w-10 h-10 rounded-lg bg-muted flex items-center justify-center">
-                                        {activity.position.side === 'YES' ? '👍' : '👎'}
-                                    </div>
-                                    <div>
+                                {/* Mercado - Resultado Previsto */}
+                                <td className="px-5 py-4 text-sm first-of-type:rounded-l-[10px] last-of-type:rounded-r-[10px] lg:px-3">
+                                    <div className="flex items-center max-[768px]:mr-2">
                                         <Link
                                             href={`/eventos/${activity.position.eventSlug || '#'}`}
-                                            className="font-medium hover:text-primary transition-colors line-clamp-1"
+                                            className="mr-1 size-8 rounded bg-black/5 dark:bg-white/5 lg:mr-4 lg:size-[34px] flex items-center justify-center"
                                         >
-                                            {activity.position.marketStatement || 'Mercado'}
+                                            <span className={cn(
+                                                "text-sm font-bold",
+                                                activity.position.side === 'YES' ? 'text-green-600' : 'text-red-500'
+                                            )}>
+                                                {activity.position.side === 'YES' ? '↑' : '↓'}
+                                            </span>
                                         </Link>
-                                        <span className={cn(
-                                            "text-xs px-2 py-0.5 rounded-full inline-block mt-1",
-                                            activity.position.side === 'YES'
-                                                ? "bg-green-500/10 text-green-600"
-                                                : "bg-red-500/10 text-red-600"
-                                        )}>
-                                            {activity.position.side === 'YES' ? 'Sim' : 'Não'}
+                                        <div>
+                                            <Link
+                                                href={`/eventos/${activity.position.eventSlug || '#'}`}
+                                                className="flex flex-col gap-y-1"
+                                            >
+                                                <span className="w-fit max-w-[280px] truncate whitespace-nowrap text-[11px] font-medium lg:max-w-full lg:text-sm">
+                                                    {activity.position.marketStatement || 'Mercado'}
+                                                </span>
+                                            </Link>
+                                            <div className="flex items-center gap-x-1">
+                                                <span className={cn(
+                                                    "text-[11px] bg-opacity-10 max-w-96 truncate line-clamp-1 font-semibold w-fit rounded-[2px] px-1",
+                                                    activity.position.side === 'YES'
+                                                        ? "bg-green-500/10 text-green-600"
+                                                        : "bg-[#FF5A5A33] text-red-500"
+                                                )}>
+                                                    {activity.position.side === 'YES' ? 'Sim' : 'Não'}
+                                                </span>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </td>
+
+                                {/* Previu no valor de */}
+                                <td className="px-5 py-4 text-sm first-of-type:rounded-l-[10px] last-of-type:rounded-r-[10px] lg:px-3">
+                                    <div className="relative ml-auto flex flex-col items-end justify-end text-right">
+                                        <div className="flex flex-col items-end gap-x-1">
+                                            <span className="text-right text-sm font-semibold">
+                                                {formatCurrency(activity.position.amount)}
+                                            </span>
+                                            <span className="flex justify-end text-xs font-medium text-muted-foreground lg:ml-0">
+                                                {(activity.position.amount / 100).toFixed(2)} Shares
+                                            </span>
+                                        </div>
+                                    </div>
+                                </td>
+
+                                {/* Data de Fechamento */}
+                                <td className="px-5 py-4 text-sm first-of-type:rounded-l-[10px] last-of-type:rounded-r-[10px] lg:px-3">
+                                    <div className="relative ml-auto w-fit">
+                                        <span className="flex items-center text-right text-xs font-medium text-muted-foreground">
+                                            {formatDate(activity.timestamp)}
                                         </span>
                                     </div>
-                                </div>
-
-                                {/* Value */}
-                                <div className="text-right">
-                                    <p className="font-semibold">{formatCurrency(activity.position.amount)}</p>
-                                    <p className="text-xs text-muted-foreground">
-                                        {(activity.position.amount / 100).toFixed(2)} Shares
-                                    </p>
-                                </div>
-
-                                {/* Date */}
-                                <div className="text-right text-sm text-muted-foreground">
-                                    {formatRelativeTime(activity.timestamp)}
-                                </div>
-                            </div>
+                                </td>
+                            </tr>
                         ))
                     )}
-                </div>
-            </div>
+                </tbody>
+            </table>
         </div>
     )
 }

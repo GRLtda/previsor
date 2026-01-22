@@ -324,6 +324,8 @@ export default function PublicProfilePage() {
                                 <ProfilePositions
                                     positions={positions.filter(p => p.status === 'active')}
                                     isLoading={isLoading}
+                                    isOwner={isOwner}
+                                    onPositionClosed={fetchProfileData}
                                 />
                             )}
                             {activeTab === 'history' && (

@@ -282,7 +282,7 @@ export function ProfileOverview({ positions, stats, categories }: ProfileOvervie
                                             <td className="px-5 py-4 text-right">
                                                 <span className="text-xs lg:text-base font-medium">--</span>
                                                 <div className="text-xs text-muted-foreground">
-                                                    {(pos.amount / 100).toFixed(1)} Shares
+                                                    {(pos.shares || 0).toFixed(1)} Shares
                                                 </div>
                                             </td>
                                             <td className="px-5 py-4 text-right">

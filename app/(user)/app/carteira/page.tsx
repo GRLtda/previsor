@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect, useCallback, Suspense } from 'react'
-import { useSearchParams } from 'next/navigation'
+
 import Link from 'next/link'
 import { userApi, ApiClientError } from '@/lib/api/client'
 import type { Wallet, Deposit, Withdrawal } from '@/lib/types'

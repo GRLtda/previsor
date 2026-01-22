@@ -94,7 +94,7 @@ function WalletPageContent() {
       return
     }
     if (!pixKeyType || !pixKeyValue) {
-      toast.error('Preencha a chave PIX')
+      toast.error('Preencha a sua chave PIX')
       return
     }
 

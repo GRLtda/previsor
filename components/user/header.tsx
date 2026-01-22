@@ -240,7 +240,9 @@ export function UserHeader() {
       {/* Spacer for fixed header */}
       <div className="h-[60px]" />
 
-      <SubHeader />
+      <Suspense fallback={null}>
+        <SubHeader />
+      </Suspense>
 
       <AuthModal
         isOpen={authModal.isOpen}

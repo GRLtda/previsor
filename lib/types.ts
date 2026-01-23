@@ -107,6 +107,7 @@ export interface Position {
   amount: number
   shares: number
   avgPrice: number
+  currentPrice?: number // Current market price per share (for live value calculation)
   status: 'active' | 'settled' | 'refunded'
   payoutAmount: number | null
   createdAt: string

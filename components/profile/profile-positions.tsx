@@ -74,13 +74,21 @@ export function ProfilePositions({
 
         try {
             const result = await userApi.closePosition(selectedPosition.id)
+            const proceeds = result?.data?.sale?.proceeds ?? 0
             toast.success(
-                `Posição encerrada! Você recebeu ${formatCurrency(result.data.sale.proceeds)}`
+                `Posição encerrada! Você recebeu ${formatCurrency(proceeds)}`
             )
             setConfirmDialogOpen(false)
             setSelectedPosition(null)
-            onPositionClosed?.()
+
+            // Call onPositionClosed in a separate try-catch to avoid showing error toast
+            try {
+                onPositionClosed?.()
+            } catch (refreshErr) {
+                console.error('Error refreshing positions:', refreshErr)
+            }
         } catch (err) {
+            console.error('Error closing position:', err)
             if (err instanceof ApiClientError) {
                 toast.error(err.message)
             } else {
@@ -95,22 +103,26 @@ export function ProfilePositions({
     // Calculate current value and P/L for a position
     const calculateProfitLoss = (pos: Position) => {
         const shares = pos.shares || 0
-        const avgPrice = pos.avgPrice || 0  // cents per share
-        const invested = pos.amount  // total invested in cents
+        const avgPriceReais = pos.avgPrice || 0  // Entry price in reais per share (e.g., 0.68)
+        const currentPriceReais = pos.currentPrice || avgPriceReais  // Current market price in reais
+        const invested = pos.amount  // total invested in centavos
+
+        // Convert prices to centavos for calculations
+        const avgPriceCentavos = avgPriceReais * 100  // 0.68 -> 68 centavos
+        const currentPriceCentavos = currentPriceReais * 100  // 0.68 -> 68 centavos
 
         // Potential win if correct: shares * 100 centavos (R$1 per share)
         const potentialWin = shares * 100
 
-        // For current value, we'd need market data - for now estimate based on avgPrice
-        // In a real scenario, we'd fetch current market prices
-        // Using avgPrice as current proxy until we have real market data
-        const currentValue = Math.round(shares * avgPrice)
+        // Current value based on current market price (in centavos)
+        const currentValue = Math.round(shares * currentPriceCentavos)
         const profitLoss = currentValue - invested
         const profitLossPercent = invested > 0 ? (profitLoss / invested) * 100 : 0
 
         return {
             shares,
-            avgPrice,
+            avgPrice: avgPriceCentavos,  // Return in centavos for display
+            currentPrice: currentPriceCentavos,
             invested,
             potentialWin,
             currentValue,

@@ -18,6 +18,7 @@ import { toast } from 'sonner'
 import { useRouter } from 'next/navigation'
 import { TrendingUp, TrendingDown, AlertCircle, Info } from 'lucide-react'
 import { cn } from '@/lib/utils'
+import { marketEngine } from '@/lib/market-engine'
 
 interface PositionModalProps {
   market: Market
@@ -33,6 +34,10 @@ export function PositionModal({ market, open, onOpenChange, onSuccess, defaultSi
   const [side, setSide] = useState<'YES' | 'NO'>(defaultSide)
   const [amount, setAmount] = useState('')
   const [isLoading, setIsLoading] = useState(false)
+
+  // Success state management
+  const [showSuccess, setShowSuccess] = useState(false)
+  const [lastTrade, setLastTrade] = useState<{ amount: number; side: 'YES' | 'NO' } | null>(null)
 
   const amountCents = Math.round(Number.parseFloat(amount || '0') * 100)
   const balance = user?.wallet?.balance || 0
@@ -72,8 +77,11 @@ export function PositionModal({ market, open, onOpenChange, onSuccess, defaultSi
         probYes: response.data.market.probYes,
         probNo: response.data.market.probNo,
       })
+
+      setLastTrade({ amount: amountCents, side })
+      setShowSuccess(true)
       setAmount('')
-      onOpenChange(false)
+      // onOpenChange(false) - Removed to show success screen
     } catch (err) {
       if (err instanceof ApiClientError) {
         toast.error(err.message)
@@ -83,13 +91,57 @@ export function PositionModal({ market, open, onOpenChange, onSuccess, defaultSi
     }
   }
 
-  // Calculate potential payout
-  const currentPool = side === 'YES' ? market.poolYes : market.poolNo
-  const oppositePool = side === 'YES' ? market.poolNo : market.poolYes
-  const newPool = currentPool + amountCents
-  const shareOfPool = amountCents / newPool
-  const potentialPayout = amountCents > 0 ? (newPool + oppositePool) * shareOfPool : 0
-  const potentialProfit = potentialPayout - amountCents
+  // Calculate potential payout using Engine (Parimutuel Logic)
+  const estimate = marketEngine.calculatePayout(amountCents, {
+    poolYes: market.poolYes,
+    poolNo: market.poolNo,
+    totalPool: market.totalPool
+  }, side);
+
+  const potentialPayout = estimate.payout;
+  const potentialProfit = potentialPayout - amountCents;
+
+  const handleClose = () => {
+    setShowSuccess(false)
+    onOpenChange(false)
+  }
+
+  if (showSuccess && lastTrade) {
+    return (
+      <Dialog open={open} onOpenChange={(val) => { if (!val) handleClose() }}>
+        <DialogContent className="sm:max-w-[360px] p-0 border-none bg-transparent shadow-none">
+          <div className="flex flex-col border lg:dark:border-none border-black/10 rounded-[20px] bg-white p-5 dark:bg-[#1C1F26] max-h-[calc(100vh-200px)] h-auto" style={{ boxShadow: 'rgba(0, 0, 0, 0.05) 0px 8px 20px' }}>
+            <div className="custom-scroll flex min-h-0 flex-1 flex-col overflow-y-auto">
+              <div className="h-full" style={{ willChange: 'auto', opacity: 1, transform: 'none' }}>
+                <div className="flex h-full min-h-[400px] flex-col items-center justify-center text-center lg:min-h-[290px]">
+                  <div className="my-3 flex size-[92px] items-center justify-center rounded-full bg-[#0000000D] p-4 dark:bg-[#FFFFFF0D]" style={{ willChange: 'transform', transform: 'scale(1.03663)' }}>
+                    <div className="flex items-center justify-center w-full h-full text-green-500">
+                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" className="w-12 h-12 text-[#00B471]"><path d="M20 6 9 17l-5-5" /></svg>
+                    </div>
+                  </div>
+                  <h2 className="mb-4 text-xl font-bold text-triad-dark-100 dark:text-white">Previsão confirmada com sucesso!</h2>
+                  <span className="flex items-center gap-1 rounded-lg border border-[#0000001A] p-2.5 text-[13px] font-semibold text-[#0C131F] dark:border-[#FFFFFF0D] dark:text-[#FFFFFF]">
+                    Sua Previsão:
+                    <span className={cn("flex items-center justify-center gap-[2px]", lastTrade.side === 'YES' ? "text-[#00B471]" : "text-red-500")}>
+                      {lastTrade.side === 'YES' ? (
+                        <svg width="12" height="12" viewBox="0 0 12 12" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M6 11C8.75 11 11 8.75 11 6C11 3.25 8.75 1 6 1C3.25 1 1 3.25 1 6C1 8.75 3.25 11 6 11Z" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round"></path><path d="M3.875 5.99996L5.29 7.41496L8.125 4.58496" stroke="currentColor" strokeWidth="1.03571" strokeLinecap="round" strokeLinejoin="round"></path></svg>
+                      ) : (
+                        <TrendingDown className="w-3 h-3" />
+                      )}
+                      {lastTrade.side === 'YES' ? 'Sim' : 'Não'}
+                    </span>
+                  </span>
+                  <button onClick={handleClose} className="mt-7 w-full rounded-lg bg-triad-azure-200 bg-[#0091FF] hover:bg-[#007ACC] py-3 text-base font-bold text-white transition-colors">
+                    Voltar
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+    )
+  }
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>

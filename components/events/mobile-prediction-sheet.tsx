@@ -1,6 +1,4 @@
-'use client'
-
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { useAuth } from '@/contexts/auth-context'
 import { userApi, ApiClientError } from '@/lib/api/client'
 import type { Market } from '@/lib/types'
@@ -9,6 +7,7 @@ import { useRouter } from 'next/navigation'
 import { cn } from '@/lib/utils'
 import { X } from 'lucide-react'
 import { useAuthModal } from '@/contexts/auth-modal-context'
+import { DepositModal } from '@/components/wallet/deposit-modal'
 
 interface MobilePredictionSheetProps {
     market: Market | null
@@ -18,21 +17,56 @@ interface MobilePredictionSheetProps {
     onSuccess?: (market: Market) => void
 }
 
+interface Quote {
+    shares: number
+    avgPrice: number
+    priceImpact: number
+    slippageWarning: boolean
+    potentialPayout: number
+}
+
 export function MobilePredictionSheet({ market, side, open, onClose, onSuccess }: MobilePredictionSheetProps) {
     const router = useRouter()
     const { isAuthenticated, isOtpVerified, user } = useAuth()
     const { openAuthModal } = useAuthModal()
     const [amount, setAmount] = useState('')
     const [isLoading, setIsLoading] = useState(false)
+    const [quote, setQuote] = useState<Quote | null>(null)
+    const [isLoadingQuote, setIsLoadingQuote] = useState(false)
+    const [showDepositModal, setShowDepositModal] = useState(false)
 
     const amountCents = Math.round(Number.parseFloat(amount || '0') * 100)
     const balance = user?.wallet?.balance || 0
     const balanceFormatted = (balance / 100).toFixed(2)
 
-    // Reset amount when market/side changes
+    // Reset amount and quote when market/side changes
     useEffect(() => {
         setAmount('')
+        setQuote(null)
     }, [market?.id, side])
+
+    // Fetch quote when amount changes (debounced)
+    const fetchQuote = useCallback(async () => {
+        if (!market || amountCents < 100) {
+            setQuote(null)
+            return
+        }
+
+        setIsLoadingQuote(true)
+        try {
+            const response = await userApi.getQuote(market.id, side, amountCents)
+            setQuote(response.quote)
+        } catch {
+            setQuote(null)
+        } finally {
+            setIsLoadingQuote(false)
+        }
+    }, [market, side, amountCents])
+
+    useEffect(() => {
+        const timer = setTimeout(fetchQuote, 300)
+        return () => clearTimeout(timer)
+    }, [fetchQuote])
 
     if (!market || !open) return null
 
@@ -64,13 +98,14 @@ export function MobilePredictionSheet({ market, side, open, onClose, onSuccess }
             toast.success('Posição aberta com sucesso!')
             onSuccess?.({
                 ...market,
-                totalPool: response.data.market.totalPool,
-                poolYes: response.data.market.poolYes,
-                poolNo: response.data.market.poolNo,
-                probYes: response.data.market.probYes,
-                probNo: response.data.market.probNo,
+                qYes: response.market.qYes,
+                qNo: response.market.qNo,
+                liquidityB: response.market.liquidityB,
+                probYes: response.market.probYes,
+                probNo: response.market.probNo,
             })
             setAmount('')
+            setQuote(null)
             onClose()
         } catch (err) {
             if (err instanceof ApiClientError) {
@@ -176,6 +211,33 @@ export function MobilePredictionSheet({ market, side, open, onClose, onSuccess }
                                         </div>
                                     </div>
 
+                                    {/* Quote Preview - Simplified "To Win" Style */}
+                                    {quote && amountCents >= 100 && (
+                                        <div className="mt-4 mb-2 flex flex-col items-center justify-center space-y-1 animate-in fade-in zoom-in-95">
+                                            <span className="text-sm font-medium text-[#606E85] dark:text-[#A1A7BB]">
+                                                Retorno Estimado
+                                            </span>
+                                            <div className="flex items-center gap-1.5">
+                                                <span className="text-4xl font-bold text-[#00B471] tracking-tight">
+                                                    R$ {(quote.potentialPayout / 100).toFixed(2)}
+                                                </span>
+                                            </div>
+                                            <div className="flex items-center gap-2 text-xs text-[#606E85] dark:text-[#A1A7BB] mt-1">
+                                                <span className="flex items-center gap-1">
+                                                    <span>Preço Médio:</span>
+                                                    <span className="font-medium text-black dark:text-white">
+                                                        R$ {quote.avgPrice.toFixed(2)}
+                                                    </span>
+                                                </span>
+                                                {quote.slippageWarning && (
+                                                    <span className="text-amber-500 font-medium">
+                                                        • Slippage {quote.priceImpact.toFixed(1)}%
+                                                    </span>
+                                                )}
+                                            </div>
+                                        </div>
+                                    )}
+
                                     {/* Quick Amount Buttons - Mobile */}
                                     <div className="w-full items-center gap-x-1 flex">
                                         <div className="w-full items-center justify-between gap-x-[7px] pt-4 flex">
@@ -222,16 +284,20 @@ export function MobilePredictionSheet({ market, side, open, onClose, onSuccess }
                                         </button>
                                     ) : (
                                         <button
-                                            onClick={handleSubmit}
-                                            disabled={buttonDisabled}
+                                            onClick={amountCents > balance ? () => setShowDepositModal(true) : handleSubmit}
+                                            disabled={buttonDisabled && !(amountCents > balance)}
                                             className={cn(
-                                                "gap-x-2 flex items-center justify-center transition duration-200 ease-linear outline-none text-base py-2.5 px-5 h-full min-h-12 mt-4 max-h-12 w-full rounded-[10px] border-transparent font-medium text-white",
-                                                buttonDisabled
-                                                    ? "cursor-not-allowed bg-black/10 dark:bg-white/10 text-black/60 dark:text-white/60"
-                                                    : buttonColor
+                                                "gap-x-2 flex items-center justify-center transition duration-200 ease-linear outline-none text-base py-2.5 px-5 h-full min-h-12 mt-4 max-h-12 w-full rounded-[10px] border-transparent font-bold text-white",
+                                                amountCents > balance
+                                                    ? "bg-[#0055FF] hover:bg-[#0044CC]"
+                                                    : buttonDisabled
+                                                        ? "cursor-not-allowed bg-black/10 dark:bg-white/10 text-black/60 dark:text-white/60"
+                                                        : buttonColor
                                             )}
                                         >
-                                            {isLoading ? 'Processando...' : `${side}  R$ ${amount || '0'}`}
+                                            {isLoading ? 'Processando...' :
+                                                amountCents > balance ? 'Depositar' :
+                                                    `${isYes ? 'Sim' : 'Não'} R$ ${amount || '0'}`}
                                         </button>
                                     )}
                                 </div>
@@ -239,6 +305,11 @@ export function MobilePredictionSheet({ market, side, open, onClose, onSuccess }
                         </div>
                     </div>
                 </div>
+
+                <DepositModal
+                    isOpen={showDepositModal}
+                    onOpenChange={setShowDepositModal}
+                />
             </div>
         </div>
     )

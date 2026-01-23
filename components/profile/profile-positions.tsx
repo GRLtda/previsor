@@ -114,15 +114,28 @@ export function ProfilePositions({
         // Potential win if correct: shares * 100 centavos (R$1 per share)
         const potentialWin = shares * 100
 
-        // Current value based on current market price (in centavos)
-        const currentValue = Math.round(shares * currentPriceCentavos)
+        // Current value logic:
+        // Prioritize backend-calculated 'currentSellValue' which includes slippage.
+        // Fallback to estimate: shares * currentPriceCentavos
+        let currentValue = 0;
+        let effectiveCurrentPrice = 0;
+
+        if (pos.currentSellValue !== undefined) {
+            currentValue = Math.round(pos.currentSellValue * 100); // Backend sends Reais, convert to centavos
+            effectiveCurrentPrice = pos.currentSellPrice ? Math.round(pos.currentSellPrice * 100) : 0;
+        } else {
+            // Fallback estimate
+            currentValue = Math.round(shares * currentPriceCentavos);
+            effectiveCurrentPrice = currentPriceCentavos;
+        }
+
         const profitLoss = currentValue - invested
         const profitLossPercent = invested > 0 ? (profitLoss / invested) * 100 : 0
 
         return {
             shares,
             avgPrice: avgPriceCentavos,  // Return in centavos for display
-            currentPrice: currentPriceCentavos,
+            currentPrice: effectiveCurrentPrice,
             invested,
             potentialWin,
             currentValue,
@@ -268,7 +281,7 @@ export function ProfilePositions({
                                         <td className="px-5 text-sm first-of-type:rounded-l-lg last-of-type:rounded-r-lg lg:px-5 py-5">
                                             <div className="relative left-1 ml-auto flex w-fit items-center">
                                                 <span className="whitespace-nowrap text-right text-xs font-semibold text-muted-foreground lg:text-sm">
-                                                    {calc.avgPrice > 0 ? formatCents(calc.avgPrice) : '--'}
+                                                    {calc.avgPrice > 0 ? formatCurrency(calc.avgPrice) : '--'}
                                                 </span>
                                             </div>
                                         </td>

@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect, use } from 'react'
-import { useRouter } from 'next/navigation'
+import { useRouter, useSearchParams } from 'next/navigation'
 import { userApi, ApiClientError } from '@/lib/api/client'
 import type { Event, Market } from '@/lib/types'
 import { Skeleton } from '@/components/ui/skeleton'
@@ -38,6 +38,10 @@ export default function EventDetailPage({ params }: PageProps) {
   const [selectedMarket, setSelectedMarket] = useState<Market | null>(null)
   const [selectedSide, setSelectedSide] = useState<'YES' | 'NO'>('YES')
   const [showFullRules, setShowFullRules] = useState(false)
+  const [isFavorite, setIsFavorite] = useState(false)
+  const [isFavoriteLoading, setIsFavoriteLoading] = useState(false)
+
+  const searchParams = useSearchParams()
 
   useEffect(() => {
     async function fetchEvent() {
@@ -45,10 +49,34 @@ export default function EventDetailPage({ params }: PageProps) {
       try {
         const fetchedEvent = await userApi.getEvent(slug)
         setEvent(fetchedEvent)
-        // Initialize with first market + YES
+
+        // Params Handling
+        const paramMarketId = searchParams.get('marketId')
+        const paramSide = searchParams.get('side') as 'YES' | 'NO' | null
+
         if (fetchedEvent.markets && fetchedEvent.markets.length > 0) {
-          setSelectedMarket(fetchedEvent.markets[0])
-          setSelectedSide('YES')
+          let defaultMarket = fetchedEvent.markets[0]
+
+          if (paramMarketId) {
+            const found = fetchedEvent.markets.find(m => m.id === paramMarketId)
+            if (found) defaultMarket = found
+          }
+
+          setSelectedMarket(defaultMarket)
+          if (paramSide === 'YES' || paramSide === 'NO') {
+            setSelectedSide(paramSide)
+          } else {
+            setSelectedSide('YES')
+          }
+        }
+
+        // Check if event is favorited (only if user is logged in)
+        try {
+          const favResponse = await userApi.getFavorites({ limit: 100 })
+          const isFav = favResponse.data.favorites.some(f => f.id === fetchedEvent.id)
+          setIsFavorite(isFav)
+        } catch {
+          // User not logged in or error - ignore
         }
       } catch (err) {
         if (err instanceof ApiClientError) {
@@ -62,7 +90,7 @@ export default function EventDetailPage({ params }: PageProps) {
       }
     }
     fetchEvent()
-  }, [slug, router])
+  }, [slug, router, searchParams])
 
   const handleMarketUpdate = (updatedMarket: Market) => {
     if (event) {
@@ -83,6 +111,21 @@ export default function EventDetailPage({ params }: PageProps) {
   const copyLink = () => {
     navigator.clipboard.writeText(window.location.href)
     toast.success('Link copiado!')
+  }
+
+  const handleFavoriteToggle = async () => {
+    if (!event || isFavoriteLoading) return
+
+    setIsFavoriteLoading(true)
+    try {
+      const response = await userApi.toggleFavorite(event.id)
+      setIsFavorite(response.data.isFavorite)
+      toast.success(response.data.isFavorite ? 'Adicionado aos favoritos' : 'Removido dos favoritos')
+    } catch {
+      toast.error('Erro ao atualizar favorito')
+    } finally {
+      setIsFavoriteLoading(false)
+    }
   }
 
   if (isLoading) {
@@ -108,7 +151,8 @@ export default function EventDetailPage({ params }: PageProps) {
     return null
   }
 
-  const totalVolume = event.markets?.reduce((acc, m) => acc + m.totalPool, 0) || 0
+  /* Volume calculation to be implemented for LMSR. Using 0 for now or liquidityB as placeholder? */
+  const totalVolume = 0 // event.markets?.reduce((acc, m) => acc + (m.liquidityB || 0), 0) || 0
   const closestMarketClose = event.markets?.length
     ? new Date(Math.min(...event.markets.map(m => new Date(m.closesAt).getTime())))
     : new Date(event.endsAt)
@@ -213,8 +257,12 @@ export default function EventDetailPage({ params }: PageProps) {
 
           {/* Action Buttons */}
           <div className="hidden items-center justify-between gap-2 lg:flex lg:justify-end ml-auto">
-            <button className="flex size-[30px] items-center justify-center rounded-md hover:bg-black/5 hover:dark:bg-white/5">
-              <Star className="size-5" />
+            <button
+              onClick={handleFavoriteToggle}
+              disabled={isFavoriteLoading}
+              className={`flex size-[30px] items-center justify-center rounded-md hover:bg-black/5 hover:dark:bg-white/5 ${isFavoriteLoading ? 'opacity-50' : ''}`}
+            >
+              <Star className="size-5" fill={isFavorite ? '#f2be47' : 'none'} color={isFavorite ? '#f2be47' : 'currentColor'} />
             </button>
             <button
               onClick={copyLink}
@@ -268,9 +316,13 @@ export default function EventDetailPage({ params }: PageProps) {
 
         {/* Mobile Action Buttons */}
         <div className="my-4 flex gap-2 lg:hidden">
-          <button className="flex w-[180px] flex-1 items-center justify-start gap-2 rounded-[10px] border border-black/10 p-3 text-sm font-medium dark:bg-white/5 dark:text-white">
-            <Star className="size-[18px]" />
-            Favoritar
+          <button
+            onClick={handleFavoriteToggle}
+            disabled={isFavoriteLoading}
+            className={`flex w-[180px] flex-1 items-center justify-start gap-2 rounded-[10px] border border-black/10 p-3 text-sm font-medium dark:bg-white/5 dark:text-white ${isFavoriteLoading ? 'opacity-50' : ''}`}
+          >
+            <Star className="size-[18px]" fill={isFavorite ? '#f2be47' : 'none'} color={isFavorite ? '#f2be47' : 'currentColor'} />
+            {isFavorite ? 'Favoritado' : 'Favoritar'}
           </button>
           <button
             onClick={copyLink}

@@ -1,11 +1,12 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { cn } from '@/lib/utils'
 import { Copy, Check, Loader2 } from 'lucide-react'
 import { userApi, ApiClientError } from '@/lib/api/client'
 import { useAuth } from '@/contexts/auth-context'
 import type { Deposit } from '@/lib/types'
+import { createPortal } from 'react-dom'
 
 interface DepositModalProps {
     isOpen: boolean
@@ -22,6 +23,11 @@ export function DepositModal({ isOpen, onOpenChange }: DepositModalProps) {
     const [error, setError] = useState<string | null>(null)
     const [deposit, setDeposit] = useState<Deposit | null>(null)
     const [copied, setCopied] = useState(false)
+    const [mounted, setMounted] = useState(false)
+
+    useEffect(() => {
+        setMounted(true)
+    }, [])
 
     const amountNumber = parseFloat(amount.replace(',', '.') || '0')
 
@@ -115,9 +121,9 @@ export function DepositModal({ isOpen, onOpenChange }: DepositModalProps) {
         handleClose()
     }
 
-    if (!isOpen) return null
+    if (!isOpen || !mounted) return null
 
-    return (
+    return createPortal(
         <>
             {/* Backdrop */}
             <div
@@ -148,11 +154,7 @@ export function DepositModal({ isOpen, onOpenChange }: DepositModalProps) {
                                     className="mt-2.5 flex w-full items-center gap-x-3 rounded-xl border border-black/10 p-4 transition-all duration-100 ease-in hover:bg-black/10 dark:border-none dark:bg-white/5 dark:hover:bg-white/10 sm:gap-x-5 sm:px-5"
                                 >
                                     <div className="flex h-10 w-20 items-center justify-center">
-                                        <svg width="68" height="24" viewBox="0 0 68 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                                            <path d="M17.7608 8.66959L14.1481 12.3135L17.7608 15.9573C18.6266 16.8304 19.8828 16.8304 20.7486 15.9573L22.8037 13.8832C23.6695 13.0101 23.6695 11.6169 22.8037 10.7438L20.7486 8.66959C19.8828 7.79647 18.4964 7.79647 17.7608 8.66959Z" fill="#32BCAD" />
-                                            <path d="M5.19895 8.66959L3.14383 10.7438C2.27808 11.6169 2.27808 13.0101 3.14383 13.8832L5.19895 15.9573C6.06469 16.8304 7.32091 16.8304 8.18665 15.9573L11.7994 12.3135L8.18665 8.66959C7.32091 7.79647 5.93427 7.79647 5.19895 8.66959Z" fill="#32BCAD" />
-                                            <path d="M14.1481 12.3135L11.7994 14.6836C11.0641 15.4261 9.80785 15.4261 8.94211 14.6836L6.98117 12.7066C6.85074 12.5759 6.85074 12.3135 6.98117 12.1829L11.7994 7.33386C12.0299 7.10272 12.3905 7.10272 12.6211 7.33386L14.1481 8.66959C14.2785 8.80021 14.2785 9.06259 14.1481 9.19322L10.9331 12.3135L14.1481 15.4337C14.2785 15.5644 14.2785 15.8267 14.1481 15.9573L12.6211 17.293C12.3905 17.5242 12.0299 17.5242 11.7994 17.293L6.98117 12.444C6.85074 12.3135 6.85074 12.0511 6.98117 11.9204L8.94211 9.94335C9.80785 9.20084 11.0641 9.20084 11.7994 9.94335L14.1481 12.3135Z" fill="#32BCAD" />
-                                        </svg>
+                                        <img src="/assets/img/pix-logo-modal.png" alt="Pix" className="h-8 object-contain" />
                                     </div>
                                     <div className="h-11 w-[1px] bg-black/10 dark:bg-white/10" />
                                     <div className="flex flex-1 flex-col space-y-1 text-left">
@@ -355,6 +357,7 @@ export function DepositModal({ isOpen, onOpenChange }: DepositModalProps) {
                     )}
                 </div>
             </div>
-        </>
+        </>,
+        document.body
     )
 }

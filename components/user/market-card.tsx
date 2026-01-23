@@ -3,12 +3,12 @@
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
-import { Progress } from '@/components/ui/progress'
-import { Clock, TrendingUp, TrendingDown } from 'lucide-react'
+import { TrendingUp, TrendingDown, Clock } from 'lucide-react'
 import type { Market } from '@/lib/types'
 import { format } from 'date-fns'
 import { ptBR } from 'date-fns/locale'
 import { StatusBadge } from '@/components/shared/status-badge'
+import { marketEngine } from '@/lib/market-engine'
 
 interface MarketCardProps {
   market: Market
@@ -19,6 +19,9 @@ interface MarketCardProps {
 export function MarketCard({ market, onOpenPosition, showEvent = false }: MarketCardProps) {
   const isOpen = market.status === 'open'
   const isSettled = market.status === 'settled'
+
+  // Calculate Liquidity/Net Invested
+  const liquidity = marketEngine.getNetInvested(market)
 
   return (
     <Card className={isOpen ? 'border-primary/30' : ''}>
@@ -59,24 +62,24 @@ export function MarketCard({ market, onOpenPosition, showEvent = false }: Market
           </div>
         </div>
 
-        {/* Pool Info */}
+        {/* Pool Info -> Liquidity Info */}
         <div className="grid grid-cols-3 gap-2 text-center text-sm">
           <div className="bg-green-50 rounded-lg p-2">
-            <p className="text-xs text-muted-foreground">Pool YES</p>
+            <p className="text-xs text-muted-foreground">Shares YES</p>
             <p className="font-semibold text-green-700">
-              R$ {(market.poolYes / 100).toLocaleString('pt-BR', { minimumFractionDigits: 0 })}
+              {market.qYes?.toLocaleString('pt-BR') || 0}
             </p>
           </div>
           <div className="bg-muted rounded-lg p-2">
-            <p className="text-xs text-muted-foreground">Total</p>
+            <p className="text-xs text-muted-foreground">Liquidez</p>
             <p className="font-semibold">
-              R$ {(market.totalPool / 100).toLocaleString('pt-BR', { minimumFractionDigits: 0 })}
+              R$ {(liquidity / 100).toLocaleString('pt-BR', { minimumFractionDigits: 0 })}
             </p>
           </div>
           <div className="bg-red-50 rounded-lg p-2">
-            <p className="text-xs text-muted-foreground">Pool NO</p>
+            <p className="text-xs text-muted-foreground">Shares NO</p>
             <p className="font-semibold text-red-700">
-              R$ {(market.poolNo / 100).toLocaleString('pt-BR', { minimumFractionDigits: 0 })}
+              {market.qNo?.toLocaleString('pt-BR') || 0}
             </p>
           </div>
         </div>

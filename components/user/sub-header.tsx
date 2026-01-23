@@ -42,10 +42,17 @@ export function SubHeader() {
         { label: 'Economia', href: '/eventos?category=economics', icon: TrendingUp },
     ]
 
+    // Only show SubHeader on home page and eventos list page
+    const shouldShow = pathname === '/' || pathname === '/eventos'
+
+    if (!shouldShow) {
+        return null
+    }
+
     return (
-        <div className="w-full border-b border-border bg-background">
+        <div className="w-full bg-white dark:bg-[#0E1117]">
             <div className="container mx-auto px-4">
-                <div className="flex items-center justify-center gap-4 py-3 overflow-x-auto no-scrollbar">
+                <div className="flex items-center justify-center gap-4 py-1.5 overflow-x-auto no-scrollbar">
                     {categories.map((category) => {
                         const Icon = category.icon
                         const active = isActive(category.href)
@@ -54,10 +61,10 @@ export function SubHeader() {
                                 key={category.label}
                                 href={category.href}
                                 className={cn(
-                                    "flex items-center gap-2 min-h-11 rounded-[10px] px-4 transition-all duration-200 whitespace-nowrap",
+                                    "flex items-center gap-2 min-h-9 rounded-[10px] px-3 transition-all duration-200 whitespace-nowrap text-[13px]",
                                     active
                                         ? "bg-blue-50 text-blue-600 dark:bg-blue-500/10 dark:text-blue-400 font-semibold"
-                                        : "text-[13px] font-medium text-[#606E85] dark:text-white/70 hover:text-foreground hover:bg-black/[3%] dark:hover:bg-white/[3%]"
+                                        : "font-medium text-[#606E85] dark:text-white/70 hover:text-foreground hover:bg-black/[3%] dark:hover:bg-white/[3%]"
                                 )}
                             >
                                 <Icon className="size-4" />

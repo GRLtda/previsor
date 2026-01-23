@@ -84,9 +84,9 @@ export interface Market {
   closesAt: string
   resolvesAt?: string
   feeBps?: number
-  totalPool: number
-  poolYes: number
-  poolNo: number
+  qYes: number
+  qNo: number
+  liquidityB: number
   probYes: number
   probNo: number
   result: 'YES' | 'NO' | null
@@ -108,6 +108,8 @@ export interface Position {
   shares: number
   avgPrice: number
   currentPrice?: number // Current market price per share (for live value calculation)
+  currentSellValue?: number // Accurate real-time sell value from backend
+  currentSellPrice?: number // Accurate real-time sell price from backend
   status: 'active' | 'settled' | 'refunded'
   payoutAmount: number | null
   createdAt: string

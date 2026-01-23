@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect, useCallback, Suspense } from 'react'
-import { userApi, ApiClientError } from '@/lib/api/client'
+import { userApi, ApiClientError, getTokens } from '@/lib/api/client'
 import { useSearchParams } from 'next/navigation'
 import type { Event } from '@/lib/types'
 import { EventCard } from '@/components/user/event-card'
@@ -35,6 +35,7 @@ function EventsContent() {
   const [isLoading, setIsLoading] = useState(true)
   const [totalCount, setTotalCount] = useState(0)
   const [offset, setOffset] = useState(0)
+  const [favoriteEventIds, setFavoriteEventIds] = useState<Set<string>>(new Set())
 
   const category = searchParams.get('category') || 'all'
   const search = searchParams.get('search') || ''
@@ -62,24 +63,42 @@ function EventsContent() {
     }
   }, [category, search, offset])
 
+  const fetchFavorites = useCallback(async () => {
+    // Only fetch favorites if user is logged in
+    if (!getTokens('user')) return
+
+    try {
+      const response = await userApi.getFavorites({ limit: 100 })
+      const ids = new Set(response.data.favorites.map(f => f.id))
+      setFavoriteEventIds(ids)
+    } catch {
+      // Silently fail - user might not be logged in
+    }
+  }, [])
+
   useEffect(() => {
     fetchEvents()
-  }, [fetchEvents])
+    fetchFavorites()
+  }, [fetchEvents, fetchFavorites])
 
   useEffect(() => {
     setOffset(0)
   }, [category, search])
 
+  const handleFavoriteChange = (eventId: string, isFavorite: boolean) => {
+    setFavoriteEventIds(prev => {
+      const next = new Set(prev)
+      if (isFavorite) {
+        next.add(eventId)
+      } else {
+        next.delete(eventId)
+      }
+      return next
+    })
+  }
+
   const totalPages = Math.ceil(totalCount / LIMIT)
   const currentPage = Math.floor(offset / LIMIT) + 1
-
-  // Group events by category
-  const groupedEvents = events.reduce((acc, event) => {
-    const cat = event.category || 'outros'
-    if (!acc[cat]) acc[cat] = []
-    acc[cat].push(event)
-    return acc
-  }, {} as Record<string, Event[]>)
 
   const categoryInfo = CATEGORIES.find(c => c.value === category)
 
@@ -132,7 +151,12 @@ function EventsContent() {
           {/* Events Grid - ALWAYS GRID */}
           <div className="grid w-full grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3.5">
             {events.map((event) => (
-              <EventCard key={event.id} event={event} />
+              <EventCard
+                key={event.id}
+                event={event}
+                isFavorite={favoriteEventIds.has(event.id)}
+                onFavoriteChange={handleFavoriteChange}
+              />
             ))}
           </div>
 

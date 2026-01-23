@@ -8,6 +8,7 @@ import { toast } from 'sonner'
 import { useRouter } from 'next/navigation'
 import { cn } from '@/lib/utils'
 import { useAuthModal } from '@/contexts/auth-modal-context'
+import { DepositModal } from '@/components/wallet/deposit-modal'
 
 interface PredictionPanelProps {
     market: Market
@@ -35,6 +36,9 @@ export function PredictionPanel({ market, side, onSuccess }: PredictionPanelProp
     const amountCents = Math.round(Number.parseFloat(amount || '0') * 100)
     const balance = user?.wallet?.balance || 0
     const balanceFormatted = (balance / 100).toFixed(2)
+
+    const [showSuccess, setShowSuccess] = useState(false)
+    const [showDepositModal, setShowDepositModal] = useState(false)
 
     // Reset amount and quote when market/side changes
     useEffect(() => {
@@ -90,18 +94,19 @@ export function PredictionPanel({ market, side, onSuccess }: PredictionPanelProp
         setIsLoading(true)
         try {
             const response = await userApi.openPosition(market.id, side, amountCents)
-            const shares = response.data.position.shares
+            const shares = response.position.shares
             toast.success(`Posição aberta! Você recebeu ${shares} shares.`)
             onSuccess?.({
                 ...market,
-                totalPool: response.data.market.totalPool,
-                poolYes: response.data.market.poolYes,
-                poolNo: response.data.market.poolNo,
-                probYes: response.data.market.probYes,
-                probNo: response.data.market.probNo,
+                qYes: response.market.qYes,
+                qNo: response.market.qNo,
+                liquidityB: response.market.liquidityB,
+                probYes: response.market.probYes,
+                probNo: response.market.probNo,
             })
-            setAmount('')
-            setQuote(null)
+            setShowSuccess(true)
+            // setAmount('') // Keep amount until return? Or clear? Return clears it.
+            // setQuote(null)
         } catch (err) {
             if (err instanceof ApiClientError) {
                 toast.error(err.message)
@@ -125,9 +130,64 @@ export function PredictionPanel({ market, side, onSuccess }: PredictionPanelProp
         setAmount(rawValue)
     }
 
+    // Handle return from success screen
+    const handleReturn = () => {
+        setShowSuccess(false)
+        setAmount('')
+        setQuote(null)
+    }
+
     const isYes = side === 'YES'
     const buttonColor = isYes ? 'bg-[#00B471] hover:bg-[#00A366]' : 'bg-[#EE5F67] hover:bg-[#D6555D]'
     const buttonDisabled = isLoading || amountCents < 100
+
+    if (showSuccess) {
+        return (
+            <div className="hidden lg:block w-full max-w-[360px] shrink-0 mt-[20px]">
+                <div className="flex flex-col border lg:dark:border-none border-black/10 rounded-[20px] bg-white p-5 dark:bg-white/5 max-h-[calc(100vh-200px)] h-auto animate-in zoom-in-95 fade-in duration-300" style={{ boxShadow: 'rgba(0, 0, 0, 0.05) 0px 8px 20px' }}>
+                    <div className="custom-scroll flex min-h-0 flex-1 flex-col overflow-y-auto">
+                        <div className="h-full" style={{ willChange: 'auto', opacity: 1, transform: 'none' }}>
+                            <div className="flex h-full min-h-[400px] flex-col items-center justify-center text-center lg:min-h-[290px]">
+                                <div className="my-3 flex size-[92px] items-center justify-center rounded-full bg-[#0000000D] p-4 dark:bg-[#FFFFFF0D]" style={{ willChange: 'transform', transform: 'scale(1.03663)' }}>
+                                    {/* Using standard img for now as asset path is in public */}
+                                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                                    <img alt="Success" src="/assets/img/success-check.png" />
+                                </div>
+                                <h2 className="mb-4 text-xl font-bold text-black dark:text-white">Previsão confirmada com sucesso!</h2>
+                                <span className="flex items-center gap-1 rounded-lg border border-[#0000001A] p-2.5 text-[13px] font-semibold text-[#0C131F] dark:border-[#FFFFFF0D] dark:text-[#FFFFFF]">
+                                    Sua Previsão:
+                                    <span className={cn("flex items-center justify-center gap-[2px]", isYes ? "text-[#00B471]" : "text-[#EE5F67]")}>
+                                        {isYes ? (
+                                            <svg width="12" height="12" viewBox="0 0 12 12" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                                <path d="M6 11C8.75 11 11 8.75 11 6C11 3.25 8.75 1 6 1C3.25 1 1 3.25 1 6C1 8.75 3.25 11 6 11Z" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round"></path>
+                                                <path d="M3.875 5.99996L5.29 7.41496L8.125 4.58496" stroke="currentColor" strokeWidth="1.03571" strokeLinecap="round" strokeLinejoin="round"></path>
+                                            </svg>
+                                        ) : (
+                                            <svg width="12" height="12" viewBox="0 0 12 12" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                                <path d="M6 11C8.75 11 11 8.75 11 6C11 3.25 8.75 1 6 1C3.25 1 1 3.25 1 6C1 8.75 3.25 11 6 11Z" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round"></path>
+                                                <path d="M4.58496 7.41496L7.41496 4.58496" stroke="currentColor" strokeWidth="1.03571" strokeLinecap="round" strokeLinejoin="round"></path>
+                                                <path d="M7.41496 7.41496L4.58496 4.58496" stroke="currentColor" strokeWidth="0.776786" strokeLinecap="round" strokeLinejoin="round"></path>
+                                            </svg>
+                                        )}
+                                        {isYes ? 'Sim' : 'Não'}
+                                    </span>
+                                </span>
+                                <button
+                                    onClick={handleReturn}
+                                    className="mt-7 w-full rounded-lg bg-[#0091FF] py-3 text-base font-bold text-white hover:bg-[#007ACC] transition-colors"
+                                >
+                                    Voltar
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div className="mt-5 hidden text-center text-xs text-[#606E85] dark:text-[#A1A7BB] lg:block">
+                    Ao realizar uma previsão, você aceita os <a target="_blank" className="underline" href="/termos">Termos de Serviço</a>.
+                </div>
+            </div>
+        )
+    }
 
     return (
         // Part of page layout - NOT fixed, just in the flexbox
@@ -200,29 +260,30 @@ export function PredictionPanel({ market, side, onSuccess }: PredictionPanelProp
                                     </span>
                                 </div>
 
-                                {/* Quote Preview */}
+                                {/* Quote Preview - Simplified "To Win" Style */}
                                 {quote && amountCents >= 100 && (
-                                    <div className="mt-3 space-y-2 rounded-lg border border-black/10 dark:border-white/10 p-3">
-                                        <div className="flex justify-between text-xs">
-                                            <span className="text-[#606E85] dark:text-[#A1A7BB]">Shares:</span>
-                                            <span className="font-medium dark:text-white">{quote.shares.toLocaleString('pt-BR')}</span>
+                                    <div className="mt-4 mb-2 flex flex-col items-center justify-center space-y-1">
+                                        <span className="text-sm font-medium text-[#606E85] dark:text-[#A1A7BB]">
+                                            Retorno Estimado
+                                        </span>
+                                        <div className="flex items-center gap-1.5">
+                                            <span className="text-4xl font-bold text-[#00B471] tracking-tight">
+                                                R$ {(quote.potentialPayout / 100).toFixed(2)}
+                                            </span>
                                         </div>
-                                        <div className="flex justify-between text-xs">
-                                            <span className="text-[#606E85] dark:text-[#A1A7BB]">Preço Médio:</span>
-                                            <span className="font-medium dark:text-white">R$ {quote.avgPrice.toFixed(2)}</span>
+                                        <div className="flex items-center gap-2 text-xs text-[#606E85] dark:text-[#A1A7BB] mt-1">
+                                            <span className="flex items-center gap-1">
+                                                <span>Preço Médio:</span>
+                                                <span className="font-medium text-black dark:text-white">
+                                                    R$ {quote.avgPrice.toFixed(2)}
+                                                </span>
+                                            </span>
+                                            {quote.slippageWarning && (
+                                                <span className="text-amber-500 font-medium">
+                                                    • Slippage {quote.priceImpact.toFixed(1)}%
+                                                </span>
+                                            )}
                                         </div>
-                                        <div className="flex justify-between text-xs">
-                                            <span className="text-[#606E85] dark:text-[#A1A7BB]">Payout Potencial:</span>
-                                            <span className="font-medium text-[#00B471]">R$ {(quote.potentialPayout / 100).toFixed(2)}</span>
-                                        </div>
-                                        {quote.slippageWarning && (
-                                            <div className="flex items-center gap-1 text-xs text-amber-500">
-                                                <svg className="w-3 h-3" fill="currentColor" viewBox="0 0 20 20">
-                                                    <path fillRule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
-                                                </svg>
-                                                <span>Slippage {quote.priceImpact.toFixed(2)}%</span>
-                                            </div>
-                                        )}
                                     </div>
                                 )}
 
@@ -263,16 +324,20 @@ export function PredictionPanel({ market, side, onSuccess }: PredictionPanelProp
                                     </button>
                                 ) : (
                                     <button
-                                        onClick={handleSubmit}
-                                        disabled={buttonDisabled}
+                                        onClick={amountCents > balance ? () => setShowDepositModal(true) : handleSubmit}
+                                        disabled={buttonDisabled && !(amountCents > balance)}
                                         className={cn(
-                                            "gap-x-2 flex items-center justify-center transition duration-200 ease-linear outline-none text-base py-2.5 px-5 h-full min-h-12 mt-4 max-h-12 w-full rounded-[10px] border-transparent font-medium text-white",
-                                            buttonDisabled
-                                                ? "cursor-not-allowed bg-black/10 dark:bg-white/10 text-black/60 dark:text-white/60"
-                                                : buttonColor
+                                            "gap-x-2 flex items-center justify-center transition duration-200 ease-linear outline-none text-base py-2.5 px-5 h-full min-h-12 mt-4 max-h-12 w-full rounded-[10px] border-transparent font-bold text-white",
+                                            amountCents > balance
+                                                ? "bg-[#0055FF] hover:bg-[#0044CC]"
+                                                : buttonDisabled
+                                                    ? "cursor-not-allowed bg-black/10 dark:bg-white/10 text-black/60 dark:text-white/60"
+                                                    : buttonColor
                                         )}
                                     >
-                                        {isLoading ? 'Processando...' : quote ? `${side} ${quote.shares} shares` : `${side}  R$ ${amount || '0'}`}
+                                        {isLoading ? 'Processando...' :
+                                            amountCents > balance ? 'Depositar' :
+                                                `${isYes ? 'Sim' : 'Não'} R$ ${amount || '0'}`}
                                     </button>
                                 )}
                             </div>
@@ -285,6 +350,11 @@ export function PredictionPanel({ market, side, onSuccess }: PredictionPanelProp
                     Ao realizar uma previsão, você aceita os{' '}
                     <a target="_blank" className="underline" href="/termos">Termos de Serviço</a>.
                 </div>
+
+                <DepositModal
+                    isOpen={showDepositModal}
+                    onOpenChange={setShowDepositModal}
+                />
             </div>
         </div>
     )

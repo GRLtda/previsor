@@ -368,7 +368,7 @@ export const userApi = {
   getQuote: (marketId: string, side: 'YES' | 'NO', amount: number) =>
     baseFetch<{
       success: true
-      market: { id: string; statement: string; totalPool: number; probYes: number; probNo: number }
+      market: { id: string; statement: string; qYes: number; qNo: number; liquidityB: number; probYes: number; probNo: number }
       quote: {
         side: 'YES' | 'NO'
         amount: number
@@ -388,13 +388,10 @@ export const userApi = {
 
   openPosition: (marketId: string, side: 'YES' | 'NO', amount: number) =>
     baseFetch<{
-      success: true
-      data: {
-        position: import('@/lib/types').Position
-        trade: { priceImpact: number; slippageWarning: boolean }
-        newBalance: number
-        market: { id: string; totalPool: number; poolYes: number; poolNo: number; probYes: number; probNo: number }
-      }
+      position: import('@/lib/types').Position
+      trade: { priceImpact: number; slippageWarning: boolean }
+      newBalance: number
+      market: { id: string; qYes: number; qNo: number; liquidityB: number; probYes: number; probNo: number }
     }>(
       'user',
       `/v1/markets/${marketId}/positions`,
@@ -408,7 +405,7 @@ export const userApi = {
         position: { id: string; marketId: string; side: string; remainingShares: number; remainingAmount: number; status: string }
         sale: { sharesSold: number; proceeds: number; avgPrice: number; priceImpact: number }
         newBalance: number
-        market: { id: string; totalPool: number; poolYes: number; poolNo: number; probYes: number; probNo: number }
+        market: { id: string; qYes: number; qNo: number; liquidityB: number; probYes: number; probNo: number }
       }
     }>(
       'user',
@@ -462,6 +459,40 @@ export const userApi = {
     baseFetch<{ success: true; data: { withdrawals: import('@/lib/types').Withdrawal[]; pagination: import('@/lib/types').Pagination } }>(
       'user',
       '/v1/wallet/withdrawals',
+      { params }
+    ),
+
+  // Favorites
+  toggleFavorite: (eventId: string) =>
+    baseFetch<{ success: true; data: { isFavorite: boolean; eventId: string } }>(
+      'user',
+      `/v1/events/${eventId}/favorite`,
+      { method: 'POST', body: {} }
+    ),
+
+  getFavorites: (params?: { limit?: number; offset?: number }) =>
+    baseFetch<{
+      success: true;
+      data: {
+        favorites: Array<{
+          id: string;
+          slug: string;
+          title: string;
+          description: string | null;
+          category: string;
+          status: string;
+          startsAt: string | null;
+          endsAt: string | null;
+          imageUrl: string | null;
+          favoritedAt: string;
+        }>;
+        totalCount: number;
+        limit: number;
+        offset: number;
+      };
+    }>(
+      'user',
+      '/v1/me/favorites',
       { params }
     ),
 }

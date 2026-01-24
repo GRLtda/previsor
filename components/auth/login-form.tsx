@@ -41,7 +41,7 @@ export function LoginForm({ onSuccess, onRegisterClick, onOtpRequired, onForgotP
             }
         } catch (err) {
             if (err instanceof ApiClientError) {
-                toast.error(err.message)
+                toast.error(err.getDetailedMessage())
             } else {
                 toast.error('Erro ao fazer login')
             }

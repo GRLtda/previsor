@@ -107,7 +107,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       return { verified_otp: response.data.verified_otp }
     } catch (err) {
       if (err instanceof ApiClientError) {
-        setError(err.message)
+        setError(err.getDetailedMessage())
       }
       throw err
     }
@@ -132,7 +132,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setOtpVerified(false)
     } catch (err) {
       if (err instanceof ApiClientError) {
-        setError(err.message)
+        setError(err.getDetailedMessage())
       }
       throw err
     }
@@ -157,7 +157,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       }
     } catch (err) {
       if (err instanceof ApiClientError) {
-        setError(err.message)
+        setError(err.getDetailedMessage())
       }
       throw err
     }
@@ -170,7 +170,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       return { expires_in: response.data.expires_in }
     } catch (err) {
       if (err instanceof ApiClientError) {
-        setError(err.message)
+        setError(err.getDetailedMessage())
       }
       throw err
     }
@@ -194,7 +194,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       await userApi.forgotPassword(email)
     } catch (err) {
       if (err instanceof ApiClientError) {
-        setError(err.message)
+        setError(err.getDetailedMessage())
       }
       throw err
     }
@@ -206,7 +206,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       await userApi.resetPassword(token, password)
     } catch (err) {
       if (err instanceof ApiClientError) {
-        setError(err.message)
+        setError(err.getDetailedMessage())
       }
       throw err
     }

@@ -82,7 +82,7 @@ export function RegisterForm({ onSuccess, onLoginClick }: RegisterFormProps) {
             onSuccess(formData.email)
         } catch (err) {
             if (err instanceof ApiClientError) {
-                toast.error(err.message)
+                toast.error(err.getDetailedMessage())
             } else {
                 toast.error('Erro ao criar conta')
             }

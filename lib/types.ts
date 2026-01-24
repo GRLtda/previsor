@@ -18,6 +18,7 @@ export interface ApiError {
     code: string
     message: string
     error_id: string
+    details?: Record<string, string | string[]>
   }
   meta: {
     request_id: string

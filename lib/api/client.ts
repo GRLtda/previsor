@@ -85,6 +85,7 @@ export class ApiClientError extends Error {
   code: string
   errorId: string
   status: number
+  details?: Record<string, string | string[]>
 
   constructor(error: ApiError['error'], status: number) {
     super(error.message)
@@ -92,6 +93,23 @@ export class ApiClientError extends Error {
     this.code = error.code
     this.errorId = error.error_id
     this.status = status
+    this.details = error.details
+  }
+
+  /**
+   * Retorna uma mensagem de erro detalhada quando disponível.
+   * Se houver detalhes de validação, retorna a primeira mensagem específica.
+   * Caso contrário, retorna a mensagem genérica.
+   */
+  getDetailedMessage(): string {
+    if (!this.details || Object.keys(this.details).length === 0) {
+      return this.message
+    }
+
+    // Retorna a primeira mensagem de erro específica
+    const firstField = Object.keys(this.details)[0]
+    const fieldError = this.details[firstField]
+    return Array.isArray(fieldError) ? fieldError[0] : fieldError
   }
 }
 

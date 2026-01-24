@@ -338,13 +338,13 @@ export function UserHeader() {
                     onClick={() => openAuthModal('LOGIN')}
                     className="px-4 py-2 text-[13px] font-semibold text-[#0052FF] hover:bg-black/5 dark:hover:bg-white/5 rounded-lg transition-colors"
                   >
-                    Log in
+                    Login
                   </button>
                   <button
                     onClick={() => openAuthModal('REGISTER')}
                     className="px-4 py-2.5 text-[13px] font-semibold text-white bg-[#0052FF] hover:bg-[#004AE5] rounded-lg transition-colors"
                   >
-                    Sign up
+                    Cadastre-se
                   </button>
                 </div>
               )}

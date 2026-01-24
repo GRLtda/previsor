@@ -248,7 +248,7 @@ export function DepositModal({ isOpen, onOpenChange }: DepositModalProps) {
                                     className={cn(
                                         "gap-x-2 flex items-center justify-center transition duration-200 ease-linear outline-none text-sm py-1 px-3 h-[46px] w-full rounded-[10px] font-semibold",
                                         amountNumber >= 10 && !isLoading
-                                            ? "bg-[#0055FF] hover:bg-[#0044CC] text-white cursor-pointer"
+                                            ? "bg-brand hover:bg-brand/90 text-white cursor-pointer"
                                             : "cursor-not-allowed bg-gray-200 dark:bg-[#1E232B] text-black/60 dark:text-white/40"
                                     )}
                                 >

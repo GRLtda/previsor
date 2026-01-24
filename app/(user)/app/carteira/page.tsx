@@ -27,6 +27,7 @@ import { StatusBadge } from '@/components/shared/status-badge'
 import { DepositModal } from '@/components/wallet/deposit-modal'
 import { toast } from 'sonner'
 import { RefreshCw, AlertCircle } from 'lucide-react'
+import { Logo } from '@/components/ui/logo'
 
 type HistoryItem = (Deposit | Withdrawal) & {
   _type: 'deposit' | 'withdrawal'
@@ -223,7 +224,7 @@ function WalletPageContent() {
             <div className="relative z-10 overflow-hidden rounded-2xl bg-[#10131A] px-4 py-5 lg:flex lg:w-full lg:flex-col lg:gap-y-[68px]">
               {/* Background Effects */}
               <div className="pointer-events-none absolute inset-0 size-full opacity-50">
-                <div className="absolute left-0 top-0 h-full w-1/2 bg-gradient-to-r from-blue-500/20 to-transparent" />
+                <div className="absolute left-0 top-0 h-full w-1/2 bg-gradient-to-r from-brand/20 to-transparent" />
               </div>
               <div className="pointer-events-none absolute inset-0 z-10 size-full opacity-50">
                 <div className="absolute right-0 top-0 h-full w-1/2 bg-gradient-to-l from-purple-500/20 to-transparent" />
@@ -238,7 +239,9 @@ function WalletPageContent() {
                 <>
                   <div className="relative z-30 flex items-center justify-between">
                     <span className="text-sm font-medium text-white dark:text-[#A1A7BB]">Saldo Total</span>
-                    <span className="text-xl font-bold text-white/50">Previzor</span>
+                    <div className="opacity-50 grayscale contrast-200">
+                      <Logo width={80} height={26} />
+                    </div>
                   </div>
 
                   <div className="relative z-30 mt-10 flex flex-col lg:mt-0 lg:gap-3">
@@ -283,7 +286,7 @@ function WalletPageContent() {
                 <div className="grid w-full grid-cols-2 gap-2.5 text-sm font-semibold lg:flex lg:gap-3">
                   <button
                     onClick={() => setDepositModalOpen(true)}
-                    className="flex h-[42px] w-full items-center justify-center gap-1.5 rounded-lg bg-[#0052FF] text-white lg:h-10 lg:w-[111px]"
+                    className="flex h-[42px] w-full items-center justify-center gap-1.5 rounded-lg bg-brand text-white lg:h-10 lg:w-[111px]"
                   >
                     <svg width="12" height="12" viewBox="0 0 12 12" fill="none" xmlns="http://www.w3.org/2000/svg">
                       <path d="M2.84473 1.40527C2.65579 1.21634 2.34421 1.21634 2.15527 1.40527C1.96648 1.59422 1.96638 1.90584 2.15527 2.09473L8.32422 8.2627H4.36523C4.0981 8.2627 3.87793 8.48287 3.87793 8.75C3.87808 9.01701 4.09819 9.2373 4.36523 9.2373H9.5C9.56674 9.2373 9.62587 9.22345 9.68652 9.19922V9.19824C9.80542 9.15164 9.90391 9.05458 9.9502 8.93555L9.94922 8.93457C9.97308 8.87448 9.98727 8.81613 9.9873 8.75V3.61426C9.98705 3.34734 9.76698 3.12695 9.5 3.12695C9.23302 3.12695 9.01295 3.34734 9.0127 3.61426V7.57324L2.84473 1.40527Z" fill="currentColor" stroke="currentColor" strokeWidth="0.225" />
@@ -541,7 +544,7 @@ function WalletPageContent() {
             <button
               onClick={handleCreateWithdraw}
               disabled={isCreatingWithdraw || Number.parseFloat(withdrawAmount) < 10 || !pixKeyType || !pixKeyValue}
-              className="w-full h-[46px] rounded-lg bg-[#0052FF] text-white font-semibold hover:bg-[#004AE5] disabled:opacity-50 disabled:cursor-not-allowed"
+              className="w-full h-[46px] rounded-lg bg-brand text-white font-semibold hover:bg-brand/90 disabled:opacity-50 disabled:cursor-not-allowed"
             >
               {isCreatingWithdraw ? 'Processando...' : 'Solicitar Saque'}
             </button>

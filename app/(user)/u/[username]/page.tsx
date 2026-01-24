@@ -11,6 +11,7 @@ import type { Position } from '@/lib/types'
 import { Skeleton } from '@/components/ui/skeleton'
 import Link from 'next/link'
 import { cn } from '@/lib/utils'
+import { Logo } from '@/components/ui/logo'
 
 export default function PublicProfilePage() {
     const params = useParams()
@@ -302,9 +303,9 @@ export default function PublicProfilePage() {
                             ))}
 
                             {/* Logo */}
-                            <span className="ml-auto hidden max-w-[103px] object-contain opacity-80 lg:block text-muted-foreground font-semibold">
-                                ▲ Previzor
-                            </span>
+                            <div className="ml-auto hidden max-w-[103px] object-contain opacity-80 lg:block text-muted-foreground font-semibold">
+                                <Logo width={100} height={32} />
+                            </div>
                         </div>
                     </div>
 

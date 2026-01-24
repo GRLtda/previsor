@@ -56,8 +56,8 @@ export function AuthModal({ isOpen, onOpenChange, defaultView = 'LOGIN', childre
 
                 <div className="flex-1 overflow-y-auto p-6 md:p-8 flex flex-col justify-center sm:block">
                     <div className="hidden sm:flex justify-center mb-6">
-                        <div className="h-10 w-10 bg-primary/10 rounded-xl flex items-center justify-center transition-transform hover:scale-105">
-                            <span className="text-xl font-bold text-primary">P</span>
+                        <div className="h-10 w-10 bg-brand/10 rounded-xl flex items-center justify-center transition-transform hover:scale-105">
+                            <span className="text-xl font-bold text-brand">P</span>
                         </div>
                     </div>
 

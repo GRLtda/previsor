@@ -63,7 +63,7 @@ export function SubHeader() {
                                 className={cn(
                                     "flex items-center gap-2 min-h-9 rounded-[10px] px-3 transition-all duration-200 whitespace-nowrap text-[13px]",
                                     active
-                                        ? "bg-blue-50 text-blue-600 dark:bg-blue-500/10 dark:text-blue-400 font-semibold"
+                                        ? "bg-brand/10 text-brand font-semibold"
                                         : "font-medium text-[#606E85] dark:text-white/70 hover:text-foreground hover:bg-black/[3%] dark:hover:bg-white/[3%]"
                                 )}
                             >

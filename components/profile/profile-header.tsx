@@ -6,6 +6,7 @@ import { Button } from '@/components/ui/button'
 import { Copy, Check, Gift, Calendar, Edit, ExternalLink } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import Link from 'next/link'
+import { Logo } from '@/components/ui/logo'
 
 interface ProfileStats {
     portfolioValue: number
@@ -165,8 +166,8 @@ export function ProfileHeader({
                 </div>
 
                 {/* Brand Logo */}
-                <div className="absolute top-4 right-4 text-muted-foreground">
-                    <span className="text-lg font-semibold">▲ Previzor</span>
+                <div className="absolute top-4 right-4 text-muted-foreground opacity-50">
+                    <Logo width={100} height={32} />
                 </div>
             </div>
         </div>

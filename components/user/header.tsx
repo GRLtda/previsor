@@ -14,6 +14,7 @@ import { useAuth } from '@/contexts/auth-context'
 import { SubHeader } from './sub-header'
 import { AuthModal } from '@/components/auth/auth-modal'
 import { DepositModal } from '@/components/wallet/deposit-modal'
+import { Logo } from '@/components/ui/logo'
 
 function SearchInput() {
   const useDebounce = (value: string, delay: number) => {
@@ -134,9 +135,7 @@ export function UserHeader() {
           <div className="mx-auto flex h-full max-h-[60px] min-h-[60px] items-center justify-between px-2.5 lg:px-4">
             {/* Left: Logo */}
             <div className="flex items-center">
-              <Link href="/">
-                <span className="text-xl font-bold text-[#0055FF] dark:text-white">Previzor</span>
-              </Link>
+              <Logo width={100} height={34} />
             </div>
 
             {/* Center: Search - Hidden on mobile */}
@@ -180,7 +179,7 @@ export function UserHeader() {
                       onClick={() => setDepositModalOpen(true)}
                       className="flex items-center"
                     >
-                      <div className="relative z-10 block rounded-lg bg-[#0052FF] px-4 py-2.5 text-[13px] font-semibold text-white hover:bg-[#004AE5] transition-colors">
+                      <div className="relative z-10 block rounded-lg bg-brand px-4 py-2.5 text-[13px] font-semibold text-white hover:bg-brand/90 transition-colors">
                         Depositar
                       </div>
                     </button>
@@ -285,7 +284,7 @@ export function UserHeader() {
                             </svg>
                             <div className="flex w-full items-center justify-between">
                               <span>Modo Escuro</span>
-                              <div className={`ml-auto flex h-6 w-11 items-center rounded-full transition-colors duration-300 ${isDarkMode ? 'bg-[#0052FF]' : 'bg-black/10'}`}>
+                              <div className={`ml-auto flex h-6 w-11 items-center rounded-full transition-colors duration-300 ${isDarkMode ? 'bg-brand' : 'bg-black/10'}`}>
                                 <span className={`size-4 rounded-full shadow-md transition-transform duration-300 bg-white ${isDarkMode ? 'translate-x-6' : 'translate-x-1'}`} />
                               </div>
                             </div>
@@ -336,13 +335,13 @@ export function UserHeader() {
                 <div className="flex items-center gap-2">
                   <button
                     onClick={() => openAuthModal('LOGIN')}
-                    className="px-4 py-2 text-[13px] font-semibold text-[#0052FF] hover:bg-black/5 dark:hover:bg-white/5 rounded-lg transition-colors"
+                    className="px-4 py-2 text-[13px] font-semibold text-brand hover:bg-black/5 dark:hover:bg-white/5 rounded-lg transition-colors"
                   >
                     Login
                   </button>
                   <button
                     onClick={() => openAuthModal('REGISTER')}
-                    className="px-4 py-2.5 text-[13px] font-semibold text-white bg-[#0052FF] hover:bg-[#004AE5] rounded-lg transition-colors"
+                    className="px-4 py-2.5 text-[13px] font-semibold text-white bg-brand hover:bg-brand/90 rounded-lg transition-colors"
                   >
                     Cadastre-se
                   </button>

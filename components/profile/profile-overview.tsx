@@ -125,12 +125,12 @@ export function ProfileOverview({ positions, stats, categories }: ProfileOvervie
                 <div className="relative h-[322px] w-full overflow-hidden rounded-2xl border border-border p-4 lg:max-w-[356px]">
                     {/* Glow Effect */}
                     <div className="pointer-events-none absolute -top-5 left-0 hidden h-28 w-full rounded-full opacity-20 dark:flex"
-                        style={{ filter: 'blur(24px)', background: 'radial-gradient(circle at center top, rgb(0, 82, 255), transparent)' }}
+                        style={{ filter: 'blur(24px)', background: 'radial-gradient(circle at center top, #A70FFF, transparent)' }}
                     />
 
                     {/* Header */}
                     <div className="flex items-center gap-3">
-                        <div className="rounded-lg bg-blue-600 p-2">
+                        <div className="rounded-lg bg-brand p-2">
                             <Star className="h-4 w-4 text-white" />
                         </div>
                         <div>
@@ -207,11 +207,11 @@ export function ProfileOverview({ positions, stats, categories }: ProfileOvervie
                 <section className="w-full min-h-[322px] max-h-[322px] overflow-hidden rounded-2xl border border-border pt-4">
                     {/* Header */}
                     <div className="relative flex w-full items-center justify-between px-4">
-                        <span className="absolute -left-20 bottom-0 h-24 w-56 rounded-full bg-[radial-gradient(circle_at_50%_90%,rgba(0,82,255,0.2)_0%,transparent_100%)] blur-md" />
-                        <span className="absolute -right-10 top-4 h-6 w-56 rounded-full bg-[radial-gradient(circle_at_50%_90%,rgba(0,82,255,0.2)_0%,transparent_100%)] blur-md" />
+                        <span className="absolute -left-20 bottom-0 h-24 w-56 rounded-full bg-[radial-gradient(circle_at_50%_90%,rgba(167,15,255,0.2)_0%,transparent_100%)] blur-md" />
+                        <span className="absolute -right-10 top-4 h-6 w-56 rounded-full bg-[radial-gradient(circle_at_50%_90%,rgba(167,15,255,0.2)_0%,transparent_100%)] blur-md" />
 
                         <figure className="relative flex items-center gap-x-3">
-                            <span className="flex size-9 items-center justify-center rounded-lg bg-blue-600">
+                            <span className="flex size-9 items-center justify-center rounded-lg bg-brand">
                                 <Target className="h-4 w-4 text-white" />
                             </span>
                             <figcaption>
@@ -222,7 +222,7 @@ export function ProfileOverview({ positions, stats, categories }: ProfileOvervie
                             </figcaption>
                         </figure>
 
-                        <Button size="sm" className="relative gap-1.5 bg-blue-600 hover:bg-blue-700 text-white">
+                        <Button size="sm" className="relative gap-1.5 bg-brand hover:bg-brand/90 text-white">
                             Ver Mais
                             <ChevronRight className="h-3 w-3" />
                         </Button>

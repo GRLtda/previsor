@@ -55,6 +55,7 @@ import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { Suspense } from "react";
 import Loading from "./loading";
+import { PlaceholderIcon } from '@/components/ui/placeholder-icon';
 
 export default function AdminEventsPage() {
   const [events, setEvents] = useState<Event[]>([]);
@@ -81,9 +82,9 @@ export default function AdminEventsPage() {
   const loadEvents = useCallback(async () => {
     setLoading(true);
     try {
-      const params: { status?: string; limit?: number; offset?: number } = { 
-        limit: 20, 
-        offset: (page - 1) * 20 
+      const params: { status?: string; limit?: number; offset?: number } = {
+        limit: 20,
+        offset: (page - 1) * 20
       };
       if (statusFilter !== "all") params.status = statusFilter;
 
@@ -270,13 +271,23 @@ export default function AdminEventsPage() {
                         <TableRow key={event.id}>
                           <TableCell>
                             <div className="flex items-center gap-3">
-                              {event.imageUrl && (
-                                <img
-                                  src={event.imageUrl || "/placeholder.svg"}
-                                  alt={event.title}
-                                  className="w-10 h-10 rounded object-cover"
-                                />
-                              )}
+                              <div className="w-10 h-10 rounded overflow-hidden bg-muted flex items-center justify-center">
+                                {event.imageUrl ? (
+                                  <img
+                                    src={event.imageUrl}
+                                    alt={event.title}
+                                    className="w-full h-full object-cover"
+                                    onError={(e) => {
+                                      e.currentTarget.style.display = 'none'
+                                      const placeholder = e.currentTarget.nextElementSibling as HTMLElement
+                                      if (placeholder) placeholder.style.display = 'flex'
+                                    }}
+                                  />
+                                ) : null}
+                                <div style={{ display: event.imageUrl ? 'none' : 'flex' }}>
+                                  <PlaceholderIcon size={40} />
+                                </div>
+                              </div>
                               <div>
                                 <p className="font-medium">{event.title}</p>
                                 <p className="text-sm text-muted-foreground line-clamp-1">

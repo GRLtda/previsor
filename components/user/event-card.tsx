@@ -8,6 +8,7 @@ import { OutcomeRow } from '@/components/events/outcome-row'
 import { userApi, getTokens } from '@/lib/api/client'
 import { toast } from 'sonner'
 import { useAuthModal } from '@/contexts/auth-modal-context'
+import { PlaceholderIcon } from '@/components/ui/placeholder-icon'
 
 interface EventCardProps {
   event: Event
@@ -30,6 +31,7 @@ export function EventCard({ event, isFavorite: initialIsFavorite = false, onFavo
 
   const [isFavorite, setIsFavorite] = useState(initialIsFavorite)
   const [isLoading, setIsLoading] = useState(false)
+  const [imageError, setImageError] = useState(false)
 
   const handleFavoriteClick = async (e: React.MouseEvent) => {
     e.preventDefault()
@@ -67,7 +69,7 @@ export function EventCard({ event, isFavorite: initialIsFavorite = false, onFavo
         <div className="flex gap-x-2.5 items-start">
           {/* Event Image */}
           <div className="size-[40px] min-w-[40px] max-w-[40px] rounded-lg overflow-hidden bg-muted flex items-center justify-center">
-            {event.imageUrl ? (
+            {event.imageUrl && !imageError ? (
               <img
                 alt={event.title}
                 loading="lazy"
@@ -75,9 +77,10 @@ export function EventCard({ event, isFavorite: initialIsFavorite = false, onFavo
                 height={40}
                 className="size-full object-cover"
                 src={event.imageUrl}
+                onError={() => setImageError(true)}
               />
             ) : (
-              <span className="text-lg">📊</span>
+              <PlaceholderIcon size={40} />
             )}
           </div>
 

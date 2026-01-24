@@ -55,7 +55,7 @@ export function OutcomeRow({ market, onYesClick, onNoClick }: OutcomeRowProps) {
                                 <path d="M6.99935 12.8332C10.2077 12.8332 12.8327 10.2082 12.8327 6.99984C12.8327 3.7915 10.2077 1.1665 6.99935 1.1665C3.79102 1.1665 1.16602 3.7915 1.16602 6.99984C1.16602 10.2082 3.79102 12.8332 6.99935 12.8332Z" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round" strokeLinejoin="round" />
                                 <path d="M4.52051 6.99995L6.17134 8.65079L9.47884 5.34912" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round" strokeLinejoin="round" />
                             </svg>
-                            <span>Yes {yesMultiplier}</span>
+                            <span>Sim {yesMultiplier}</span>
                         </button>
 
                         {/* No Button */}
@@ -73,7 +73,7 @@ export function OutcomeRow({ market, onYesClick, onNoClick }: OutcomeRowProps) {
                                 <path d="M5.34863 8.65079L8.6503 5.34912" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round" strokeLinejoin="round" />
                                 <path d="M8.6503 8.65079L5.34863 5.34912" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round" strokeLinejoin="round" />
                             </svg>
-                            <span>No {noMultiplier}</span>
+                            <span>Não {noMultiplier}</span>
                         </button>
                     </div>
                 </div>

@@ -35,7 +35,6 @@ function EventsContent() {
   const [isLoading, setIsLoading] = useState(true)
   const [totalCount, setTotalCount] = useState(0)
   const [offset, setOffset] = useState(0)
-  const [favoriteEventIds, setFavoriteEventIds] = useState<Set<string>>(new Set())
 
   const category = searchParams.get('category') || 'all'
   const search = searchParams.get('search') || ''
@@ -63,38 +62,18 @@ function EventsContent() {
     }
   }, [category, search, offset])
 
-  const fetchFavorites = useCallback(async () => {
-    // Only fetch favorites if user is logged in
-    if (!getTokens('user')) return
 
-    try {
-      const response = await userApi.getFavorites({ limit: 100 })
-      const ids = new Set(response.data.favorites.map(f => f.id))
-      setFavoriteEventIds(ids)
-    } catch {
-      // Silently fail - user might not be logged in
-    }
-  }, [])
 
   useEffect(() => {
     fetchEvents()
-    fetchFavorites()
-  }, [fetchEvents, fetchFavorites])
+  }, [fetchEvents])
 
   useEffect(() => {
     setOffset(0)
   }, [category, search])
 
   const handleFavoriteChange = (eventId: string, isFavorite: boolean) => {
-    setFavoriteEventIds(prev => {
-      const next = new Set(prev)
-      if (isFavorite) {
-        next.add(eventId)
-      } else {
-        next.delete(eventId)
-      }
-      return next
-    })
+    setEvents(prev => prev.map(e => e.id === eventId ? { ...e, isFavorite } : e))
   }
 
   const totalPages = Math.ceil(totalCount / LIMIT)
@@ -154,7 +133,7 @@ function EventsContent() {
               <EventCard
                 key={event.id}
                 event={event}
-                isFavorite={favoriteEventIds.has(event.id)}
+                isFavorite={event.isFavorite}
                 onFavoriteChange={handleFavoriteChange}
               />
             ))}

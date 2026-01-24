@@ -97,7 +97,7 @@ export function MarketCardTriad({
                                             <path d="M6 11C8.75 11 11 8.75 11 6C11 3.25 8.75 1 6 1C3.25 1 1 3.25 1 6C1 8.75 3.25 11 6 11Z" stroke="#fff" strokeLinecap="round" strokeLinejoin="round" />
                                             <path d="M3.875 5.99996L5.29 7.41496L8.125 4.58496" stroke="#fff" strokeWidth="1.03571" strokeLinecap="round" strokeLinejoin="round" />
                                         </svg>
-                                        <span>Yes</span>
+                                        <span>Sim</span>
                                     </div>
                                     <div className="flex h-[23px] w-[51px] items-center justify-center rounded-[200px] bg-white">
                                         <span className="text-xs font-semibold text-black">{yesMultiplier}</span>
@@ -131,7 +131,7 @@ export function MarketCardTriad({
                                             <path d="M4.58496 7.41496L7.41496 4.58496" stroke="#fff" strokeWidth="1.03571" strokeLinecap="round" strokeLinejoin="round" />
                                             <path d="M7.41496 7.41496L4.58496 4.58496" stroke="#fff" strokeWidth="0.776786" strokeLinecap="round" strokeLinejoin="round" />
                                         </svg>
-                                        <span>No</span>
+                                        <span>Não</span>
                                     </div>
                                     <div className="flex h-[23px] w-[51px] items-center justify-center rounded-[200px] bg-white">
                                         <span className="text-xs font-semibold text-black">{noMultiplier}</span>

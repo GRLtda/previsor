@@ -67,15 +67,15 @@ export function PositionModal({ market, open, onOpenChange, onSuccess, defaultSi
     setIsLoading(true)
     try {
       const response = await userApi.openPosition(market.id, side, amountCents)
-      const shares = response.data.position.shares
+      const shares = response.position.shares
       toast.success(`Posição aberta! Você recebeu ${shares.toLocaleString('pt-BR')} shares.`)
       onSuccess?.({
         ...market,
-        totalPool: response.data.market.totalPool,
-        poolYes: response.data.market.poolYes,
-        poolNo: response.data.market.poolNo,
-        probYes: response.data.market.probYes,
-        probNo: response.data.market.probNo,
+        qYes: response.market.qYes,
+        qNo: response.market.qNo,
+        liquidityB: response.market.liquidityB,
+        probYes: response.market.probYes,
+        probNo: response.market.probNo,
       })
 
       setLastTrade({ amount: amountCents, side })
@@ -92,10 +92,11 @@ export function PositionModal({ market, open, onOpenChange, onSuccess, defaultSi
   }
 
   // Calculate potential payout using Engine (Parimutuel Logic)
+  /* Use qYes/qNo/liquidityB from Market for LMSR calculation */
   const estimate = marketEngine.calculatePayout(amountCents, {
-    poolYes: market.poolYes,
-    poolNo: market.poolNo,
-    totalPool: market.totalPool
+    qYes: market.qYes,
+    qNo: market.qNo,
+    liquidityB: market.liquidityB
   }, side);
 
   const potentialPayout = estimate.payout;
@@ -170,7 +171,7 @@ export function PositionModal({ market, open, onOpenChange, onSuccess, defaultSi
               >
                 <div className="flex items-center justify-center gap-2 mb-1">
                   <TrendingUp className="h-5 w-5 text-green-600" />
-                  <span className="font-bold text-green-600">YES</span>
+                  <span className="font-bold text-green-600">SIM</span>
                 </div>
                 <p className="text-sm text-muted-foreground">
                   {market.probYes.toFixed(1)}%
@@ -188,7 +189,7 @@ export function PositionModal({ market, open, onOpenChange, onSuccess, defaultSi
               >
                 <div className="flex items-center justify-center gap-2 mb-1">
                   <TrendingDown className="h-5 w-5 text-red-600" />
-                  <span className="font-bold text-red-600">NO</span>
+                  <span className="font-bold text-red-600">NÃO</span>
                 </div>
                 <p className="text-sm text-muted-foreground">
                   {market.probNo.toFixed(1)}%
@@ -279,7 +280,7 @@ export function PositionModal({ market, open, onOpenChange, onSuccess, defaultSi
               onClick={handleSubmit}
               disabled={isLoading || amountCents < 100}
             >
-              {isLoading ? 'Processando...' : `Comprar ${side}`}
+              {isLoading ? 'Processando...' : `Comprar ${side === 'YES' ? 'SIM' : 'NÃO'}`}
             </Button>
           </div>
         </div>

@@ -113,7 +113,7 @@ export function CountdownTimer({ targetDate }: CountdownTimerProps) {
 
     return (
         <div
-            className="flex w-full flex-col items-center justify-center rounded-2xl border border-black/10 py-4 dark:border-white/5 cursor-help transition-colors hover:border-black/20 dark:hover:border-white/10"
+            className="flex w-full flex-col items-center justify-center rounded-2xl border border-black/10 py-4 dark:border-white/5 transition-colors hover:border-black/20 dark:hover:border-white/10"
             title={`Fecha em: ${formattedDate}`}
         >
             <div className="mb-2 text-xs font-medium text-[#606E85] dark:text-[#A1A7BB]">

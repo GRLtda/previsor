@@ -94,6 +94,31 @@ export default function EventDetailPage({ params }: PageProps) {
     fetchEvent()
   }, [slug, router, searchParams])
 
+  // ESC hotkey to go back to events list
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      // Skip if user is typing in an input/textarea or if a modal is open
+      const target = e.target as HTMLElement
+      if (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA' || target.isContentEditable) {
+        return
+      }
+
+      // Check if any dialog/modal is open
+      const hasOpenModal = document.querySelector('[role="dialog"]')
+      if (hasOpenModal) {
+        return
+      }
+
+      if (e.key === 'Escape') {
+        e.preventDefault()
+        router.push('/eventos')
+      }
+    }
+
+    window.addEventListener('keydown', handleKeyDown)
+    return () => window.removeEventListener('keydown', handleKeyDown)
+  }, [router])
+
   const handleMarketUpdate = (updatedMarket: Market) => {
     if (event) {
       setEvent({

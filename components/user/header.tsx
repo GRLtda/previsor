@@ -1,6 +1,6 @@
 'use client'
 
-import { Suspense, useCallback, useEffect, useState } from 'react'
+import React, { Suspense, useCallback, useEffect, useState, useRef } from 'react'
 import Link from 'next/link'
 import { useRouter, useSearchParams } from 'next/navigation'
 import {
@@ -16,6 +16,8 @@ import { AuthModal } from '@/components/auth/auth-modal'
 import { DepositModal } from '@/components/wallet/deposit-modal'
 
 function SearchInput() {
+  const inputRef = useRef<HTMLInputElement>(null)
+
   const useDebounce = (value: string, delay: number) => {
     const [debouncedValue, setDebouncedValue] = useState(value)
 
@@ -58,6 +60,25 @@ function SearchInput() {
     }
   }, [debouncedValue, createQueryString, router, searchParams])
 
+  // Hotkey "/" to focus search
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      // Skip if user is typing in an input/textarea
+      const target = e.target as HTMLElement
+      if (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA' || target.isContentEditable) {
+        return
+      }
+
+      if (e.key === '/') {
+        e.preventDefault()
+        inputRef.current?.focus()
+      }
+    }
+
+    window.addEventListener('keydown', handleKeyDown)
+    return () => window.removeEventListener('keydown', handleKeyDown)
+  }, [])
+
   return (
     <div className="flex h-10 w-full relative items-center rounded-lg transition-all border border-transparent ease-in hover:bg-black/10 hover:dark:bg-white/10 bg-black/5 dark:bg-white/5 p-3 text-sm">
       <div className="flex w-full flex-1 items-center gap-x-1.5">
@@ -65,6 +86,7 @@ function SearchInput() {
           <path fillRule="evenodd" clipRule="evenodd" d="M10.631 4.47459C9.79903 2.47688 7.84973 1.17334 5.68572 1.16756C3.35344 1.15527 1.27964 2.64918 0.552616 4.86529C-0.174403 7.08139 0.611446 9.51344 2.49776 10.8851C4.38408 12.2568 6.93994 12.2548 8.82405 10.8801L12.032 14.2691C12.2029 14.4397 12.4796 14.4397 12.6504 14.2691C12.821 14.0983 12.821 13.8216 12.6504 13.6508L9.49489 10.3142C11.0151 8.77413 11.4629 6.47229 10.631 4.47459ZM9.85097 8.2661C9.15245 9.94941 7.50821 11.0458 5.68572 11.0434V11.0201C3.21222 11.0169 1.20424 9.01934 1.18822 6.54589C1.18586 4.7234 2.2822 3.07916 3.96551 2.38064C5.64882 1.68211 7.58719 2.06703 8.87589 3.35572C10.1646 4.64442 10.5495 6.5828 9.85097 8.2661Z" fill="#606e85" stroke="#606e85" strokeWidth="0.571429" />
         </svg>
         <input
+          ref={inputRef}
           type="text"
           placeholder="Pesquisar por Mercados, Tópicos..."
           className="flex w-full bg-transparent pb-0.5 text-xs text-black placeholder:text-[13px] placeholder:text-[#606E85] dark:text-white dark:placeholder:text-[#A1A7BB] lg:text-base outline-none"
@@ -72,7 +94,7 @@ function SearchInput() {
           onChange={(e) => setValue(e.target.value)}
         />
       </div>
-      <div className="absolute right-2 top-1/2 hidden size-[22px] -translate-y-1/2 items-center justify-center rounded bg-black/10 dark:bg-white/10 text-[#606E85] dark:text-[#A1A7BB] text-xs lg:flex">
+      <div className="absolute right-2 top-1/2 hidden size-[22px] -translate-y-1/2 items-center justify-center rounded bg-black/10 dark:bg-white/10 text-[#606E85] dark:text-[#A1A7BB] text-xs lg:flex cursor-pointer" onClick={() => inputRef.current?.focus()}>
         /
       </div>
     </div>
@@ -139,9 +161,9 @@ export function UserHeader() {
               </Link>
             </div>
 
-            {/* Center: Search - Hidden on mobile */}
-            <div className="hidden xl:flex flex-1 justify-center px-8">
-              <div className="relative w-full max-w-[500px]">
+            {/* Center: Search - Hidden on mobile - Absolutely centered */}
+            <div className="hidden xl:flex absolute left-1/2 -translate-x-1/2 w-full max-w-[500px] px-8">
+              <div className="relative w-full">
                 <Suspense fallback={null}>
                   <SearchInput />
                 </Suspense>

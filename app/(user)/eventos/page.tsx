@@ -7,16 +7,27 @@ import type { Event } from '@/lib/types'
 import { EventCard } from '@/components/user/event-card'
 import { Button } from '@/components/ui/button'
 import { Skeleton } from '@/components/ui/skeleton'
-import { ChevronLeft, ChevronRight } from 'lucide-react'
+import {
+  ChevronLeft,
+  ChevronRight,
+  Globe,
+  Trophy,
+  Landmark,
+  TrendingUp,
+  Laptop,
+  Clapperboard,
+  Sparkles,
+  type LucideIcon
+} from 'lucide-react'
 import { toast } from 'sonner'
 
-const CATEGORIES = [
-  { value: 'all', label: 'Todas', icon: '🌐' },
-  { value: 'esportes', label: 'Esportes', icon: '⚽' },
-  { value: 'politica', label: 'Política', icon: '🏛️' },
-  { value: 'economia', label: 'Economia', icon: '💰' },
-  { value: 'tecnologia', label: 'Tecnologia', icon: '💻' },
-  { value: 'entretenimento', label: 'Entretenimento', icon: '🎬' },
+const CATEGORIES: { value: string; label: string; icon: LucideIcon }[] = [
+  { value: 'all', label: 'Todas', icon: Globe },
+  { value: 'esportes', label: 'Esportes', icon: Trophy },
+  { value: 'politica', label: 'Política', icon: Landmark },
+  { value: 'economia', label: 'Economia', icon: TrendingUp },
+  { value: 'tecnologia', label: 'Tecnologia', icon: Laptop },
+  { value: 'entretenimento', label: 'Entretenimento', icon: Clapperboard },
 ]
 
 const LIMIT = 12
@@ -139,7 +150,7 @@ function EventsContent() {
               <div className="flex items-center gap-1.5">
                 {/* Category Icon */}
                 <div className="flex size-10 items-center justify-center rounded-[10px] bg-blue-500/5 dark:bg-white/5">
-                  <span className="text-lg">{categoryInfo?.icon || '📊'}</span>
+                  {categoryInfo?.icon && <categoryInfo.icon className="size-5 text-blue-500" />}
                 </div>
                 <h3 className="text-xl font-bold dark:text-white">
                   {category === 'all' ? 'Todos os Eventos' : categoryInfo?.label || category}

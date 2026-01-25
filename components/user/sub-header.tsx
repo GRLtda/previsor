@@ -50,7 +50,7 @@ export function SubHeader() {
     }
 
     return (
-        <div className="w-full bg-white dark:bg-[#0E1117]">
+        <div className="w-full bg-white dark:bg-[#0E1117] border-b border-border">
             <div className="container mx-auto px-4">
                 <div className="flex items-center justify-center gap-4 py-1.5 overflow-x-auto no-scrollbar">
                     {categories.map((category) => {

@@ -261,35 +261,38 @@ export function PredictionPanel({ market, side, onSuccess }: PredictionPanelProp
                                 </div>
 
                                 {/* Quote Preview - Simplified "To Win" Style */}
-                                {quote && amountCents >= 100 && (
-                                    <div className="mt-4 mb-2 flex flex-col items-center justify-center space-y-1">
-                                        <span className="text-sm font-medium text-[#606E85] dark:text-[#A1A7BB]">
-                                            Retorno Estimado
-                                        </span>
-                                        <div className="flex items-center gap-1.5">
-                                            <span className="text-4xl font-bold text-[#00B471] tracking-tight">
-                                                R$ {(quote.potentialPayout / 100).toFixed(2)}
-                                            </span>
-                                        </div>
-                                        <div className="flex items-center gap-2 text-xs text-[#606E85] dark:text-[#A1A7BB] mt-1">
-                                            <span className="flex items-center gap-1">
-                                                <span>Preço Médio:</span>
-                                                <span className="font-medium text-black dark:text-white">
-                                                    R$ {quote.avgPrice.toFixed(2)}
+                                {(quote || isLoadingQuote) && amountCents >= 100 && (
+                                    <div className="mt-4 mb-2 flex flex-col items-center justify-center space-y-1 min-h-[100px]">
+                                        {isLoadingQuote ? (
+                                            <div className="flex flex-col items-center justify-center space-y-2">
+                                                <div className="h-2 w-2 rounded-full bg-primary animate-pulse" />
+                                                <span className="text-xs text-muted-foreground">Calculando...</span>
+                                            </div>
+                                        ) : quote ? (
+                                            <>
+                                                <span className="text-sm font-medium text-[#606E85] dark:text-[#A1A7BB]">
+                                                    Retorno Estimado
                                                 </span>
-                                            </span>
-                                            {quote.slippageWarning && (
-                                                <span className="text-amber-500 font-medium">
-                                                    • Slippage {quote.priceImpact.toFixed(1)}%
-                                                </span>
-                                            )}
-                                        </div>
-                                    </div>
-                                )}
-
-                                {isLoadingQuote && amountCents >= 100 && (
-                                    <div className="mt-3 flex justify-center">
-                                        <div className="h-4 w-4 animate-spin rounded-full border-2 border-[#00B471] border-t-transparent"></div>
+                                                <div className="flex items-center gap-1.5">
+                                                    <span className="text-4xl font-bold text-[#00B471] tracking-tight">
+                                                        R$ {(quote.potentialPayout / 100).toFixed(2)}
+                                                    </span>
+                                                </div>
+                                                <div className="flex items-center gap-2 text-xs text-[#606E85] dark:text-[#A1A7BB] mt-1">
+                                                    <span className="flex items-center gap-1">
+                                                        <span>Preço Médio:</span>
+                                                        <span className="font-medium text-black dark:text-white">
+                                                            R$ {quote.avgPrice.toFixed(2)}
+                                                        </span>
+                                                    </span>
+                                                    {quote.slippageWarning && (
+                                                        <span className="text-amber-500 font-medium">
+                                                            • Slippage {quote.priceImpact.toFixed(1)}%
+                                                        </span>
+                                                    )}
+                                                </div>
+                                            </>
+                                        ) : null}
                                     </div>
                                 )}
 

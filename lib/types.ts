@@ -73,6 +73,7 @@ export interface Event {
   sourceUrls: string[]
   imageUrl: string | null
   createdAt: string
+  isFavorite?: boolean
   markets?: Market[]
 }
 

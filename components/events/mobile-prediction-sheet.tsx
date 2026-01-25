@@ -298,7 +298,7 @@ export function MobilePredictionSheet({ market, side, open, onClose, onSuccess }
                                             className={cn(
                                                 "gap-x-2 flex items-center justify-center transition duration-200 ease-linear outline-none text-base py-2.5 px-5 h-full min-h-12 mt-4 max-h-12 w-full rounded-[10px] border-transparent font-bold text-white",
                                                 amountCents > balance
-                                                    ? "bg-[#0055FF] hover:bg-[#0044CC]"
+                                                    ? "bg-brand hover:bg-brand/90"
                                                     : buttonDisabled
                                                         ? "cursor-not-allowed bg-black/10 dark:bg-white/10 text-black/60 dark:text-white/60"
                                                         : buttonColor

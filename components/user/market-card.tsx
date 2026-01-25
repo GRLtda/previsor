@@ -47,10 +47,10 @@ export function MarketCard({ market, onOpenPosition, showEvent = false }: Market
           <div className="flex items-center justify-between text-sm">
             <span className="flex items-center gap-1 text-green-600 font-medium">
               <TrendingUp className="h-4 w-4" />
-              YES {market.probYes.toFixed(1)}%
+              SIM {market.probYes.toFixed(1)}%
             </span>
             <span className="flex items-center gap-1 text-red-600 font-medium">
-              NO {market.probNo.toFixed(1)}%
+              NÃO {market.probNo.toFixed(1)}%
               <TrendingDown className="h-4 w-4" />
             </span>
           </div>
@@ -65,7 +65,7 @@ export function MarketCard({ market, onOpenPosition, showEvent = false }: Market
         {/* Pool Info -> Liquidity Info */}
         <div className="grid grid-cols-3 gap-2 text-center text-sm">
           <div className="bg-green-50 rounded-lg p-2">
-            <p className="text-xs text-muted-foreground">Shares YES</p>
+            <p className="text-xs text-muted-foreground">Shares SIM</p>
             <p className="font-semibold text-green-700">
               {market.qYes?.toLocaleString('pt-BR') || 0}
             </p>
@@ -77,7 +77,7 @@ export function MarketCard({ market, onOpenPosition, showEvent = false }: Market
             </p>
           </div>
           <div className="bg-red-50 rounded-lg p-2">
-            <p className="text-xs text-muted-foreground">Shares NO</p>
+            <p className="text-xs text-muted-foreground">Shares NÃO</p>
             <p className="font-semibold text-red-700">
               {market.qNo?.toLocaleString('pt-BR') || 0}
             </p>

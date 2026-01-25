@@ -25,6 +25,7 @@ import {
 } from "@/components/ui/collapsible";
 import { useState } from "react";
 import { useAdminAuth } from "@/contexts/admin-auth-context";
+import { Logo } from "@/components/ui/logo";
 
 const menuItems = [
   {
@@ -90,10 +91,10 @@ export function AdminSidebar() {
   return (
     <aside className="w-64 bg-card border-r min-h-screen flex flex-col">
       <div className="p-6 border-b">
-        <Link href="/admin/dashboard" className="flex items-center gap-2">
-          <Shield className="h-8 w-8 text-primary" />
-          <span className="text-xl font-bold">Previzor Admin</span>
-        </Link>
+        <div className="flex items-center gap-2">
+          <Logo width={120} height={40} />
+          <span className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mt-1">Admin</span>
+        </div>
       </div>
 
       <nav className="flex-1 p-4 space-y-1">

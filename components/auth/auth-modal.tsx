@@ -46,12 +46,18 @@ export function AuthModal({ isOpen, onOpenChange, defaultView = 'LOGIN', childre
     return (
         <Dialog open={isOpen} onOpenChange={onOpenChange}>
             {children && <DialogTrigger asChild>{children}</DialogTrigger>}
-            <DialogContent className="sm:max-w-[420px] p-0 overflow-hidden gap-0 bg-background border-border shadow-2xl duration-200" aria-describedby={undefined}>
+            <DialogContent className="sm:max-w-[420px] w-full h-[100dvh] sm:h-auto p-0 gap-0 bg-background border-none sm:border border-border shadow-2xl duration-200 flex flex-col rounded-none sm:rounded-2xl top-0 left-0 translate-x-0 translate-y-0 max-w-full sm:top-[50%] sm:left-[50%] sm:-translate-x-1/2 sm:-translate-y-1/2" showCloseButton={true}>
                 <DialogTitle className="sr-only">Autenticação</DialogTitle>
-                <div className="p-6 md:p-8">
-                    <div className="flex justify-center mb-6">
-                        <div className="h-10 w-10 bg-primary/10 rounded-xl flex items-center justify-center">
-                            <span className="text-xl font-bold text-primary">P</span>
+
+                {/* Mobile Header with Logo */}
+                <div className="flex w-full items-center justify-center p-6 sm:hidden border-b border-border/40 min-h-[60px]">
+                    <div className="h-8 w-8 bg-primary/10 rounded-lg flex items-center justify-center text-primary font-bold">P</div>
+                </div>
+
+                <div className="flex-1 overflow-y-auto p-6 md:p-8 flex flex-col justify-center sm:block">
+                    <div className="hidden sm:flex justify-center mb-6">
+                        <div className="h-10 w-10 bg-brand/10 rounded-xl flex items-center justify-center transition-transform hover:scale-105">
+                            <span className="text-xl font-bold text-brand">P</span>
                         </div>
                     </div>
 
@@ -62,6 +68,7 @@ export function AuthModal({ isOpen, onOpenChange, defaultView = 'LOGIN', childre
                             animate={{ opacity: 1, x: 0 }}
                             exit={{ opacity: 0, x: -20 }}
                             transition={{ duration: 0.2 }}
+                            className="w-full max-w-sm mx-auto"
                         >
                             {view === 'LOGIN' && (
                                 <LoginForm

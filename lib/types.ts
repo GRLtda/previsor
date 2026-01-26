@@ -105,6 +105,9 @@ export interface Market {
 export interface Position {
   id: string
   marketId: string
+  marketTitle?: string
+  optionTitle?: string
+  quantity?: number
   side: 'YES' | 'NO'
   amount: number
   shares: number
@@ -112,7 +115,7 @@ export interface Position {
   currentPrice?: number // Current market price per share (for live value calculation)
   currentSellValue?: number // Accurate real-time sell value from backend
   currentSellPrice?: number // Accurate real-time sell price from backend
-  status: 'active' | 'settled' | 'refunded'
+  status: 'active' | 'settled' | 'refunded' | 'open'
   payoutAmount: number | null
   createdAt: string
   settledAt: string | null
@@ -130,6 +133,21 @@ export interface Wallet {
   balance: number
   balance_formatted: string
   risk_level: 'low' | 'medium' | 'high'
+  created_at: string
+}
+
+export type WalletInfo = AdminWallet;
+
+export interface Transaction {
+  id: string
+  type: 'credit' | 'debit'
+  amount: number
+  amount_formatted: string
+  balance_after: number
+  balance_after_formatted: string
+  reference_type: string
+  reference_id: string
+  description: string
   created_at: string
 }
 
@@ -172,7 +190,7 @@ export interface Withdrawal {
   net_amount?: number
   net_amount_formatted?: string
   status: 'pending' | 'processing' | 'completed' | 'failed' | 'cancelled'
-  pix_key_type: 'cpf' | 'cnpj' | 'email' | 'phone' | 'random'
+  pix_key_type: string
   pix_key_masked?: string
   pix_key_value?: string
   processed_at: string | null
@@ -185,8 +203,13 @@ export interface Withdrawal {
 export interface Admin {
   id: string
   email: string
-  name: string
+  name?: string
+  fullName?: string
   role: string
+  mfaEnabled?: boolean
+  status?: string
+  lastLoginAt?: string
+  createdAt?: string
 }
 
 export interface AdminUser {
@@ -291,6 +314,15 @@ export interface KYC {
   updated_at?: string
 }
 
+export interface KycDocument {
+  type: string
+  url: string
+  status: 'pending' | 'approved' | 'rejected'
+  rejection_reason?: string
+}
+
+export type KycSubmission = KYC; // Alias para compatibilidade
+
 export interface LedgerEntry {
   id: string
   wallet_id: string
@@ -321,6 +353,7 @@ export interface AuditLog {
   user_agent?: string
   request_id?: string
   payload?: unknown
+  metadata?: unknown
   previous_state?: unknown
   new_state?: unknown
   created_at: string
@@ -355,4 +388,5 @@ export interface PaginationMeta {
   per_page: number
   total: number
   total_pages: number
+  last_page?: number
 }

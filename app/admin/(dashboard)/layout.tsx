@@ -13,20 +13,25 @@ export default function AdminDashboardLayout({
 }: {
   children: React.ReactNode;
 }) {
-  const { admin, isLoading, isAuthenticated, isMfaVerified } = useAdminAuth();
+  const { admin, isLoading, isAuthenticated, isMfaVerified, mfaRequired } = useAdminAuth();
   const router = useRouter();
 
   useEffect(() => {
-    if (!isLoading) {
+    if (!isLoading && admin) {
       if (!isAuthenticated) {
         // Não está logado, redireciona para login
         router.push("/admin/login");
-      } else if (!isMfaVerified) {
-        // Está logado mas MFA não verificado, redireciona para MFA
+      } else if (!admin.mfaEnabled) {
+        // Admin não tem MFA configurado, redireciona para setup
+        router.push("/admin/mfa/setup");
+      } else if (mfaRequired && !isMfaVerified) {
+        // Está logado, MFA é requerido mas não verificado, redireciona para MFA
         router.push("/admin/mfa");
       }
+    } else if (!isLoading && !isAuthenticated) {
+      router.push("/admin/login");
     }
-  }, [isAuthenticated, isMfaVerified, isLoading, router]);
+  }, [isAuthenticated, isMfaVerified, mfaRequired, isLoading, router, admin]);
 
   if (isLoading) {
     return (
@@ -36,15 +41,17 @@ export default function AdminDashboardLayout({
     );
   }
 
-  // Não mostra nada se não estiver autenticado ou MFA não verificado
-  if (!isAuthenticated || !isMfaVerified || !admin) {
+  // Não mostra nada se não estiver autenticado, MFA não configurado, ou MFA pendente
+  const mfaPending = mfaRequired && !isMfaVerified;
+  const mfaNotConfigured = admin && !admin.mfaEnabled;
+  if (!isAuthenticated || mfaPending || mfaNotConfigured || !admin) {
     return null;
   }
 
   return (
-    <div className="flex min-h-screen bg-muted/30">
+    <div className="flex h-screen overflow-hidden bg-muted/30">
       <AdminSidebar />
-      <main className="flex-1 p-8 overflow-auto">{children}</main>
+      <main className="flex-1 p-8 overflow-y-auto">{children}</main>
     </div>
   );
 }

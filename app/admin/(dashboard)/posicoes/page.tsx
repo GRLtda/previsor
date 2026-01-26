@@ -34,6 +34,7 @@ import { useSearchParams } from "next/navigation";
 import { Suspense } from "react";
 
 const Loading = () => null;
+import { Pagination } from "@/components/shared/pagination";
 
 export default function AdminPositionsPage() {
   const searchParams = useSearchParams();
@@ -53,23 +54,30 @@ export default function AdminPositionsPage() {
   const loadPositions = useCallback(async () => {
     setLoading(true);
     try {
-      // A API admin nao tem endpoint de positions, usando dados vazios por enquanto
-      // TODO: Adicionar endpoint de positions na API admin
-      setPositions([]);
-      setTotalPages(1);
-
-      setStats({
-        total: 0,
-        open: 0,
-        closed: 0,
-        totalVolume: 0,
+      const response = await adminApi.getPositions({
+        page,
+        per_page: 20,
+        status: statusFilter,
+        search: search || undefined,
       });
+
+      const data = response.data as any;
+      const positionsList = Array.isArray(data)
+        ? data
+        : (data?.positions || (response as any).positions || []);
+      setPositions(positionsList);
+      setTotalPages(response.meta?.total_pages || 1);
+      setStats((prev) => ({
+        ...prev,
+        total: response.meta?.total || 0,
+      }));
+
     } catch (error) {
       console.error("Error loading positions:", error);
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [page, statusFilter, search]);
 
   useEffect(() => {
     loadPositions();
@@ -198,8 +206,8 @@ export default function AdminPositionsPage() {
                         <TableRow key={position.id}>
                           <TableCell>
                             <div>
-                              <p className="font-medium">{position.userName}</p>
-                              <p className="text-sm text-muted-foreground">{position.userEmail}</p>
+                              <p className="font-medium">{(position as any).user?.full_name || 'Usuario'}</p>
+                              <p className="text-sm text-muted-foreground">{(position as any).user?.email || '-'}</p>
                             </div>
                           </TableCell>
                           <TableCell className="max-w-[200px]">
@@ -209,7 +217,7 @@ export default function AdminPositionsPage() {
                             <Badge variant="outline">{position.optionTitle}</Badge>
                           </TableCell>
                           <TableCell>{position.quantity}</TableCell>
-                          <TableCell>{formatCurrency(position.averagePrice)}</TableCell>
+                          <TableCell>{formatCurrency(position.avgPrice)}</TableCell>
                           <TableCell>{getStatusBadge(position.status)}</TableCell>
                           <TableCell>
                             {new Date(position.createdAt).toLocaleDateString("pt-BR")}
@@ -220,31 +228,12 @@ export default function AdminPositionsPage() {
                   </TableBody>
                 </Table>
 
-                {totalPages > 1 && (
-                  <div className="flex items-center justify-between px-4 py-4 border-t">
-                    <p className="text-sm text-muted-foreground">
-                      Pagina {page} de {totalPages}
-                    </p>
-                    <div className="flex gap-2">
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => setPage((p) => Math.max(1, p - 1))}
-                        disabled={page === 1}
-                      >
-                        <ChevronLeft className="h-4 w-4" />
-                      </Button>
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
-                        disabled={page === totalPages}
-                      >
-                        <ChevronRight className="h-4 w-4" />
-                      </Button>
-                    </div>
-                  </div>
-                )}
+                <Pagination
+                  currentPage={page}
+                  totalPages={totalPages}
+                  onPageChange={setPage}
+                  isLoading={loading}
+                />
               </>
             )}
           </CardContent>

@@ -131,8 +131,14 @@ export default function AdminEventsPage() {
     if (!editEvent) return;
     setFormLoading(true);
     try {
-      // A API admin nao tem endpoint de update para eventos, apenas criar
-      // Por enquanto apenas recarrega
+      await adminApi.updateEvent(editEvent.id, {
+        title: formData.title,
+        description: formData.description,
+        category: formData.category,
+        imageUrl: formData.imageUrl || undefined,
+        startsAt: formData.startDate || undefined,
+        endsAt: formData.endDate || undefined,
+      });
       loadEvents();
       setEditEvent(null);
       resetForm();
@@ -163,8 +169,8 @@ export default function AdminEventsPage() {
       description: event.description || "",
       category: event.category || "",
       imageUrl: event.imageUrl || "",
-      startDate: event.startDate?.split("T")[0] || "",
-      endDate: event.endDate?.split("T")[0] || "",
+      startDate: event.startsAt?.split("T")[0] || "",
+      endDate: event.endsAt?.split("T")[0] || "",
     });
     setEditEvent(event);
   };
@@ -300,10 +306,10 @@ export default function AdminEventsPage() {
                             <Badge variant="outline">{event.category || "-"}</Badge>
                           </TableCell>
                           <TableCell>{getStatusBadge(event.status)}</TableCell>
-                          <TableCell>{event.marketsCount || 0}</TableCell>
+                          <TableCell>{(event as any).marketsCount || 0}</TableCell>
                           <TableCell>
-                            {event.startDate
-                              ? new Date(event.startDate).toLocaleDateString("pt-BR")
+                            {event.startsAt
+                              ? new Date(event.startsAt).toLocaleDateString("pt-BR")
                               : "-"}
                           </TableCell>
                           <TableCell className="text-right">
@@ -496,7 +502,7 @@ export default function AdminEventsPage() {
           confirmText="Excluir"
           variant="destructive"
           onConfirm={handleDelete}
-          loading={formLoading}
+          isLoading={formLoading}
         />
       </div>
     </Suspense>

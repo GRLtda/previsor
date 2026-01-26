@@ -33,8 +33,16 @@ export default function AdminLoginPage() {
 
     try {
       const result = await login(email, password);
-      // Sempre redireciona para MFA após login
-      router.push("/admin/mfa");
+      // Se o admin não tem MFA configurado, redireciona para setup
+      if (!result.mfa_enabled) {
+        router.push("/admin/mfa/setup");
+      } else if (result.mfa_required) {
+        // Tem MFA configurado mas precisa verificar
+        router.push("/admin/mfa");
+      } else {
+        // MFA já verificado, vai para dashboard
+        router.push("/admin/dashboard");
+      }
     } catch (err) {
       setError(err instanceof Error ? err.message : "Erro ao fazer login");
     } finally {

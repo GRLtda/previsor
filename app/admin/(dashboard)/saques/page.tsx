@@ -45,9 +45,10 @@ import { StatCard } from "@/components/shared/stat-card";
 import { useSearchParams } from "next/navigation";
 import { Suspense } from "react";
 import Loading from "./loading";
+import { Pagination } from "@/components/shared/pagination";
 
 export default function AdminWithdrawalsPage() {
-  const [withdrawals, setWithdrawals] = useState<Withdrawal[]>([]);
+  const [withdrawals, setWithdrawals] = useState<import("@/lib/types").AdminWithdrawal[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>("pending");
@@ -59,7 +60,7 @@ export default function AdminWithdrawalsPage() {
     approved: 0,
     pendingAmount: 0,
   });
-  const [selectedWithdrawal, setSelectedWithdrawal] = useState<Withdrawal | null>(null);
+  const [selectedWithdrawal, setSelectedWithdrawal] = useState<import("@/lib/types").AdminWithdrawal | null>(null);
   const [reviewAction, setReviewAction] = useState<"approve" | "reject" | null>(null);
   const [rejectReason, setRejectReason] = useState("");
   const [actionLoading, setActionLoading] = useState(false);
@@ -73,7 +74,7 @@ export default function AdminWithdrawalsPage() {
 
       const response = await adminApi.getWithdrawals(params);
       setWithdrawals(response.data || []);
-      setTotalPages(response.meta?.last_page || 1);
+      setTotalPages(response.meta?.total_pages || response.meta?.last_page || 1);
 
       setStats({
         total: response.meta?.total || 0,
@@ -207,7 +208,7 @@ export default function AdminWithdrawalsPage() {
         </Card>
 
         <Card>
-          <CardContent className="p-0">
+          <CardContent>
             {loading ? (
               <div className="flex items-center justify-center py-12">
                 <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
@@ -234,26 +235,28 @@ export default function AdminWithdrawalsPage() {
                         </TableCell>
                       </TableRow>
                     ) : (
-                      withdrawals.map((withdrawal) => (
+                      withdrawals.map((withdrawal: any) => (
                         <TableRow key={withdrawal.id}>
                           <TableCell className="font-mono text-sm">
                             {withdrawal.id.slice(0, 8)}...
                           </TableCell>
                           <TableCell>
                             <div>
-                              <p className="font-medium">{withdrawal.userName}</p>
-                              <p className="text-sm text-muted-foreground">{withdrawal.userEmail}</p>
+                              <p className="font-medium">{withdrawal.user_full_name}</p>
+                              <p className="text-sm text-muted-foreground">{withdrawal.user_email}</p>
                             </div>
                           </TableCell>
                           <TableCell className="font-mono text-sm">
-                            {withdrawal.pixKey?.slice(0, 15)}...
+                            {withdrawal.pix_key_value ? `${withdrawal.pix_key_value.slice(0, 15)}...` : '-'}
                           </TableCell>
                           <TableCell className="font-medium text-red-600">
-                            -{formatCurrency(withdrawal.amount)}
+                            -{withdrawal.amount_formatted || formatCurrency(withdrawal.amount)}
                           </TableCell>
                           <TableCell>{getStatusBadge(withdrawal.status)}</TableCell>
                           <TableCell>
-                            {new Date(withdrawal.createdAt).toLocaleDateString("pt-BR")}
+                            {withdrawal.created_at
+                              ? new Date(withdrawal.created_at).toLocaleDateString("pt-BR")
+                              : "-"}
                           </TableCell>
                           <TableCell className="text-right">
                             <Button
@@ -271,31 +274,12 @@ export default function AdminWithdrawalsPage() {
                   </TableBody>
                 </Table>
 
-                {totalPages > 1 && (
-                  <div className="flex items-center justify-between px-4 py-4 border-t">
-                    <p className="text-sm text-muted-foreground">
-                      Pagina {page} de {totalPages}
-                    </p>
-                    <div className="flex gap-2">
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => setPage((p) => Math.max(1, p - 1))}
-                        disabled={page === 1}
-                      >
-                        <ChevronLeft className="h-4 w-4" />
-                      </Button>
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
-                        disabled={page === totalPages}
-                      >
-                        <ChevronRight className="h-4 w-4" />
-                      </Button>
-                    </div>
-                  </div>
-                )}
+                <Pagination
+                  currentPage={page}
+                  totalPages={totalPages}
+                  onPageChange={setPage}
+                  isLoading={loading}
+                />
               </>
             )}
           </CardContent>
@@ -316,16 +300,16 @@ export default function AdminWithdrawalsPage() {
                 <div className="grid grid-cols-2 gap-4">
                   <div className="space-y-1">
                     <p className="text-sm text-muted-foreground">Usuario</p>
-                    <p className="font-medium">{selectedWithdrawal.userName}</p>
+                    <p className="font-medium">{(selectedWithdrawal as any).user_full_name}</p>
                   </div>
                   <div className="space-y-1">
                     <p className="text-sm text-muted-foreground">Email</p>
-                    <p className="font-medium">{selectedWithdrawal.userEmail}</p>
+                    <p className="font-medium">{(selectedWithdrawal as any).user_email}</p>
                   </div>
                   <div className="space-y-1">
                     <p className="text-sm text-muted-foreground">Valor</p>
                     <p className="text-xl font-bold text-red-600">
-                      -{formatCurrency(selectedWithdrawal.amount)}
+                      -{(selectedWithdrawal as any).amount_formatted || formatCurrency(selectedWithdrawal.amount)}
                     </p>
                   </div>
                   <div className="space-y-1">
@@ -335,9 +319,9 @@ export default function AdminWithdrawalsPage() {
                 </div>
 
                 <div className="space-y-1">
-                  <p className="text-sm text-muted-foreground">Chave PIX</p>
+                  <p className="text-sm text-muted-foreground">Chave PIX ({(selectedWithdrawal as any).pix_key_type || 'N/A'})</p>
                   <p className="font-mono text-sm bg-muted p-2 rounded">
-                    {selectedWithdrawal.pixKey}
+                    {(selectedWithdrawal as any).pix_key_value || '-'}
                   </p>
                 </div>
 

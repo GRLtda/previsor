@@ -92,7 +92,7 @@ export default function AdminMarketsPage() {
       const { userApi } = await import("@/lib/api/client");
       const eventsRes = await userApi.getEvents({ status: "active", limit: 100 });
       setEvents(eventsRes.events || []);
-      
+
       // Coleta todos os mercados de todos os eventos
       const allMarkets: Market[] = [];
       for (const event of eventsRes.events || []) {
@@ -100,17 +100,17 @@ export default function AdminMarketsPage() {
           for (const market of event.markets) {
             allMarkets.push({
               ...market,
-              eventTitle: event.title,
+              event: { id: event.id, slug: event.slug, title: event.title, category: event.category },
             });
           }
         }
       }
-      
+
       // Aplica filtro de status
-      const filteredMarkets = statusFilter === "all" 
-        ? allMarkets 
+      const filteredMarkets = statusFilter === "all"
+        ? allMarkets
         : allMarkets.filter(m => m.status === statusFilter);
-      
+
       setMarkets(filteredMarkets);
       setTotalPages(1);
     } catch (error) {
@@ -271,20 +271,17 @@ export default function AdminMarketsPage() {
                         <TableRow key={market.id}>
                           <TableCell>
                             <div>
-                              <p className="font-medium">{market.title}</p>
-                              <p className="text-sm text-muted-foreground line-clamp-1">
-                                {market.description}
-                              </p>
+                              <p className="font-medium">{market.statement}</p>
                             </div>
                           </TableCell>
                           <TableCell>
-                            <Badge variant="outline">{market.eventTitle || "-"}</Badge>
+                            <Badge variant="outline">{market.event?.title || "-"}</Badge>
                           </TableCell>
                           <TableCell>{getStatusBadge(market.status)}</TableCell>
-                          <TableCell>{formatCurrency(market.volume || 0)}</TableCell>
+                          <TableCell>{formatCurrency(market.liquidityB || 0)}</TableCell>
                           <TableCell>
-                            {market.closingDate
-                              ? new Date(market.closingDate).toLocaleDateString("pt-BR")
+                            {market.closesAt
+                              ? new Date(market.closesAt).toLocaleDateString("pt-BR")
                               : "-"}
                           </TableCell>
                           <TableCell className="text-right">
@@ -458,23 +455,27 @@ export default function AdminMarketsPage() {
             <DialogHeader>
               <DialogTitle>Resolver Mercado</DialogTitle>
               <DialogDescription>
-                Selecione a opcao vencedora para resolver o mercado "{resolveMarket?.title}"
+                Selecione a opcao vencedora para resolver o mercado "{resolveMarket?.statement}"
               </DialogDescription>
             </DialogHeader>
 
             <div className="space-y-4">
               <Label>Opcao Vencedora</Label>
               <div className="space-y-2">
-                {resolveMarket?.options?.map((option) => (
-                  <Button
-                    key={option.id}
-                    variant={selectedOption === option.id ? "default" : "outline"}
-                    className="w-full justify-start"
-                    onClick={() => setSelectedOption(option.id)}
-                  >
-                    {option.title}
-                  </Button>
-                ))}
+                <Button
+                  variant={selectedOption === "yes" ? "default" : "outline"}
+                  className="w-full justify-start"
+                  onClick={() => setSelectedOption("yes")}
+                >
+                  Sim
+                </Button>
+                <Button
+                  variant={selectedOption === "no" ? "default" : "outline"}
+                  className="w-full justify-start"
+                  onClick={() => setSelectedOption("no")}
+                >
+                  Nao
+                </Button>
               </div>
             </div>
 

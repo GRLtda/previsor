@@ -9,13 +9,11 @@ import {
   Calendar,
   TrendingUp,
   Wallet,
-  ArrowDownCircle,
-  ArrowUpCircle,
   Shield,
   FileText,
-  Settings,
   LogOut,
   ChevronDown,
+  ChevronRight,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
@@ -23,9 +21,10 @@ import {
   CollapsibleContent,
   CollapsibleTrigger,
 } from "@/components/ui/collapsible";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useAdminAuth } from "@/contexts/admin-auth-context";
 import { Logo } from "@/components/ui/logo";
+import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 
 const menuItems = [
   {
@@ -34,15 +33,15 @@ const menuItems = [
     icon: LayoutDashboard,
   },
   {
-    title: "Usuarios",
+    title: "Usuários",
     icon: Users,
     children: [
-      { title: "Lista de Usuarios", href: "/admin/usuarios" },
-      { title: "Verificacao KYC", href: "/admin/kyc" },
+      { title: "Lista de Usuários", href: "/admin/usuarios" },
+      { title: "Verificação KYC", href: "/admin/kyc" },
     ],
   },
   {
-    title: "Catalogo",
+    title: "Catálogo",
     icon: Calendar,
     children: [
       { title: "Eventos", href: "/admin/eventos" },
@@ -50,7 +49,7 @@ const menuItems = [
     ],
   },
   {
-    title: "Posicoes",
+    title: "Posições",
     href: "/admin/posicoes",
     icon: TrendingUp,
   },
@@ -59,7 +58,7 @@ const menuItems = [
     icon: Wallet,
     children: [
       { title: "Carteiras", href: "/admin/carteiras" },
-      { title: "Depositos", href: "/admin/depositos" },
+      { title: "Depósitos", href: "/admin/depositos" },
       { title: "Saques", href: "/admin/saques" },
     ],
   },
@@ -79,6 +78,25 @@ export function AdminSidebar() {
   const pathname = usePathname();
   const { admin, logout } = useAdminAuth();
   const [openMenus, setOpenMenus] = useState<string[]>([]);
+  const [isMounted, setIsMounted] = useState(false);
+
+  useEffect(() => {
+    setIsMounted(true);
+  }, []);
+
+  // Auto-expand menus based on current path
+  useEffect(() => {
+    if (!isMounted) return;
+
+    // Only auto-expand if no menus are open (initial load) or checking if current path is buried
+    const activeParent = menuItems.find(item =>
+      item.children?.some(child => pathname.startsWith(child.href))
+    );
+
+    if (activeParent && !openMenus.includes(activeParent.title)) {
+      setOpenMenus(prev => [...prev, activeParent.title]);
+    }
+  }, [pathname, isMounted]);
 
   const toggleMenu = (title: string) => {
     setOpenMenus((prev) =>
@@ -88,105 +106,139 @@ export function AdminSidebar() {
     );
   };
 
+  const getInitials = (name: string) => {
+    return name
+      .split(" ")
+      .map((n) => n[0])
+      .slice(0, 2)
+      .join("")
+      .toUpperCase();
+  };
+
+  if (!isMounted) return null;
+
   return (
-    <aside className="w-64 bg-card border-r min-h-screen flex flex-col">
-      <div className="p-6 border-b">
-        <div className="flex items-center gap-2">
-          <Logo width={120} height={40} />
-          <span className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mt-1">Admin</span>
+    <aside className="w-64 bg-card border-r h-full flex flex-col z-20">
+      <div className="p-6 border-b bg-card">
+        <div className="flex items-center gap-3">
+          <Logo width={120} height={38} />
+          <span className="px-1.5 py-0.5 rounded-md bg-muted text-[10px] font-bold uppercase tracking-wider text-muted-foreground border">
+            Admin
+          </span>
         </div>
       </div>
 
-      <nav className="flex-1 p-4 space-y-1">
+      <nav className="flex-1 px-3 py-4 space-y-1 overflow-y-auto">
         {menuItems.map((item) => {
           if (item.children) {
-            const isOpen = openMenus.includes(item.title);
-            const isActive = item.children.some((child) =>
+            const isActiveParent = item.children.some((child) =>
               pathname.startsWith(child.href)
             );
+            const isOpen = openMenus.includes(item.title);
 
             return (
               <Collapsible
                 key={item.title}
-                open={isOpen || isActive}
+                open={isOpen}
                 onOpenChange={() => toggleMenu(item.title)}
+                className="space-y-1"
               >
                 <CollapsibleTrigger asChild>
                   <Button
                     variant="ghost"
                     className={cn(
-                      "w-full justify-between",
-                      isActive && "bg-muted"
+                      "w-full justify-between h-9 px-3 font-normal",
+                      isActiveParent
+                        ? "text-primary font-medium"
+                        : "text-muted-foreground hover:text-primary hover:bg-primary/5"
                     )}
                   >
                     <span className="flex items-center gap-3">
-                      <item.icon className="h-4 w-4" />
-                      {item.title}
+                      <item.icon className={cn(
+                        "h-4 w-4",
+                        isActiveParent ? "text-primary" : "text-muted-foreground"
+                      )} />
+                      <span>{item.title}</span>
                     </span>
                     <ChevronDown
                       className={cn(
-                        "h-4 w-4 transition-transform",
-                        (isOpen || isActive) && "rotate-180"
+                        "h-4 w-4 transition-transform duration-200 opacity-50",
+                        isOpen && "rotate-180"
                       )}
                     />
                   </Button>
                 </CollapsibleTrigger>
-                <CollapsibleContent className="pl-7 space-y-1 mt-1">
-                  {item.children.map((child) => (
-                    <Link key={child.href} href={child.href}>
-                      <Button
-                        variant="ghost"
-                        className={cn(
-                          "w-full justify-start",
-                          pathname === child.href && "bg-primary/10 text-primary"
-                        )}
-                      >
-                        {child.title}
-                      </Button>
-                    </Link>
-                  ))}
+                <CollapsibleContent className="space-y-1 pt-1 pb-1">
+                  {item.children.map((child) => {
+                    const isActiveChild = pathname === child.href;
+                    return (
+                      <Link key={child.href} href={child.href} className="block pl-10">
+                        <Button
+                          variant="ghost"
+                          className={cn(
+                            "w-full justify-start h-8 px-2 text-sm font-normal",
+                            isActiveChild
+                              ? "text-primary font-medium bg-primary/10"
+                              : "text-muted-foreground hover:text-primary hover:bg-primary/5"
+                          )}
+                        >
+                          {child.title}
+                        </Button>
+                      </Link>
+                    );
+                  })}
                 </CollapsibleContent>
               </Collapsible>
             );
           }
 
+          const isActive = pathname.startsWith(item.href);
           return (
-            <Link key={item.href} href={item.href}>
+            <Link key={item.href} href={item.href} className="block">
               <Button
                 variant="ghost"
                 className={cn(
-                  "w-full justify-start gap-3",
-                  pathname === item.href && "bg-primary/10 text-primary"
+                  "w-full justify-start h-9 px-3 gap-3 font-normal",
+                  isActive
+                    ? "bg-primary/10 text-primary font-medium"
+                    : "text-muted-foreground hover:text-primary hover:bg-primary/5"
                 )}
               >
-                <item.icon className="h-4 w-4" />
-                {item.title}
+                <item.icon className={cn(
+                  "h-4 w-4",
+                  isActive ? "text-primary" : "text-muted-foreground"
+                )} />
+                <span>{item.title}</span>
               </Button>
             </Link>
           );
         })}
       </nav>
 
-      <div className="p-4 border-t">
-        <div className="flex items-center gap-3 mb-4 px-3">
-          <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center">
-            <span className="text-sm font-medium text-primary">
-              {admin?.name?.charAt(0) || "A"}
-            </span>
-          </div>
+      <div className="p-4 border-t mt-auto">
+        <div className="flex items-center gap-3 mb-4 px-1">
+          <Avatar className="h-8 w-8">
+            <AvatarFallback className="text-xs bg-muted text-muted-foreground">
+              {getInitials(admin?.fullName || admin?.name || "AD")}
+            </AvatarFallback>
+          </Avatar>
           <div className="flex-1 min-w-0">
-            <p className="text-sm font-medium truncate">{admin?.name || "Admin"}</p>
+            <p className="text-sm font-medium truncate">
+              {admin?.fullName || admin?.name || "Admin"}
+            </p>
             <p className="text-xs text-muted-foreground truncate">
-              {admin?.role || "Administrador"}
+              {admin?.email}
             </p>
           </div>
         </div>
+
         <Button
-          variant="ghost"
-          className="w-full justify-start gap-3 text-destructive hover:text-destructive hover:bg-destructive/10"
+          variant="outline"
+          size="sm"
+          className="w-full justify-start gap-2 h-8 text-muted-foreground hover:text-primary hover:bg-primary/5"
           onClick={logout}
         >
-          <LogOut className="h-4 w-4" />
+          <LogOut className="h-3.5 w-3.5" />
           Sair
         </Button>
       </div>

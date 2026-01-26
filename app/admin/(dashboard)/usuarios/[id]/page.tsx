@@ -25,6 +25,8 @@ import {
   Calendar,
   Wallet,
   TrendingUp,
+  XCircle,
+  ShieldCheck,
 } from "lucide-react";
 import { adminApi } from "@/lib/api/client";
 import type { User, Position, Transaction } from "@/lib/types";
@@ -38,11 +40,11 @@ export default function UserDetailPage({
 }) {
   const { id } = use(params);
   const router = useRouter();
-  const [user, setUser] = useState<User | null>(null);
+  const [user, setUser] = useState<import("@/lib/types").AdminUser | null>(null);
   const [positions, setPositions] = useState<Position[]>([]);
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [loading, setLoading] = useState(true);
-  const [actionType, setActionType] = useState<"block" | "unblock" | null>(null);
+  const [actionType, setActionType] = useState<"block" | "unblock" | "approveKyc" | "rejectKyc" | null>(null);
   const [actionLoading, setActionLoading] = useState(false);
 
   useEffect(() => {
@@ -69,8 +71,12 @@ export default function UserDetailPage({
     try {
       if (actionType === "block") {
         await adminApi.updateUserStatus(user.id, "blocked", "Bloqueado pelo administrador");
-      } else {
+      } else if (actionType === "unblock") {
         await adminApi.updateUserStatus(user.id, "active", "Desbloqueado pelo administrador");
+      } else if (actionType === "approveKyc") {
+        await adminApi.approveKyc(user.id, "full", "Aprovado pelo administrador");
+      } else if (actionType === "rejectKyc") {
+        await adminApi.rejectKyc(user.id, "Documentos invalidos", "Rejeitado pelo administrador");
       }
       loadUser();
     } catch (error) {
@@ -114,10 +120,10 @@ export default function UserDetailPage({
           <ArrowLeft className="h-4 w-4" />
         </Button>
         <div className="flex-1">
-          <h1 className="text-3xl font-bold">{user.name}</h1>
+          <h1 className="text-3xl font-bold">{(user as any).full_name || user.email}</h1>
           <p className="text-muted-foreground">{user.email}</p>
         </div>
-        {user.status === "active" ? (
+        {(user as any).status === "active" ? (
           <Button variant="destructive" onClick={() => setActionType("block")}>
             <Ban className="mr-2 h-4 w-4" />
             Bloquear Usuario
@@ -139,11 +145,11 @@ export default function UserDetailPage({
             <div className="grid grid-cols-2 gap-4">
               <div>
                 <p className="text-sm text-muted-foreground">Nome Completo</p>
-                <p className="font-medium">{user.name}</p>
+                <p className="font-medium">{(user as any).full_name || "-"}</p>
               </div>
               <div>
                 <p className="text-sm text-muted-foreground">CPF</p>
-                <p className="font-medium">{user.cpf || "-"}</p>
+                <p className="font-medium">{(user as any).cpf || "-"}</p>
               </div>
               <div>
                 <p className="text-sm text-muted-foreground flex items-center gap-1">
@@ -162,8 +168,8 @@ export default function UserDetailPage({
                   <Calendar className="h-3 w-3" /> Data de Nascimento
                 </p>
                 <p className="font-medium">
-                  {user.birthDate
-                    ? new Date(user.birthDate).toLocaleDateString("pt-BR")
+                  {(user as any).birth_date
+                    ? new Date((user as any).birth_date).toLocaleDateString("pt-BR")
                     : "-"}
                 </p>
               </div>
@@ -171,11 +177,7 @@ export default function UserDetailPage({
                 <p className="text-sm text-muted-foreground flex items-center gap-1">
                   <MapPin className="h-3 w-3" /> Endereco
                 </p>
-                <p className="font-medium">
-                  {user.address
-                    ? `${user.address.street}, ${user.address.number} - ${user.address.city}/${user.address.state}`
-                    : "-"}
-                </p>
+                <p className="font-medium">-</p>
               </div>
             </div>
           </CardContent>
@@ -189,43 +191,68 @@ export default function UserDetailPage({
             <div>
               <p className="text-sm text-muted-foreground">Status da Conta</p>
               <Badge
-                variant={user.status === "active" ? "default" : "destructive"}
+                variant={(user as any).status === "active" ? "default" : "destructive"}
                 className="mt-1"
               >
-                {user.status === "active" ? "Ativo" : "Bloqueado"}
+                {(user as any).status === "active" ? "Ativo" : "Bloqueado"}
               </Badge>
             </div>
             <div>
               <p className="text-sm text-muted-foreground">Status KYC</p>
               <Badge
                 variant={
-                  user.kycStatus === "approved"
+                  (user as any).kyc_status === "approved"
                     ? "default"
-                    : user.kycStatus === "pending"
+                    : (user as any).kyc_status === "pending"
                       ? "secondary"
                       : "destructive"
                 }
                 className="mt-1"
               >
-                {user.kycStatus === "approved"
+                {(user as any).kyc_status === "approved"
                   ? "Aprovado"
-                  : user.kycStatus === "pending"
+                  : (user as any).kyc_status === "pending"
                     ? "Pendente"
-                    : user.kycStatus === "rejected"
+                    : (user as any).kyc_status === "rejected"
                       ? "Rejeitado"
                       : "Nao enviado"}
               </Badge>
+              {/* Botões de ação KYC */}
+              {(user as any).kyc_status === "pending" && (
+                <div className="flex gap-2 mt-2">
+                  <Button
+                    size="sm"
+                    variant="default"
+                    className="flex-1"
+                    onClick={() => setActionType("approveKyc")}
+                  >
+                    <ShieldCheck className="mr-1 h-3 w-3" />
+                    Aprovar
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant="destructive"
+                    className="flex-1"
+                    onClick={() => setActionType("rejectKyc")}
+                  >
+                    <XCircle className="mr-1 h-3 w-3" />
+                    Rejeitar
+                  </Button>
+                </div>
+              )}
             </div>
             <div>
               <p className="text-sm text-muted-foreground">Cadastrado em</p>
               <p className="font-medium">
-                {new Date(user.createdAt).toLocaleDateString("pt-BR")}
+                {(user as any).created_at
+                  ? new Date((user as any).created_at).toLocaleDateString("pt-BR")
+                  : "-"}
               </p>
             </div>
             <div>
               <p className="text-sm text-muted-foreground">Saldo da Carteira</p>
               <p className="text-2xl font-bold text-primary">
-                {formatCurrency(user.walletBalance || 0)}
+                {(user as any).wallet?.balance_formatted || "R$ 0,00"}
               </p>
             </div>
           </CardContent>
@@ -373,16 +400,36 @@ export default function UserDetailPage({
       <ConfirmDialog
         open={!!actionType}
         onOpenChange={() => setActionType(null)}
-        title={actionType === "block" ? "Bloquear Usuario" : "Desbloquear Usuario"}
+        title={
+          actionType === "block"
+            ? "Bloquear Usuario"
+            : actionType === "unblock"
+              ? "Desbloquear Usuario"
+              : actionType === "approveKyc"
+                ? "Aprovar KYC"
+                : "Rejeitar KYC"
+        }
         description={
           actionType === "block"
-            ? `Tem certeza que deseja bloquear o usuario ${user.name}? Ele nao podera acessar a plataforma.`
-            : `Tem certeza que deseja desbloquear o usuario ${user.name}?`
+            ? `Tem certeza que deseja bloquear o usuario ${(user as any).full_name || user.email}? Ele nao podera acessar a plataforma.`
+            : actionType === "unblock"
+              ? `Tem certeza que deseja desbloquear o usuario ${(user as any).full_name || user.email}?`
+              : actionType === "approveKyc"
+                ? `Tem certeza que deseja aprovar a verificacao KYC do usuario ${(user as any).full_name || user.email}?`
+                : `Tem certeza que deseja rejeitar a verificacao KYC do usuario ${(user as any).full_name || user.email}?`
         }
-        confirmText={actionType === "block" ? "Bloquear" : "Desbloquear"}
-        variant={actionType === "block" ? "destructive" : "default"}
+        confirmText={
+          actionType === "block"
+            ? "Bloquear"
+            : actionType === "unblock"
+              ? "Desbloquear"
+              : actionType === "approveKyc"
+                ? "Aprovar"
+                : "Rejeitar"
+        }
+        variant={actionType === "block" || actionType === "rejectKyc" ? "destructive" : "default"}
         onConfirm={handleAction}
-        loading={actionLoading}
+        isLoading={actionLoading}
       />
     </div>
   );

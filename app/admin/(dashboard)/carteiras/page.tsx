@@ -36,6 +36,7 @@ import type { WalletInfo } from "@/lib/types";
 import { StatCard } from "@/components/shared/stat-card";
 import { useSearchParams } from "next/navigation";
 import { Suspense } from "react";
+import { Pagination } from "@/components/shared/pagination";
 
 export default function AdminWalletsPage() {
   const [wallets, setWallets] = useState<WalletInfo[]>([]);
@@ -62,7 +63,7 @@ export default function AdminWalletsPage() {
 
       const response = await adminApi.getWallets(params);
       setWallets(response.data || []);
-      setTotalPages(response.meta?.last_page || 1);
+      setTotalPages(response.meta?.total_pages || response.meta?.last_page || 1);
 
       const totalBalance = (response.data || []).reduce(
         (sum: number, w: WalletInfo) => sum + (w.balance || 0),
@@ -88,14 +89,26 @@ export default function AdminWalletsPage() {
     if (!adjustWallet || !adjustAmount || !adjustReason) return;
     setActionLoading(true);
     try {
-      // A API admin nao tem endpoints de creditar/debitar carteira
-      // TODO: Adicionar endpoints de ajuste de saldo na API
-      loadWallets();
+      const amountInCents = Math.round(parseFloat(adjustAmount.replace(',', '.')) * 100);
+
+      if (isNaN(amountInCents) || amountInCents <= 0) {
+        alert("Por favor, insira um valor valido");
+        return;
+      }
+
+      if (adjustType === "credit") {
+        await adminApi.creditWallet(adjustWallet.id, amountInCents, adjustReason);
+      } else {
+        await adminApi.debitWallet(adjustWallet.id, amountInCents, adjustReason);
+      }
+
+      await loadWallets();
       setAdjustWallet(null);
       setAdjustAmount("");
       setAdjustReason("");
     } catch (error) {
       console.error("Error:", error);
+      alert("Erro ao realizar operacao. Tente novamente.");
     } finally {
       setActionLoading(false);
     }
@@ -153,7 +166,7 @@ export default function AdminWalletsPage() {
       </Card>
 
       <Card>
-        <CardContent className="p-0">
+        <CardContent>
           {loading ? (
             <div className="flex items-center justify-center py-12">
               <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
@@ -164,10 +177,10 @@ export default function AdminWalletsPage() {
                 <TableHeader>
                   <TableRow>
                     <TableHead>Usuario</TableHead>
-                    <TableHead>Saldo Disponivel</TableHead>
-                    <TableHead>Saldo Bloqueado</TableHead>
-                    <TableHead>Total Depositado</TableHead>
-                    <TableHead>Total Sacado</TableHead>
+                    <TableHead>Saldo</TableHead>
+                    <TableHead>Status</TableHead>
+                    <TableHead>Nivel de Risco</TableHead>
+                    <TableHead>Criado em</TableHead>
                     <TableHead className="text-right">Acoes</TableHead>
                   </TableRow>
                 </TableHeader>
@@ -179,25 +192,39 @@ export default function AdminWalletsPage() {
                       </TableCell>
                     </TableRow>
                   ) : (
-                    wallets.map((wallet) => (
-                      <TableRow key={wallet.userId}>
+                    wallets.map((wallet: any) => (
+                      <TableRow key={wallet.id}>
                         <TableCell>
                           <div>
-                            <p className="font-medium">{wallet.userName}</p>
-                            <p className="text-sm text-muted-foreground">{wallet.userEmail}</p>
+                            <p className="font-medium">{wallet.user_full_name}</p>
+                            <p className="text-sm text-muted-foreground">{wallet.user_email}</p>
                           </div>
                         </TableCell>
                         <TableCell className="font-medium">
-                          {formatCurrency(wallet.balance || 0)}
+                          {wallet.balance_formatted || formatCurrency(wallet.balance || 0)}
                         </TableCell>
-                        <TableCell className="text-muted-foreground">
-                          {formatCurrency(wallet.blockedBalance || 0)}
+                        <TableCell>
+                          <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${wallet.status === 'active'
+                            ? 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400'
+                            : 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400'
+                            }`}>
+                            {wallet.status === 'active' ? 'Ativo' : 'Congelado'}
+                          </span>
                         </TableCell>
-                        <TableCell className="text-green-600">
-                          {formatCurrency(wallet.totalDeposited || 0)}
+                        <TableCell>
+                          <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${wallet.risk_level === 'low'
+                            ? 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400'
+                            : wallet.risk_level === 'medium'
+                              ? 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-400'
+                              : 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400'
+                            }`}>
+                            {wallet.risk_level === 'low' ? 'Baixo' : wallet.risk_level === 'medium' ? 'Medio' : 'Alto'}
+                          </span>
                         </TableCell>
-                        <TableCell className="text-red-600">
-                          {formatCurrency(wallet.totalWithdrawn || 0)}
+                        <TableCell>
+                          {wallet.created_at
+                            ? new Date(wallet.created_at).toLocaleDateString("pt-BR")
+                            : "-"}
                         </TableCell>
                         <TableCell className="text-right">
                           <div className="flex justify-end gap-2">
@@ -231,31 +258,12 @@ export default function AdminWalletsPage() {
                 </TableBody>
               </Table>
 
-              {totalPages > 1 && (
-                <div className="flex items-center justify-between px-4 py-4 border-t">
-                  <p className="text-sm text-muted-foreground">
-                    Pagina {page} de {totalPages}
-                  </p>
-                  <div className="flex gap-2">
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => setPage((p) => Math.max(1, p - 1))}
-                      disabled={page === 1}
-                    >
-                      <ChevronLeft className="h-4 w-4" />
-                    </Button>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
-                      disabled={page === totalPages}
-                    >
-                      <ChevronRight className="h-4 w-4" />
-                    </Button>
-                  </div>
-                </div>
-              )}
+              <Pagination
+                currentPage={page}
+                totalPages={totalPages}
+                onPageChange={setPage}
+                isLoading={loading}
+              />
             </>
           )}
         </CardContent>
@@ -279,10 +287,10 @@ export default function AdminWalletsPage() {
             {adjustWallet && (
               <div className="space-y-4">
                 <div className="p-4 bg-muted/50 rounded-lg">
-                  <p className="font-medium">{adjustWallet.userName}</p>
-                  <p className="text-sm text-muted-foreground">{adjustWallet.userEmail}</p>
+                  <p className="font-medium">{(adjustWallet as any).user_full_name}</p>
+                  <p className="text-sm text-muted-foreground">{(adjustWallet as any).user_email}</p>
                   <p className="text-lg font-bold mt-2">
-                    Saldo atual: {formatCurrency(adjustWallet.balance || 0)}
+                    Saldo atual: {(adjustWallet as any).balance_formatted || formatCurrency(adjustWallet.balance || 0)}
                   </p>
                 </div>
 

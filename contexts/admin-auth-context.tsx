@@ -20,7 +20,7 @@ interface AdminAuthContextType {
   isMfaVerified: boolean
   mfaRequired: boolean
   error: string | null
-  login: (email: string, password: string) => Promise<{ mfa_required: boolean }>
+  login: (email: string, password: string) => Promise<{ mfa_required: boolean; mfa_enabled?: boolean }>
   verifyMfa: (code: string) => Promise<void>
   verifyMfaBackup: (code: string) => Promise<void>
   logout: () => Promise<void>
@@ -48,7 +48,7 @@ export function AdminAuthProvider({ children }: { children: ReactNode }) {
     try {
       const mfaOk = isMfaVerified()
       setMfaVerifiedState(mfaOk)
-      
+
       if (mfaOk) {
         const response = await adminApi.getMe()
         setAdmin(response.data.admin)
@@ -77,15 +77,21 @@ export function AdminAuthProvider({ children }: { children: ReactNode }) {
     setError(null)
     try {
       const response = await adminApi.login(email, password)
+      // Se MFA não é requerido, já considera verificado
+      const mfaVerifiedValue = !response.data.mfa_required
       setTokens('admin', {
         access_token: response.data.access_token,
         refresh_token: response.data.refresh_token,
-        mfa_verified: false,
+        mfa_verified: mfaVerifiedValue,
       })
       setAdmin(response.data.admin)
       setMfaRequired(response.data.mfa_required)
-      
-      return { mfa_required: response.data.mfa_required }
+      setMfaVerifiedState(mfaVerifiedValue)
+
+      return {
+        mfa_required: response.data.mfa_required,
+        mfa_enabled: response.data.admin.mfaEnabled
+      }
     } catch (err) {
       if (err instanceof ApiClientError) {
         setError(err.message)

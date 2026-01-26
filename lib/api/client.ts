@@ -40,10 +40,10 @@ export function setTokens(
   localStorage.setItem(keys.access, tokens.access_token)
   localStorage.setItem(keys.refresh, tokens.refresh_token)
   if (type === 'user' && tokens.verified_otp !== undefined) {
-    localStorage.setItem(keys.verified_otp, String(tokens.verified_otp))
+    localStorage.setItem((keys as typeof TOKEN_KEYS.user).verified_otp, String(tokens.verified_otp))
   }
   if (type === 'admin' && tokens.mfa_verified !== undefined) {
-    localStorage.setItem(keys.mfa_verified, String(tokens.mfa_verified))
+    localStorage.setItem((keys as typeof TOKEN_KEYS.admin).mfa_verified, String(tokens.mfa_verified))
   }
 }
 
@@ -53,10 +53,10 @@ export function clearTokens(type: ApiType) {
   localStorage.removeItem(keys.access)
   localStorage.removeItem(keys.refresh)
   if (type === 'user') {
-    localStorage.removeItem(keys.verified_otp)
+    localStorage.removeItem((keys as typeof TOKEN_KEYS.user).verified_otp)
   }
   if (type === 'admin') {
-    localStorage.removeItem(keys.mfa_verified)
+    localStorage.removeItem((keys as typeof TOKEN_KEYS.admin).mfa_verified)
   }
 }
 
@@ -561,7 +561,7 @@ export const adminApi = {
     }>(
       'admin',
       '/auth/mfa/setup',
-      { method: 'POST' }
+      { method: 'POST', body: {} }
     ),
 
   confirmMfa: (code: string) =>
@@ -583,6 +583,28 @@ export const adminApi = {
       'admin',
       '/me'
     ),
+
+  // Administrators
+  getAdministrators: (params?: { page?: number; per_page?: number }) =>
+    baseFetch<{
+      success: true
+      data: Array<{
+        id: string
+        email: string
+        fullName: string
+        role: string
+        status: string
+        mfaEnabled: boolean
+        lastLoginAt: string | null
+        createdAt: string
+      }>
+      meta: import('@/lib/types').PaginationMeta
+    }>(
+      'admin',
+      '/administrators',
+      { params }
+    ),
+
 
   // Users
   getUsers: (params?: {
@@ -758,6 +780,20 @@ export const adminApi = {
       { method: 'POST' }
     ),
 
+  creditWallet: (walletId: string, amount: number, reason: string) =>
+    baseFetch<{ success: true; data: { wallet_id: string; balance: number; transaction_id: string } }>(
+      'admin',
+      `/wallets/${walletId}/credit`,
+      { method: 'POST', body: { amount, reason } }
+    ),
+
+  debitWallet: (walletId: string, amount: number, reason: string) =>
+    baseFetch<{ success: true; data: { wallet_id: string; balance: number; transaction_id: string } }>(
+      'admin',
+      `/wallets/${walletId}/debit`,
+      { method: 'POST', body: { amount, reason } }
+    ),
+
   // Ledger
   getLedger: (params?: {
     page?: number
@@ -776,10 +812,42 @@ export const adminApi = {
     ),
 
   getLedgerEntry: (id: string) =>
-    baseFetch<{ success: true; data: { entry: import('@/lib/types').LedgerEntry } }>(
+    baseFetch<{ success: true; data: import('@/lib/types').LedgerEntry }>(
       'admin',
       `/ledger/${id}`
     ),
+
+  // Positions
+  getPositions: (params?: {
+    page?: number
+    per_page?: number
+    status?: string
+    market_id?: string
+    search?: string
+  }) =>
+    baseFetch<{
+      success: true
+      data: Array<{
+        id: string
+        userId: string
+        userFullName: string
+        userEmail: string
+        marketId: string
+        marketTitle: string
+        marketSlug: string
+        optionTitle: string
+        quantity: number
+        avgPrice: number
+        status: string
+        createdAt: string
+      }>
+      meta: import('@/lib/types').PaginationMeta
+    }>(
+      'admin',
+      '/positions',
+      { params }
+    ),
+
 
   // Audit Logs
   getAuditLogs: (params?: {
@@ -841,6 +909,22 @@ export const adminApi = {
       'admin',
       `/events/${id}/publish`,
       { method: 'POST' }
+    ),
+
+  updateEvent: (id: string, data: {
+    title?: string
+    description?: string
+    category?: string
+    startsAt?: string
+    endsAt?: string
+    resolveRules?: string
+    sourceUrls?: string[]
+    imageUrl?: string
+  }) =>
+    baseFetch<{ success: true; data: { id: string; slug: string; status: string } }>(
+      'admin',
+      `/events/${id}`,
+      { method: 'PATCH', body: data }
     ),
 
   createMarket: (data: {

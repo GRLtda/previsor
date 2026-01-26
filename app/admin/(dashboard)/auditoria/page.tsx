@@ -44,6 +44,7 @@ import type { AuditLog } from "@/lib/types";
 import { useSearchParams } from "next/navigation";
 import { Suspense } from "react";
 import Loading from "./loading";
+import { Pagination } from "@/components/shared/pagination";
 
 export default function AdminAuditPage() {
   const searchParams = useSearchParams();
@@ -63,7 +64,7 @@ export default function AdminAuditPage() {
 
       const response = await adminApi.getAuditLogs(params);
       setLogs(response.data || []);
-      setTotalPages(response.meta?.last_page || 1);
+      setTotalPages(response.meta?.total_pages || response.meta?.last_page || 1);
     } catch (error) {
       console.error("Error loading audit logs:", error);
     } finally {
@@ -169,20 +170,26 @@ export default function AdminAuditPage() {
                       logs.map((log) => (
                         <TableRow key={log.id}>
                           <TableCell className="whitespace-nowrap">
-                            {new Date(log.createdAt).toLocaleString("pt-BR")}
+                            {(log as any).created_at
+                              ? new Date((log as any).created_at).toLocaleString("pt-BR")
+                              : "-"}
                           </TableCell>
                           <TableCell>
                             <div className="flex items-center gap-2">
                               <Shield className="h-4 w-4 text-muted-foreground" />
-                              <span className="text-sm">{log.adminName || log.adminEmail}</span>
+                              <span className="text-sm">
+                                {(log as any).admin?.fullName || (log as any).admin?.email || "-"}
+                              </span>
                             </div>
                           </TableCell>
                           <TableCell>{getActionBadge(log.action)}</TableCell>
-                          <TableCell>{getEntityBadge(log.entity)}</TableCell>
+                          <TableCell>{getEntityBadge((log as any).resource_type || "-")}</TableCell>
                           <TableCell className="max-w-[200px] truncate">
-                            {log.description}
+                            {(log as any).description || "-"}
                           </TableCell>
-                          <TableCell className="font-mono text-sm">{log.ipAddress}</TableCell>
+                          <TableCell className="font-mono text-sm">
+                            {(log as any).ip_address || "-"}
+                          </TableCell>
                           <TableCell className="text-right">
                             <Button
                               variant="ghost"
@@ -198,31 +205,12 @@ export default function AdminAuditPage() {
                   </TableBody>
                 </Table>
 
-                {totalPages > 1 && (
-                  <div className="flex items-center justify-between px-4 py-4 border-t">
-                    <p className="text-sm text-muted-foreground">
-                      Pagina {page} de {totalPages}
-                    </p>
-                    <div className="flex gap-2">
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => setPage((p) => Math.max(1, p - 1))}
-                        disabled={page === 1}
-                      >
-                        <ChevronLeft className="h-4 w-4" />
-                      </Button>
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
-                        disabled={page === totalPages}
-                      >
-                        <ChevronRight className="h-4 w-4" />
-                      </Button>
-                    </div>
-                  </div>
-                )}
+                <Pagination
+                  currentPage={page}
+                  totalPages={totalPages}
+                  onPageChange={setPage}
+                  isLoading={loading}
+                />
               </>
             )}
           </CardContent>
@@ -244,15 +232,21 @@ export default function AdminAuditPage() {
                       <Calendar className="h-3 w-3" /> Data/Hora
                     </p>
                     <p className="font-medium">
-                      {new Date(selectedLog.createdAt).toLocaleString("pt-BR")}
+                      {(selectedLog as any).created_at
+                        ? new Date((selectedLog as any).created_at).toLocaleString("pt-BR")
+                        : "-"}
                     </p>
                   </div>
                   <div className="space-y-1">
                     <p className="text-sm text-muted-foreground flex items-center gap-1">
                       <Shield className="h-3 w-3" /> Administrador
                     </p>
-                    <p className="font-medium">{selectedLog.adminName}</p>
-                    <p className="text-sm text-muted-foreground">{selectedLog.adminEmail}</p>
+                    <p className="font-medium">
+                      {(selectedLog as any).admin?.fullName || "-"}
+                    </p>
+                    <p className="text-sm text-muted-foreground">
+                      {(selectedLog as any).admin?.email || "-"}
+                    </p>
                   </div>
                   <div className="space-y-1">
                     <p className="text-sm text-muted-foreground">Acao</p>
@@ -260,26 +254,30 @@ export default function AdminAuditPage() {
                   </div>
                   <div className="space-y-1">
                     <p className="text-sm text-muted-foreground">Entidade</p>
-                    {getEntityBadge(selectedLog.entity)}
+                    {getEntityBadge((selectedLog as any).resource_type || "-")}
                   </div>
                   <div className="space-y-1">
                     <p className="text-sm text-muted-foreground flex items-center gap-1">
                       <Globe className="h-3 w-3" /> IP
                     </p>
-                    <p className="font-mono text-sm">{selectedLog.ipAddress}</p>
+                    <p className="font-mono text-sm">
+                      {(selectedLog as any).ip_address || "-"}
+                    </p>
                   </div>
                   <div className="space-y-1">
                     <p className="text-sm text-muted-foreground">User Agent</p>
-                    <p className="text-xs truncate">{selectedLog.userAgent || "-"}</p>
+                    <p className="text-xs truncate">
+                      {(selectedLog as any).user_agent || "-"}
+                    </p>
                   </div>
                 </div>
 
                 <div className="space-y-1">
                   <p className="text-sm text-muted-foreground">Descricao</p>
-                  <p>{selectedLog.description}</p>
+                  <p>{(selectedLog as any).description || "-"}</p>
                 </div>
 
-                {selectedLog.metadata && (
+                {(selectedLog.metadata as any) && (
                   <div className="space-y-1">
                     <p className="text-sm text-muted-foreground">Metadados</p>
                     <pre className="text-xs bg-muted p-3 rounded-lg overflow-auto max-h-[200px]">

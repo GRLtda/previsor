@@ -34,9 +34,11 @@ import { StatCard } from "@/components/shared/stat-card";
 import { useSearchParams } from "next/navigation"
 import { Suspense } from "react";
 import Loading from "./loading";
+import Link from "next/link";
+import { Pagination } from "@/components/shared/pagination";
 
 export default function AdminDepositsPage() {
-  const [deposits, setDeposits] = useState<Deposit[]>([]);
+  const [deposits, setDeposits] = useState<import("@/lib/types").AdminDeposit[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>("all");
@@ -59,7 +61,7 @@ export default function AdminDepositsPage() {
 
       const response = await adminApi.getDeposits(params);
       setDeposits(response.data || []);
-      setTotalPages(response.meta?.last_page || 1);
+      setTotalPages(response.meta?.total_pages || response.meta?.last_page || 1);
 
       setStats({
         total: response.meta?.total || 0,
@@ -171,7 +173,7 @@ export default function AdminDepositsPage() {
         </Card>
 
         <Card>
-          <CardContent className="p-0">
+          <CardContent>
             {loading ? (
               <div className="flex items-center justify-center py-12">
                 <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
@@ -183,10 +185,10 @@ export default function AdminDepositsPage() {
                     <TableRow>
                       <TableHead>ID</TableHead>
                       <TableHead>Usuario</TableHead>
-                      <TableHead>Metodo</TableHead>
                       <TableHead>Valor</TableHead>
                       <TableHead>Status</TableHead>
                       <TableHead>Data</TableHead>
+                      <TableHead className="text-right">Acoes</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
@@ -197,26 +199,32 @@ export default function AdminDepositsPage() {
                         </TableCell>
                       </TableRow>
                     ) : (
-                      deposits.map((deposit) => (
+                      deposits.map((deposit: any) => (
                         <TableRow key={deposit.id}>
                           <TableCell className="font-mono text-sm">
                             {deposit.id.slice(0, 8)}...
                           </TableCell>
                           <TableCell>
                             <div>
-                              <p className="font-medium">{deposit.userName}</p>
-                              <p className="text-sm text-muted-foreground">{deposit.userEmail}</p>
+                              <p className="font-medium">{deposit.user_full_name}</p>
+                              <p className="text-sm text-muted-foreground">{deposit.user_email}</p>
                             </div>
                           </TableCell>
-                          <TableCell>
-                            <Badge variant="outline">{deposit.method}</Badge>
-                          </TableCell>
                           <TableCell className="font-medium text-green-600">
-                            +{formatCurrency(deposit.amount)}
+                            {deposit.amount_formatted}
                           </TableCell>
                           <TableCell>{getStatusBadge(deposit.status)}</TableCell>
                           <TableCell>
-                            {new Date(deposit.createdAt).toLocaleDateString("pt-BR")}
+                            {deposit.created_at
+                              ? new Date(deposit.created_at).toLocaleDateString("pt-BR")
+                              : "-"}
+                          </TableCell>
+                          <TableCell className="text-right">
+                            <Link href={`/admin/depositos/${deposit.id}`}>
+                              <Button variant="ghost" size="sm">
+                                <Eye className="h-4 w-4" />
+                              </Button>
+                            </Link>
                           </TableCell>
                         </TableRow>
                       ))
@@ -224,31 +232,12 @@ export default function AdminDepositsPage() {
                   </TableBody>
                 </Table>
 
-                {totalPages > 1 && (
-                  <div className="flex items-center justify-between px-4 py-4 border-t">
-                    <p className="text-sm text-muted-foreground">
-                      Pagina {page} de {totalPages}
-                    </p>
-                    <div className="flex gap-2">
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => setPage((p) => Math.max(1, p - 1))}
-                        disabled={page === 1}
-                      >
-                        <ChevronLeft className="h-4 w-4" />
-                      </Button>
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
-                        disabled={page === totalPages}
-                      >
-                        <ChevronRight className="h-4 w-4" />
-                      </Button>
-                    </div>
-                  </div>
-                )}
+                <Pagination
+                  currentPage={page}
+                  totalPages={totalPages}
+                  onPageChange={setPage}
+                  isLoading={loading}
+                />
               </>
             )}
           </CardContent>

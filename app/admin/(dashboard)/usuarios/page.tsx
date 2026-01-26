@@ -42,16 +42,17 @@ import { ConfirmDialog } from "@/components/shared/confirm-dialog";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import Loading from "./loading";
+import { Pagination } from "@/components/shared/pagination";
 
 export default function AdminUsersPage() {
-  const [users, setUsers] = useState<User[]>([]);
+  const [users, setUsers] = useState<import("@/lib/types").AdminUser[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>("all");
   const [kycFilter, setKycFilter] = useState<string>("all");
   const [page, setPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
-  const [actionUser, setActionUser] = useState<User | null>(null);
+  const [actionUser, setActionUser] = useState<import("@/lib/types").AdminUser | null>(null);
   const [actionType, setActionType] = useState<"block" | "unblock" | null>(null);
   const [actionLoading, setActionLoading] = useState(false);
   const searchParams = useSearchParams();
@@ -72,7 +73,7 @@ export default function AdminUsersPage() {
 
       const response = await adminApi.getUsers(params);
       setUsers(response.data || []);
-      setTotalPages(response.meta?.last_page || 1);
+      setTotalPages(response.meta?.total_pages || response.meta?.last_page || 1);
     } catch (error) {
       console.error("Error loading users:", error);
     } finally {
@@ -212,15 +213,17 @@ export default function AdminUsersPage() {
                       <TableRow key={user.id}>
                         <TableCell>
                           <div>
-                            <p className="font-medium">{user.name}</p>
+                            <p className="font-medium">{(user as any).full_name || user.email}</p>
                             <p className="text-sm text-muted-foreground">{user.email}</p>
                           </div>
                         </TableCell>
-                        <TableCell>{user.cpf || "-"}</TableCell>
-                        <TableCell>{getStatusBadge(user.status)}</TableCell>
-                        <TableCell>{getKycBadge(user.kycStatus)}</TableCell>
+                        <TableCell>{(user as any).cpf || "-"}</TableCell>
+                        <TableCell>{getStatusBadge((user as any).status)}</TableCell>
+                        <TableCell>{getKycBadge((user as any).kyc_status)}</TableCell>
                         <TableCell>
-                          {new Date(user.createdAt).toLocaleDateString("pt-BR")}
+                          {(user as any).created_at
+                            ? new Date((user as any).created_at).toLocaleDateString("pt-BR")
+                            : "-"}
                         </TableCell>
                         <TableCell className="text-right">
                           <DropdownMenu>
@@ -236,7 +239,7 @@ export default function AdminUsersPage() {
                                   Ver detalhes
                                 </Link>
                               </DropdownMenuItem>
-                              {user.status === "active" ? (
+                              {(user as any).status === "active" ? (
                                 <DropdownMenuItem
                                   onClick={() => {
                                     setActionUser(user);
@@ -267,31 +270,12 @@ export default function AdminUsersPage() {
                 </TableBody>
               </Table>
 
-              {totalPages > 1 && (
-                <div className="flex items-center justify-between px-4 py-4 border-t">
-                  <p className="text-sm text-muted-foreground">
-                    Pagina {page} de {totalPages}
-                  </p>
-                  <div className="flex gap-2">
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => setPage((p) => Math.max(1, p - 1))}
-                      disabled={page === 1}
-                    >
-                      <ChevronLeft className="h-4 w-4" />
-                    </Button>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
-                      disabled={page === totalPages}
-                    >
-                      <ChevronRight className="h-4 w-4" />
-                    </Button>
-                  </div>
-                </div>
-              )}
+              <Pagination
+                currentPage={page}
+                totalPages={totalPages}
+                onPageChange={setPage}
+                isLoading={loading}
+              />
             </>
           )}
         </CardContent>
@@ -306,13 +290,13 @@ export default function AdminUsersPage() {
         title={actionType === "block" ? "Bloquear Usuario" : "Desbloquear Usuario"}
         description={
           actionType === "block"
-            ? `Tem certeza que deseja bloquear o usuario ${actionUser?.name}? Ele nao podera acessar a plataforma.`
-            : `Tem certeza que deseja desbloquear o usuario ${actionUser?.name}?`
+            ? `Tem certeza que deseja bloquear o usuario ${(actionUser as any)?.full_name || actionUser?.email}? Ele nao podera acessar a plataforma.`
+            : `Tem certeza que deseja desbloquear o usuario ${(actionUser as any)?.full_name || actionUser?.email}?`
         }
         confirmText={actionType === "block" ? "Bloquear" : "Desbloquear"}
         variant={actionType === "block" ? "destructive" : "default"}
         onConfirm={handleAction}
-        loading={actionLoading}
+        isLoading={actionLoading}
       />
     </div>
   );

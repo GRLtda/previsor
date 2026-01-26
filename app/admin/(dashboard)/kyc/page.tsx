@@ -42,7 +42,7 @@ import {
   Calendar,
 } from "lucide-react";
 import { adminApi } from "@/lib/api/client";
-import type { KycSubmission } from "@/lib/types";
+import type { KycSubmission, KycDocument } from "@/lib/types";
 
 export default function AdminKYCPage() {
   const [submissions, setSubmissions] = useState<KycSubmission[]>([]);
@@ -80,9 +80,9 @@ export default function AdminKYCPage() {
     setActionLoading(true);
     try {
       if (reviewAction === "approve") {
-        await adminApi.approveKyc(selectedSubmission.userId, "level_1");
+        await adminApi.approveKyc(selectedSubmission.user_id, "level_1");
       } else {
-        await adminApi.rejectKyc(selectedSubmission.userId, rejectReason);
+        await adminApi.rejectKyc(selectedSubmission.user_id, rejectReason);
       }
       loadSubmissions();
       setSelectedSubmission(null);
@@ -166,16 +166,16 @@ export default function AdminKYCPage() {
                       <TableRow key={submission.id}>
                         <TableCell>
                           <div>
-                            <p className="font-medium">{submission.userName}</p>
-                            <p className="text-sm text-muted-foreground">{submission.userEmail}</p>
+                            <p className="font-medium">{submission.user?.full_name || 'Usuario'}</p>
+                            <p className="text-sm text-muted-foreground">{submission.user?.email}</p>
                           </div>
                         </TableCell>
                         <TableCell>
-                          <Badge variant="outline">{submission.documentType}</Badge>
+                          <Badge variant="outline">{submission.provider}</Badge>
                         </TableCell>
                         <TableCell>{getStatusBadge(submission.status)}</TableCell>
                         <TableCell>
-                          {new Date(submission.submittedAt).toLocaleDateString("pt-BR")}
+                          {new Date(submission.created_at).toLocaleDateString("pt-BR")}
                         </TableCell>
                         <TableCell className="text-right">
                           <Button
@@ -240,24 +240,24 @@ export default function AdminKYCPage() {
                   <p className="text-sm text-muted-foreground flex items-center gap-1">
                     <User className="h-3 w-3" /> Nome
                   </p>
-                  <p className="font-medium">{selectedSubmission.userName}</p>
+                  <p className="font-medium">{selectedSubmission.user?.full_name}</p>
                 </div>
                 <div className="space-y-1">
                   <p className="text-sm text-muted-foreground">Email</p>
-                  <p className="font-medium">{selectedSubmission.userEmail}</p>
+                  <p className="font-medium">{selectedSubmission.user?.email}</p>
                 </div>
                 <div className="space-y-1">
                   <p className="text-sm text-muted-foreground flex items-center gap-1">
                     <FileText className="h-3 w-3" /> Tipo de Documento
                   </p>
-                  <p className="font-medium">{selectedSubmission.documentType}</p>
+                  <p className="font-medium">{selectedSubmission.provider}</p>
                 </div>
                 <div className="space-y-1">
                   <p className="text-sm text-muted-foreground flex items-center gap-1">
                     <Calendar className="h-3 w-3" /> Data de Envio
                   </p>
                   <p className="font-medium">
-                    {new Date(selectedSubmission.submittedAt).toLocaleDateString("pt-BR")}
+                    {new Date(selectedSubmission.created_at).toLocaleDateString("pt-BR")}
                   </p>
                 </div>
               </div>
@@ -265,7 +265,7 @@ export default function AdminKYCPage() {
               <div className="space-y-2">
                 <p className="text-sm text-muted-foreground">Documentos</p>
                 <div className="grid grid-cols-2 gap-4">
-                  {selectedSubmission.documents?.map((doc, i) => (
+                  {selectedSubmission.documents?.map((doc: any, i: number) => (
                     <div
                       key={i}
                       className="border rounded-lg p-4 flex items-center justify-center bg-muted/30 min-h-[150px]"

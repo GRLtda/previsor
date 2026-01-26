@@ -50,6 +50,7 @@ import {
 import { adminApi } from "@/lib/api/client";
 import type { Admin } from "@/lib/types";
 import { ConfirmDialog } from "@/components/shared/confirm-dialog";
+import { Pagination } from "@/components/shared/pagination";
 
 export default function AdminAdministratorsPage() {
   const [admins, setAdmins] = useState<Admin[]>([]);
@@ -71,16 +72,24 @@ export default function AdminAdministratorsPage() {
   const loadAdmins = useCallback(async () => {
     setLoading(true);
     try {
-      // A API admin nao tem endpoint para listar admins
-      // TODO: Adicionar endpoint de admins na API
-      setAdmins([]);
-      setTotalPages(1);
+      const response = await adminApi.getAdministrators({ page, per_page: 20 });
+      setAdmins(response.data.map((admin: any) => ({
+        id: admin.id,
+        email: admin.email,
+        name: admin.fullName,
+        role: admin.role,
+        status: admin.status,
+        mfaEnabled: admin.mfaEnabled,
+        lastLoginAt: admin.lastLoginAt,
+        createdAt: admin.createdAt,
+      })) as any);
+      setTotalPages(response.meta?.total_pages || 1);
     } catch (error) {
       console.error("Error loading admins:", error);
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [page]);
 
   useEffect(() => {
     loadAdmins();
@@ -182,7 +191,7 @@ export default function AdminAdministratorsPage() {
       </div>
 
       <Card>
-        <CardContent className="p-0">
+        <CardContent>
           {loading ? (
             <div className="flex items-center justify-center py-12">
               <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
@@ -287,31 +296,12 @@ export default function AdminAdministratorsPage() {
                 </TableBody>
               </Table>
 
-              {totalPages > 1 && (
-                <div className="flex items-center justify-between px-4 py-4 border-t">
-                  <p className="text-sm text-muted-foreground">
-                    Pagina {page} de {totalPages}
-                  </p>
-                  <div className="flex gap-2">
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => setPage((p) => Math.max(1, p - 1))}
-                      disabled={page === 1}
-                    >
-                      <ChevronLeft className="h-4 w-4" />
-                    </Button>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
-                      disabled={page === totalPages}
-                    >
-                      <ChevronRight className="h-4 w-4" />
-                    </Button>
-                  </div>
-                </div>
-              )}
+              <Pagination
+                currentPage={page}
+                totalPages={totalPages}
+                onPageChange={setPage}
+                isLoading={loading}
+              />
             </>
           )}
         </CardContent>
@@ -448,7 +438,7 @@ export default function AdminAdministratorsPage() {
         }
         variant={actionType === "block" ? "destructive" : "default"}
         onConfirm={handleAction}
-        loading={formLoading}
+        isLoading={formLoading}
       />
     </div>
   );

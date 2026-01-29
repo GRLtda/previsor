@@ -151,10 +151,10 @@ export function UserHeader() {
     <>
       <header
         id="main-header"
-        className="fixed left-0 lg:h-[60px] place-content-center top-0 bg-white dark:bg-[#0E1117] z-30 w-full"
+        className="fixed left-0 lg:h-[60px] place-content-center top-0 bg-background z-30 w-full"
       >
         <div>
-          <div className="mx-auto flex h-full max-h-[60px] min-h-[60px] items-center justify-between px-2.5 lg:px-4">
+          <div className="mx-auto flex h-full max-h-[60px] min-h-[60px] items-center justify-between px-4 md:px-8 lg:px-12 xl:px-16 2xl:px-[120px]">
             {/* Left: Logo */}
             <div className="flex items-center">
               <Logo width={100} height={34} />

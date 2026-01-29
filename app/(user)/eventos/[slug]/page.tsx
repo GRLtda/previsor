@@ -157,8 +157,8 @@ export default function EventDetailPage({ params }: PageProps) {
 
   if (isLoading) {
     return (
-      <div className="relative z-10 mx-auto flex w-full bg-white py-0 dark:bg-transparent lg:gap-x-[26px] lg:p-2.5">
-        <div className="flex w-full flex-col lg:max-w-[calc(100%-380px)] px-4">
+      <div className="relative z-10 mx-auto flex w-full py-0 dark:bg-transparent lg:gap-x-[26px] px-4 md:px-8 lg:px-12 xl:px-16 2xl:px-[120px]">
+        <div className="flex w-full flex-col lg:max-w-[calc(100%-380px)]">
           <Skeleton className="h-8 w-32 mb-8 mt-6" />
           <div className="flex gap-4 items-start mb-6">
             <Skeleton className="size-20 rounded-2xl" />
@@ -185,8 +185,8 @@ export default function EventDetailPage({ params }: PageProps) {
     : new Date(event.endsAt)
 
   return (
-    <div className="relative z-10 mx-auto flex w-full bg-white py-0 dark:bg-transparent lg:gap-x-[26px] lg:p-2.5">
-      <div className="flex w-full flex-col lg:max-w-[calc(100%-380px)] px-4">
+    <div className="relative z-10 mx-auto flex w-full py-0 dark:bg-transparent lg:gap-x-[26px] px-4 md:px-8 lg:px-12 xl:px-16 2xl:px-[120px]">
+      <div className="flex w-full flex-col lg:max-w-[calc(100%-380px)]">
         {/* Back Button - Desktop */}
         <Link
           href="/eventos"

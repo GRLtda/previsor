@@ -93,36 +93,34 @@ function EventsContent() {
   const categoryInfo = CATEGORIES.find(c => c.value === category)
 
   return (
-    <div className="w-full px-4 py-6">
+    <div className="w-full px-4 md:px-8 lg:px-12 xl:px-16 2xl:px-[120px] py-6">
       {/* Category Section */}
       {isLoading ? (
-        <div className="mt-5 w-full max-sm:!overflow-hidden lg:overflow-visible pt-4 dark:bg-white/[2%] bg-white rounded-[20px] px-2.5 lg:px-4 pb-4">
+        <>
           <div className="flex items-center justify-between mb-4">
             <Skeleton className="h-10 w-40" />
           </div>
-          <div className="grid w-full grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3.5">
+          <div className="grid w-full grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
             {Array.from({ length: 6 }).map((_, i) => (
               <Skeleton key={i} className="h-[198px] w-full rounded-2xl" />
             ))}
           </div>
-        </div>
+        </>
       ) : events.length === 0 ? (
-        <div className="mt-5 w-full pt-4 dark:bg-white/[2%] bg-white rounded-[20px] px-4 pb-8">
-          <div className="text-center py-16">
-            <svg width="85" height="83" viewBox="0 0 85 83" fill="none" xmlns="http://www.w3.org/2000/svg" className="size-20 mx-auto mb-4 opacity-60">
-              <path d="M18.8867 72.4155V25.3873V2H57.2318L74.1543 18.7958V72.4155H18.8867Z" fill="#DFE3EA" />
-              <path d="M27.126 33.3101V29.127H64.9006V33.3101H27.126Z" fill="#14161B" />
-              <path d="M27.126 41.9927V37.8096H64.9006V41.9927H27.126Z" fill="#14161B" />
-              <path d="M27.126 50.9927V46.8096H64.9006V50.9927H27.126Z" fill="#14161B" />
-            </svg>
-            <p className="text-muted-foreground text-lg">Nenhum evento encontrado</p>
-            <p className="text-sm text-muted-foreground mt-2">
-              Tente ajustar os filtros ou tente outra busca
-            </p>
-          </div>
+        <div className="text-center py-16">
+          <svg width="85" height="83" viewBox="0 0 85 83" fill="none" xmlns="http://www.w3.org/2000/svg" className="size-20 mx-auto mb-4 opacity-60">
+            <path d="M18.8867 72.4155V25.3873V2H57.2318L74.1543 18.7958V72.4155H18.8867Z" fill="#DFE3EA" />
+            <path d="M27.126 33.3101V29.127H64.9006V33.3101H27.126Z" fill="#14161B" />
+            <path d="M27.126 41.9927V37.8096H64.9006V41.9927H27.126Z" fill="#14161B" />
+            <path d="M27.126 50.9927V46.8096H64.9006V50.9927H27.126Z" fill="#14161B" />
+          </svg>
+          <p className="text-muted-foreground text-lg">Nenhum evento encontrado</p>
+          <p className="text-sm text-muted-foreground mt-2">
+            Tente ajustar os filtros ou tente outra busca
+          </p>
         </div>
       ) : (
-        <div className="mt-5 w-full max-sm:!overflow-hidden lg:overflow-visible pt-4 dark:bg-white/[2%] bg-white rounded-[20px] px-2.5 lg:px-4 pb-4">
+        <>
           {/* Header */}
           <div className="flex items-center justify-between mb-4">
             <div className="flex items-center">
@@ -138,8 +136,8 @@ function EventsContent() {
             </div>
           </div>
 
-          {/* Events Grid - ALWAYS GRID */}
-          <div className="grid w-full grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3.5">
+          {/* Events Grid - 3 columns */}
+          <div className="grid w-full grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
             {events.map((event) => (
               <EventCard
                 key={event.id}
@@ -178,7 +176,7 @@ function EventsContent() {
               </Button>
             </div>
           )}
-        </div>
+        </>
       )}
     </div>
   )

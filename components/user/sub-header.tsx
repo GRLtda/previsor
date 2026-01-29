@@ -50,30 +50,34 @@ export function SubHeader() {
     }
 
     return (
-        <div className="w-full bg-white dark:bg-[#0E1117] border-b border-border">
-            <div className="container mx-auto px-4">
-                <div className="flex items-center justify-center gap-4 py-1.5 overflow-x-auto no-scrollbar">
-                    {categories.map((category) => {
-                        const Icon = category.icon
-                        const active = isActive(category.href)
-                        return (
-                            <Link
-                                key={category.label}
-                                href={category.href}
-                                className={cn(
-                                    "flex items-center gap-2 min-h-9 rounded-[10px] px-3 transition-all duration-200 whitespace-nowrap text-[13px]",
-                                    active
-                                        ? "bg-brand/10 text-brand font-semibold"
-                                        : "font-medium text-[#606E85] dark:text-white/70 hover:text-foreground hover:bg-black/[3%] dark:hover:bg-white/[3%]"
-                                )}
-                            >
-                                <Icon className="size-4" />
-                                {category.label}
-                            </Link>
-                        )
-                    })}
+        <>
+            <div className="fixed top-[60px] left-0 w-full bg-background z-30">
+                <div className="px-4 md:px-8 lg:px-12 xl:px-16 2xl:px-[120px]">
+                    <div className="flex items-center gap-4 py-1.5 overflow-x-auto no-scrollbar">
+                        {categories.map((category) => {
+                            const Icon = category.icon
+                            const active = isActive(category.href)
+                            return (
+                                <Link
+                                    key={category.label}
+                                    href={category.href}
+                                    className={cn(
+                                        "flex items-center gap-2 min-h-9 rounded-[10px] px-3 transition-all duration-200 whitespace-nowrap text-[13px]",
+                                        active
+                                            ? "bg-brand/10 text-brand font-semibold"
+                                            : "font-medium text-[#606E85] dark:text-white/70 hover:text-foreground hover:bg-black/[3%] dark:hover:bg-white/[3%]"
+                                    )}
+                                >
+                                    <Icon className="size-4" />
+                                    {category.label}
+                                </Link>
+                            )
+                        })}
+                    </div>
                 </div>
             </div>
-        </div>
+            {/* Spacer for fixed subheader */}
+            <div className="h-[44px]" />
+        </>
     )
 }

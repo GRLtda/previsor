@@ -57,7 +57,7 @@ export function FiltersBar({ filters, values, onChange, onClear }: FiltersBarPro
                 <SelectValue placeholder={filter.placeholder || filter.label} />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="all">Todos</SelectItem> // Updated value to 'all'
+                <SelectItem value="all">Todos</SelectItem>
                 {filter.options?.map((option) => (
                   <SelectItem key={option.value} value={option.value}>
                     {option.label}

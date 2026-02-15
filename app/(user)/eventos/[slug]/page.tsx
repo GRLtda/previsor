@@ -14,6 +14,7 @@ import { MarketCardTriad } from '@/components/events/market-card-triad'
 import { CountdownTimer } from '@/components/events/countdown-timer'
 import { PredictionPanel } from '@/components/events/prediction-panel'
 import { MobilePredictionSheet } from '@/components/events/mobile-prediction-sheet'
+import { ProbabilityChart } from '@/components/events/probability-chart'
 import { PlaceholderIcon } from '@/components/ui/placeholder-icon'
 
 interface PageProps {
@@ -313,6 +314,16 @@ export default function EventDetailPage({ params }: PageProps) {
             </span>
           </div>
         </div>
+
+        {/* Probability Chart */}
+        {event.markets && event.markets.length > 0 && (
+          <div className="mt-4 rounded-xl border border-border/40 bg-card/50 p-4 lg:mt-6 lg:p-5">
+            <ProbabilityChart
+              marketId={selectedMarket?.id || event.markets[0].id}
+              currentProbYes={selectedMarket?.probYes ?? event.markets[0].probYes}
+            />
+          </div>
+        )}
 
         {/* Markets Grid */}
         <div className="mt-4 lg:mt-6">

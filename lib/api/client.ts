@@ -106,8 +106,15 @@ export class ApiClientError extends Error {
       return this.message
     }
 
+    // Ignora error_id nos detalhes pois já temos no objeto principal e não é mensagem de validação
+    const validationKeys = Object.keys(this.details).filter(key => key !== 'error_id')
+
+    if (validationKeys.length === 0) {
+      return this.message
+    }
+
     // Retorna a primeira mensagem de erro específica
-    const firstField = Object.keys(this.details)[0]
+    const firstField = validationKeys[0]
     const fieldError = this.details[firstField]
     return Array.isArray(fieldError) ? fieldError[0] : fieldError
   }
@@ -402,6 +409,18 @@ export const userApi = {
       'user',
       `/v1/markets/${marketId}/quote`,
       { params: { side, amount } }
+    ),
+
+  getMarketHistory: (marketId: string, period: '1d' | '1w' | '1m' | 'all' = 'all') =>
+    baseFetch<{
+      success: true
+      marketId: string
+      period: string
+      history: { timestamp: string; probYes: number; probNo: number }[]
+    }>(
+      'user',
+      `/v1/markets/${marketId}/history`,
+      { params: { period } }
     ),
 
   openPosition: (marketId: string, side: 'YES' | 'NO', amount: number) =>

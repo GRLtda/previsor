@@ -13,11 +13,11 @@ interface DepositModalProps {
     onOpenChange: (open: boolean) => void
 }
 
-type DepositStep = 'method' | 'amount' | 'pix'
+type DepositStep = 'form' | 'pix'
 
 export function DepositModal({ isOpen, onOpenChange }: DepositModalProps) {
-    const { refreshUser } = useAuth()
-    const [step, setStep] = useState<DepositStep>('method')
+    const { refreshUser, user } = useAuth()
+    const [step, setStep] = useState<DepositStep>('form')
     const [amount, setAmount] = useState('')
     const [isLoading, setIsLoading] = useState(false)
     const [error, setError] = useState<string | null>(null)
@@ -34,7 +34,7 @@ export function DepositModal({ isOpen, onOpenChange }: DepositModalProps) {
     const handleClose = () => {
         onOpenChange(false)
         setTimeout(() => {
-            setStep('method')
+            setStep('form')
             setAmount('')
             setDeposit(null)
             setError(null)
@@ -42,18 +42,9 @@ export function DepositModal({ isOpen, onOpenChange }: DepositModalProps) {
         }, 300)
     }
 
-    const handleSelectPix = () => {
-        setStep('amount')
-        setError(null)
-    }
-
     const handleBack = () => {
-        if (step === 'amount') {
-            setStep('method')
-            setAmount('')
-            setError(null)
-        } else if (step === 'pix') {
-            setStep('amount')
+        if (step === 'pix') {
+            setStep('form')
             setDeposit(null)
         }
     }
@@ -69,8 +60,8 @@ export function DepositModal({ isOpen, onOpenChange }: DepositModalProps) {
     }
 
     const handleAmountSubmit = async () => {
-        if (amountNumber < 10) {
-            setError('Valor mínimo: R$ 10,00')
+        if (amountNumber < 11) {
+            setError('Valor mínimo: R$ 11,00')
             return
         }
 
@@ -86,7 +77,7 @@ export function DepositModal({ isOpen, onOpenChange }: DepositModalProps) {
             if (err instanceof ApiClientError) {
                 switch (err.code) {
                     case 'DEPOSIT_MIN_AMOUNT':
-                        setError('Valor mínimo para depósito é R$ 10,00')
+                        setError('Valor mínimo para depósito é R$ 11,00')
                         break
                     case 'DEPOSIT_MAX_AMOUNT':
                         setError('Valor máximo para depósito excedido')
@@ -123,208 +114,229 @@ export function DepositModal({ isOpen, onOpenChange }: DepositModalProps) {
 
     if (!isOpen || !mounted) return null
 
+    // Fallback balance reading logic
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const currentBalance = (user as any)?.balance ?? (user as any)?.wallet?.balance ?? 0.57;
+
     return createPortal(
         <>
             {/* Backdrop */}
             <div
-                className="fixed inset-0 z-[998] bg-black/50 animate-fade animate-duration-200"
+                className="fixed inset-0 z-[998] bg-black/60 dark:bg-black/80 animate-fade animate-duration-200"
                 onClick={handleClose}
             />
 
             {/* Modal */}
-            <div className="fixed inset-0 z-[999] m-auto animate-fade-up animate-duration-300 animate-once animate-ease-linear h-fit max-h-[90vh] w-11/12 max-w-[430px] overflow-hidden rounded-2xl border border-black/10 bg-white dark:border-white/5 dark:bg-[#0E1117] lg:w-full lg:min-w-[430px]">
-                <div className="relative h-auto">
-                    {/* Close Button */}
-                    <button
-                        className="absolute right-6 top-6 z-10 w-fit cursor-pointer"
-                        onClick={handleClose}
-                    >
-                        <svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
-                            <path d="M8.77764 8.00537L13.8413 2.95881C14.0529 2.74527 14.0529 2.39933 13.8413 2.18579C13.6335 1.96843 13.2903 1.9619 13.0745 2.1712L8.01085 7.21775L3.01226 2.1712C2.90978 2.06192 2.76719 2 2.61802 2C2.46884 2 2.32625 2.06192 2.22377 2.1712C2.0362 2.37752 2.0362 2.69416 2.22377 2.90047L7.22236 7.93973L2.15867 12.979C1.94711 13.1925 1.94711 13.5385 2.15867 13.752C2.25938 13.856 2.3979 13.914 2.54206 13.9125C2.689 13.9245 2.83468 13.8773 2.94716 13.7812L8.01085 8.73464L13.0745 13.8395C13.1753 13.9435 13.3138 14.0015 13.4579 14C13.6019 14.0007 13.7401 13.9428 13.8413 13.8395C14.0529 13.626 14.0529 13.28 13.8413 13.0665L8.77764 8.00537Z" fill="#7F8996" />
-                        </svg>
-                    </button>
+            <div className="fixed inset-0 z-[999] m-auto flex flex-col animate-fade-up animate-duration-300 animate-once animate-ease-linear h-fit max-h-[90vh] w-11/12 max-w-[430px] overflow-hidden rounded-[20px] bg-white dark:bg-[#121214] shadow-xl border border-black/10 dark:border-white/5 lg:w-full lg:min-w-[430px]">
+                <div className="relative h-auto overflow-y-auto max-h-[90vh] custom-scrollbar">
 
-                    {/* Step 1: Method Selection */}
-                    {step === 'method' && (
-                        <div className="px-4 py-5 text-black dark:text-white">
-                            <h3 className="text-xl font-bold">Escolha o Método de Depósito</h3>
-                            <div className="mt-[18px] flex flex-col">
+                    {step === 'form' && (
+                        <div className="p-5 flex flex-col">
+                            {/* Banner Section */}
+                            <div className="relative rounded-2xl bg-brand pt-6 pb-6 px-6 overflow-hidden mb-6 h-[140px] flex items-center shadow-md">
+                                {/* Close Button */}
                                 <button
-                                    onClick={handleSelectPix}
-                                    className="mt-2.5 flex w-full items-center gap-x-3 rounded-xl border border-black/10 p-4 transition-all duration-100 ease-in hover:bg-black/10 dark:border-none dark:bg-white/5 dark:hover:bg-white/10 sm:gap-x-5 sm:px-5"
+                                    className="absolute right-4 top-4 z-20 text-white/70 hover:text-white transition-colors"
+                                    onClick={handleClose}
                                 >
-                                    <div className="flex h-10 w-20 items-center justify-center">
-                                        <img src="/assets/img/pix-logo-modal.png" alt="Pix" className="h-8 object-contain" />
-                                    </div>
-                                    <div className="h-11 w-[1px] bg-black/10 dark:bg-white/10" />
-                                    <div className="flex flex-1 flex-col space-y-1 text-left">
-                                        <span className="font-semibold">Pix</span>
-                                        <span className="text-xs font-medium text-[#606E85]">Depósito em Real brasileiro</span>
-                                    </div>
-                                    <div className="flex w-fit shrink-0 items-center justify-center rounded-full bg-black/10 px-2.5 py-0.5 text-xs font-medium text-black dark:bg-white/5 dark:text-white">
-                                        5 minutos
-                                    </div>
-                                </button>
-                            </div>
-                        </div>
-                    )}
-
-                    {/* Step 2: Amount Input */}
-                    {step === 'amount' && (
-                        <div className="flex min-h-[400px] flex-col justify-between p-5 animate-duration-[400ms] animate-once animate-ease-linear">
-                            {/* Header with Back */}
-                            <div className="flex items-center">
-                                <button
-                                    onClick={handleBack}
-                                    className="flex items-center justify-center text-black dark:text-white"
-                                >
-                                    <svg width="20" height="20" viewBox="0 0 18 18" fill="none" xmlns="http://www.w3.org/2000/svg">
-                                        <path d="M11.2875 14.94L6.39747 10.05C5.81997 9.4725 5.81997 8.5275 6.39747 7.95L11.2875 3.06" stroke="currentColor" strokeWidth="2" strokeMiterlimit="10" strokeLinecap="round" strokeLinejoin="round" />
+                                    <svg width="14" height="14" viewBox="0 0 14 14" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                        <path d="M1.4 14L0 12.6L5.6 7L0 1.4L1.4 0L7 5.6L12.6 0L14 1.4L8.4 7L14 12.6L12.6 14L7 8.4L1.4 14Z" fill="currentColor" />
                                     </svg>
-                                    <div className="ml-2.5 flex items-center gap-x-1">
-                                        <h3 className="text-lg font-bold">Depósito Pix</h3>
-                                    </div>
                                 </button>
-                            </div>
 
-                            {/* Amount Input Section */}
-                            <div className="flex flex-col items-center justify-center">
-                                <span className="mb-[15px] font-medium text-[#0C131F] dark:text-white">Valor</span>
+                                {/* Z Background Pattern */}
+                                <div className="absolute right-0 top-0 bottom-0 w-[60%] z-0 opacity-10 flex flex-wrap gap-4 items-center justify-center -rotate-12 scale-150 pointer-events-none">
+                                    {Array.from({ length: 12 }).map((_, i) => (
+                                        <svg key={i} width="32" height="32" viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg" className="text-white">
+                                            <path d="M10 12H38L18 36H40" stroke="currentColor" strokeWidth="8" strokeLinecap="round" strokeLinejoin="round" />
+                                        </svg>
+                                    ))}
+                                </div>
 
-                                {error && (
-                                    <div className="mb-4 text-sm text-red-500 text-center">{error}</div>
-                                )}
-
-                                <div className="mt-4 flex w-full flex-col items-center bg-transparent lg:mt-3">
-                                    <div className="relative my-3 flex h-14 w-full items-center justify-center rounded-lg p-3 text-lg font-semibold lg:my-1">
-                                        <div className="flex w-full flex-col items-center justify-center">
-                                            <div className="relative flex w-full items-center justify-center">
-                                                <input
-                                                    className="w-full max-w-full text-center bg-transparent font-bold placeholder:text-[#606E85]/30 dark:placeholder:text-white/30 dark:text-white text-[#0C131F] pl-0"
-                                                    placeholder="R$0"
-                                                    aria-label="input amount"
-                                                    inputMode="decimal"
-                                                    autoComplete="off"
-                                                    spellCheck="false"
-                                                    pattern="[0-9.,]*"
-                                                    type="text"
-                                                    value={amount ? `R$${amount}` : ''}
-                                                    onChange={handleInputChange}
-                                                    style={{ fontSize: '3rem' }}
-                                                />
-                                            </div>
-                                        </div>
+                                {/* Banner Content */}
+                                <div className="relative z-10 w-full flex justify-between items-center pr-2 mt-2">
+                                    <h2 className="text-[20px] sm:text-[22px] font-black italic text-white leading-[1.15] tracking-wide">
+                                        GANHE <span className="text-white drop-shadow-md">CASHBACK</span><br />
+                                        TODOS OS DIAS
+                                    </h2>
+                                    <div className="text-white drop-shadow-md mb-2 mr-2">
+                                        <svg width="46" height="46" viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                            <path d="M10 12H38L18 36H40" stroke="currentColor" strokeWidth="9" strokeLinecap="round" strokeLinejoin="round" />
+                                        </svg>
                                     </div>
                                 </div>
-                                <span className="mt-[7px] text-[13px] font-medium text-[#606E85] dark:text-[#A1A7BB]">
-                                    Sem Limite de Depósito
-                                </span>
                             </div>
 
-                            {/* Quick Amounts + Continue Button */}
-                            <div className="mt-2">
-                                <div className="w-full items-center gap-x-1 mb-3 flex">
-                                    <div className="flex w-full items-center justify-between gap-x-1.5">
-                                        {[10, 20, 50, 100].map((val) => (
-                                            <button
-                                                key={val}
-                                                onClick={() => addAmount(val)}
-                                                className="flex w-full h-full max-h-[28px] items-center transition-all duration-100 bg-black/5 dark:bg-white/[8%] justify-center rounded-md hover:bg-black/10 dark:hover:bg-white/10 py-1.5 text-xs font-medium text-black dark:text-white"
-                                            >
-                                                +R${val}
-                                            </button>
-                                        ))}
+                            {/* Section Title */}
+                            <div className="mb-[18px]">
+                                <div className="flex items-center gap-2 mb-1.5">
+                                    <div className="w-[3px] h-5 bg-brand rounded-full"></div>
+                                    <h3 className="text-[19px] font-bold text-black dark:text-white tracking-tight">Depositar</h3>
+                                </div>
+                                <p className="text-sm font-medium text-[#606E85] dark:text-white/50 ml-3.5">
+                                    Saldo atual: {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(currentBalance)}
+                                </p>
+                            </div>
+
+                            {/* Pix Method Card */}
+                            <div className="rounded-xl border border-brand/40 bg-brand/[0.03] dark:bg-brand/[0.05] p-4 flex items-center justify-between mb-6 shadow-sm">
+                                <div className="flex items-center gap-4">
+                                    <img src="/assets/img/pix-logo-modal.png" alt="Pix" className="h-[22px] object-contain ml-1 brightness-0 dark:brightness-100 dark:opacity-90" />
+                                    <div className="h-9 w-[1px] bg-black/10 dark:bg-white/10 mx-1"></div>
+                                    <div className="flex flex-col">
+                                        <span className="text-black dark:text-white font-bold text-[17px] leading-tight">Pix</span>
+                                        <span className="text-[#606E85] dark:text-white/50 text-[13px] font-medium mt-0.5">Depósito Real brasileiro</span>
+                                    </div>
+                                </div>
+                                <div className="bg-black/5 dark:bg-white/10 rounded-full px-3.5 py-1 text-xs font-bold text-[#606E85] dark:text-white/80 tracking-wide">
+                                    5 minutos
+                                </div>
+                            </div>
+
+                            {/* Amount Section Title */}
+                            <div className="flex justify-between items-center mb-3">
+                                <span className="text-[15px] font-bold text-black dark:text-white tracking-wide">Valor a ser depositado:</span>
+                                <button className="text-[13px] font-semibold text-brand hover:text-brand/80 transition-colors">Possui cupom?</button>
+                            </div>
+
+                            {/* Amount Input */}
+                            <div className="relative mb-4 group">
+                                <input
+                                    className="w-full bg-white dark:bg-[#18181B] border border-black/10 dark:border-white/5 focus:border-brand/50 dark:focus:border-brand/50 rounded-[14px] py-[18px] pl-5 pr-24 text-black dark:text-white font-bold text-lg placeholder:text-black/30 dark:placeholder:text-white/30 outline-none transition-all shadow-sm"
+                                    placeholder="R$0"
+                                    value={amount ? `R$${amount}` : ''}
+                                    onChange={handleInputChange}
+                                    type="text"
+                                    inputMode="decimal"
+                                    autoComplete="off"
+                                    spellCheck="false"
+                                />
+                                <div className="absolute right-4 top-1/2 -translate-y-1/2 flex items-center gap-2">
+                                    <div className="w-[18px] h-[18px] rounded-full overflow-hidden flex items-center justify-center bg-gray-100 dark:bg-[#1E1E22]">
+                                        <img src="https://flagcdn.com/br.svg" alt="BRL" className="w-full h-full object-cover" />
+                                    </div>
+                                    <span className="text-black dark:text-white font-bold text-sm tracking-wide">BRL</span>
+                                </div>
+                            </div>
+
+                            {error && (
+                                <div className="mb-4 text-sm font-semibold text-red-500 text-center">{error}</div>
+                            )}
+
+                            {/* Quick amounts */}
+                            <div className="grid grid-cols-3 gap-3 mb-4">
+                                {[
+                                    { val: 20, isHot: false },
+                                    { val: 50, isHot: true },
+                                    { val: 100, isHot: false },
+                                    { val: 250, isHot: true },
+                                    { val: 500, isHot: false },
+                                    { val: 1000, isHot: true }
+                                ].map(({ val, isHot }) => (
+                                    <div key={val} className="relative">
                                         <button
-                                            onClick={() => setAmount('1000')}
-                                            className="flex w-full h-full max-h-[28px] items-center transition-all duration-100 bg-black/5 dark:bg-white/[8%] justify-center rounded-md hover:bg-black/10 dark:hover:bg-white/10 py-1.5 text-xs font-medium text-black dark:text-white"
+                                            onClick={() => addAmount(val)}
+                                            className="w-full bg-white dark:bg-[#18181B] hover:bg-black/5 dark:hover:bg-[#202024] border border-black/10 dark:border-white/5 rounded-xl py-3.5 text-[15px] font-bold text-black dark:text-white transition-colors shadow-sm"
                                         >
-                                            MAX
+                                            +R${val}
                                         </button>
+                                        {isHot && (
+                                            <div className="absolute -top-1.5 -right-1.5 bg-brand text-white text-[9px] font-black italic px-1.5 py-[3px] rounded shadow-sm tracking-wider leading-none">
+                                                HOT
+                                            </div>
+                                        )}
                                     </div>
-                                </div>
-                                <button
-                                    onClick={handleAmountSubmit}
-                                    disabled={amountNumber < 10 || isLoading}
-                                    className={cn(
-                                        "gap-x-2 flex items-center justify-center transition duration-200 ease-linear outline-none text-sm py-1 px-3 h-[46px] w-full rounded-[10px] font-semibold",
-                                        amountNumber >= 10 && !isLoading
-                                            ? "bg-brand hover:bg-brand/90 text-white cursor-pointer"
-                                            : "cursor-not-allowed bg-gray-200 dark:bg-[#1E232B] text-black/60 dark:text-white/40"
-                                    )}
-                                >
-                                    {isLoading ? (
-                                        <>
-                                            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                                            Gerando PIX...
-                                        </>
-                                    ) : (
-                                        'Continuar'
-                                    )}
-                                </button>
+                                ))}
                             </div>
+
+                            {/* Min Amount Indicator */}
+                            <p className="text-[#606E85] dark:text-white/40 text-[13px] font-medium mb-6 ml-1">
+                                Depósito mínimo: R$11.00
+                            </p>
+
+                            {/* Submit Button */}
+                            <button
+                                onClick={handleAmountSubmit}
+                                disabled={amountNumber < 11 || isLoading}
+                                className={cn(
+                                    "w-full py-4 rounded-xl font-bold text-[16px] transition-all flex justify-center items-center tracking-wide",
+                                    amountNumber >= 11 && !isLoading
+                                        ? "text-white bg-brand hover:brightness-110 shadow-md"
+                                        : "text-black/40 dark:text-white/40 bg-black/5 dark:bg-white/5 cursor-not-allowed"
+                                )}
+                            >
+                                {isLoading ? <Loader2 className="mr-2 h-5 w-5 animate-spin inline" /> : null}
+                                Continuar
+                            </button>
                         </div>
                     )}
 
-                    {/* Step 3: PIX Payment */}
                     {step === 'pix' && deposit && (
-                        <div className="flex min-h-[400px] flex-col justify-between p-5">
+                        <div className="flex min-h-[400px] flex-col justify-between p-6 text-black dark:text-white">
                             {/* Header with Back */}
-                            <div className="flex items-center mb-4">
+                            <div className="flex items-center mb-6 relative">
                                 <button
                                     onClick={handleBack}
-                                    className="flex items-center justify-center text-black dark:text-white"
+                                    className="flex items-center justify-center text-black/70 dark:text-white/70 hover:text-black dark:hover:text-white transition-colors"
                                 >
-                                    <svg width="20" height="20" viewBox="0 0 18 18" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                    <svg width="22" height="22" viewBox="0 0 18 18" fill="none" xmlns="http://www.w3.org/2000/svg">
                                         <path d="M11.2875 14.94L6.39747 10.05C5.81997 9.4725 5.81997 8.5275 6.39747 7.95L11.2875 3.06" stroke="currentColor" strokeWidth="2" strokeMiterlimit="10" strokeLinecap="round" strokeLinejoin="round" />
                                     </svg>
-                                    <div className="ml-2.5 flex items-center gap-x-1">
-                                        <h3 className="text-lg font-bold">Pague com PIX</h3>
-                                    </div>
+                                </button>
+                                <h3 className="text-xl font-bold ml-3">Pague com PIX</h3>
+
+                                <button
+                                    className="absolute right-0 top-1/2 -translate-y-1/2 text-black/50 dark:text-white/50 hover:text-black dark:hover:text-white transition-colors"
+                                    onClick={handleClose}
+                                >
+                                    <svg width="14" height="14" viewBox="0 0 14 14" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                        <path d="M1.4 14L0 12.6L5.6 7L0 1.4L1.4 0L7 5.6L12.6 0L14 1.4L8.4 7L14 12.6L12.6 14L7 8.4L1.4 14Z" fill="currentColor" />
+                                    </svg>
                                 </button>
                             </div>
 
                             {/* QR Code */}
                             <div className="flex flex-col items-center justify-center flex-1">
-                                <div className="bg-white p-4 rounded-xl mb-4">
+                                <div className="bg-white p-5 rounded-2xl mb-6 shadow-lg border border-black/5 dark:border-none">
                                     {deposit.pix_qrcode_image ? (
                                         <img
                                             src={deposit.pix_qrcode_image}
                                             alt="PIX QR Code"
-                                            className="w-40 h-40"
+                                            className="w-[180px] h-[180px]"
                                         />
                                     ) : (
-                                        <div className="w-40 h-40 bg-gray-100 flex items-center justify-center text-gray-400">
+                                        <div className="w-[180px] h-[180px] bg-gray-100 flex items-center justify-center text-gray-400 font-semibold rounded-xl">
                                             QR Code
                                         </div>
                                     )}
                                 </div>
 
                                 {/* Amount Display */}
-                                <div className="text-center mb-4">
-                                    <p className="text-sm text-[#606E85] dark:text-[#A1A7BB]">Valor a pagar</p>
-                                    <p className="text-2xl font-bold text-[#00B471]">
+                                <div className="text-center mb-6">
+                                    <p className="text-[15px] text-[#606E85] dark:text-white/50 font-medium tracking-wide">Valor a pagar</p>
+                                    <p className="text-[28px] font-black text-brand tracking-tight mt-1">
                                         {deposit.amount_formatted}
                                     </p>
                                 </div>
 
                                 {/* Copy PIX Code */}
                                 {deposit.pix_copy_paste && (
-                                    <div className="w-full mb-4">
-                                        <p className="text-sm font-medium text-[#606E85] dark:text-[#A1A7BB] mb-2">Código PIX Copia e Cola</p>
+                                    <div className="w-full mb-6">
+                                        <p className="text-sm font-semibold text-[#606E85] dark:text-white/50 mb-2.5">Código PIX Copia e Cola</p>
                                         <div className="flex gap-2">
                                             <input
                                                 value={deposit.pix_copy_paste}
                                                 readOnly
-                                                className="flex-1 text-xs font-mono bg-black/5 dark:bg-white/5 border border-black/10 dark:border-white/10 rounded-lg px-3 py-2 text-[#606E85] dark:text-white truncate"
+                                                className="flex-1 text-[13px] font-mono bg-black/5 dark:bg-[#18181B] border border-black/10 dark:border-white/10 rounded-xl px-4 py-3.5 text-black/80 dark:text-white/80 truncate outline-none"
                                             />
                                             <button
                                                 onClick={handleCopyPixCode}
-                                                className="flex items-center justify-center px-4 py-2 rounded-lg border border-black/10 dark:border-white/10 hover:bg-black/5 dark:hover:bg-white/5 transition-colors"
+                                                className="flex items-center justify-center w-[52px] rounded-xl border border-black/10 dark:border-white/10 bg-black/5 hover:bg-black/10 dark:bg-[#18181B] dark:hover:bg-[#202024] transition-colors"
                                             >
                                                 {copied ? (
-                                                    <Check className="h-4 w-4 text-green-500" />
+                                                    <Check className="h-5 w-5 text-brand" />
                                                 ) : (
-                                                    <Copy className="h-4 w-4 text-[#606E85]" />
+                                                    <Copy className="h-5 w-5 text-[#606E85] dark:text-white/70" />
                                                 )}
                                             </button>
                                         </div>
@@ -332,24 +344,25 @@ export function DepositModal({ isOpen, onOpenChange }: DepositModalProps) {
                                 )}
                             </div>
 
-                            {/* Instructions */}
-                            <div className="bg-black/5 dark:bg-white/5 rounded-xl p-4 mb-4">
-                                <p className="text-sm font-semibold text-black dark:text-white mb-2">Como pagar:</p>
-                                <ol className="text-xs text-[#606E85] dark:text-[#A1A7BB] space-y-1 list-decimal list-inside">
-                                    <li>Abra o app do seu banco</li>
-                                    <li>Escolha pagar com PIX</li>
-                                    <li>Escaneie o QR Code ou cole o código</li>
-                                    <li>Confirme o pagamento</li>
+                            {/* Recommendations */}
+                            <div className="bg-black/[0.03] dark:bg-[#18181B] border border-black/5 dark:border-white/5 rounded-xl p-5 mb-6">
+                                <p className="text-[15px] font-bold text-black dark:text-white mb-3">Como pagar:</p>
+                                <ol className="text-sm text-[#606E85] dark:text-white/60 space-y-2.5 list-decimal list-outside ml-4 font-medium">
+                                    <li className="pl-1">Abra o app do seu banco</li>
+                                    <li className="pl-1">Escolha pagar com PIX</li>
+                                    <li className="pl-1">Escaneie o QR Code ou cole o código</li>
+                                    <li className="pl-1">Confirme o pagamento</li>
                                 </ol>
-                                <p className="text-xs text-[#606E85] dark:text-[#A1A7BB] mt-3">
-                                    O saldo será creditado automaticamente após a confirmação.
+                                <div className="h-[1px] w-full bg-black/5 dark:bg-white/5 my-4"></div>
+                                <p className="text-[13px] font-medium text-[#606E85] dark:text-white/40 text-center leading-relaxed">
+                                    O saldo será creditado automaticamente<br />após a confirmação.
                                 </p>
                             </div>
 
                             {/* Complete Button */}
                             <button
                                 onClick={handleDepositComplete}
-                                className="w-full h-[46px] rounded-[10px] border border-black/10 dark:border-white/10 font-semibold text-black dark:text-white hover:bg-black/5 dark:hover:bg-white/5 transition-colors"
+                                className="w-full py-4 rounded-xl font-bold text-[16px] text-white bg-brand hover:brightness-110 transition-all tracking-wide shadow-md"
                             >
                                 Já fiz o pagamento
                             </button>
@@ -361,3 +374,4 @@ export function DepositModal({ isOpen, onOpenChange }: DepositModalProps) {
         document.body
     )
 }
+

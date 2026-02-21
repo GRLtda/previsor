@@ -3,7 +3,7 @@
 import type { ApiError } from '@/lib/types'
 
 const USER_API_BASE = process.env.NEXT_PUBLIC_API_USER_BASE_URL || 'http://localhost:3001'
-const ADMIN_API_BASE = process.env.NEXT_PUBLIC_API_ADMIN_BASE_URL || 'http://localhost:3000/v1/admin'
+const ADMIN_API_BASE = process.env.NEXT_PUBLIC_API_ADMIN_BASE_URL || 'http://localhost:3001/v1/admin'
 
 type ApiType = 'user' | 'admin'
 
@@ -210,10 +210,17 @@ async function baseFetch<T>(
   }
 
   // Make request
+  let bodyString: BodyInit | undefined = undefined;
+  if (options.body !== undefined) {
+    bodyString = JSON.stringify(options.body);
+  } else if (options.method && ['POST', 'PUT', 'PATCH'].includes(options.method.toUpperCase())) {
+    bodyString = '{}';
+  }
+
   const response = await fetch(url, {
     ...options,
     headers,
-    body: options.body ? JSON.stringify(options.body) : undefined,
+    body: bodyString,
   })
 
   const data = await response.json()
@@ -946,6 +953,12 @@ export const adminApi = {
       { method: 'PATCH', body: data }
     ),
 
+  getEvent: (id: string) =>
+    baseFetch<{ success: true; data: import('@/lib/types').Event }>(
+      'admin',
+      `/events/${id}`
+    ),
+
   createMarket: (data: {
     eventId: string
     statement: string
@@ -995,5 +1008,20 @@ export const adminApi = {
       'admin',
       `/markets/${id}/cancel`,
       { method: 'POST' }
+    ),
+
+  resolveEvent: (eventId: string, winnerMarketId: string) =>
+    baseFetch<{
+      success: true
+      data: {
+        eventId: string
+        winnerMarketId: string
+        resolvedMarkets: Array<{ marketId: string; result: string; status: string }>
+        skippedMarkets: Array<{ marketId: string; reason: string }>
+      }
+    }>(
+      'admin',
+      `/events/${eventId}/resolve`,
+      { method: 'POST', body: { winnerMarketId } }
     ),
 }

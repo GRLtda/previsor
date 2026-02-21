@@ -15,6 +15,7 @@ import { CountdownTimer } from '@/components/events/countdown-timer'
 import { PredictionPanel } from '@/components/events/prediction-panel'
 import { MobilePredictionSheet } from '@/components/events/mobile-prediction-sheet'
 import { ProbabilityChart } from '@/components/events/probability-chart'
+import { MultiProbabilityChart } from '@/components/events/multi-probability-chart'
 import { PlaceholderIcon } from '@/components/ui/placeholder-icon'
 
 interface PageProps {
@@ -413,15 +414,22 @@ export default function EventDetailPage({ params }: PageProps) {
               <span className="text-xs sm:text-[13px] font-medium text-[#606E85] mb-4">O mercado fechará em</span>
               <CountdownTimer targetDate={closestMarketClose} />
             </div>
+
+            {/* Probability Chart for Single Market */}
+            <div className="mt-4 rounded-xl border border-border/40 bg-card/50 p-4 lg:mt-6 lg:p-5">
+              <ProbabilityChart
+                marketId={event.markets[0].id}
+                currentProbYes={event.markets[0].probYes}
+              />
+            </div>
           </div>
         ) : (
           <>
             {/* Probability Chart */}
             {event.markets && event.markets.length > 0 && (
               <div className="mt-4 rounded-xl border border-border/40 bg-card/50 p-4 lg:mt-6 lg:p-5">
-                <ProbabilityChart
-                  marketId={selectedMarket?.id || event.markets[0].id}
-                  currentProbYes={selectedMarket?.probYes ?? event.markets[0].probYes}
+                <MultiProbabilityChart
+                  markets={event.markets}
                 />
               </div>
             )}
@@ -455,7 +463,8 @@ export default function EventDetailPage({ params }: PageProps) {
               <CountdownTimer targetDate={closestMarketClose} />
             </div>
           </>
-        )}
+        )
+        }
 
         {/* Mobile Action Buttons */}
         <div className="my-4 flex gap-2 lg:hidden">
@@ -514,18 +523,20 @@ export default function EventDetailPage({ params }: PageProps) {
             </div>
           </div>
         </div>
-      </div>
+      </div >
 
       {/* Prediction Panel - Desktop Sidebar (ALWAYS visible, uses first market as default) */}
-      {event.markets && event.markets.length > 0 && (
-        <PredictionPanel
-          market={selectedMarket || event.markets[0]}
-          side={selectedSide}
-          onSuccess={(updatedMarket) => {
-            handleMarketUpdate(updatedMarket)
-          }}
-        />
-      )}
+      {
+        event.markets && event.markets.length > 0 && (
+          <PredictionPanel
+            market={selectedMarket || event.markets[0]}
+            side={selectedSide}
+            onSuccess={(updatedMarket) => {
+              handleMarketUpdate(updatedMarket)
+            }}
+          />
+        )
+      }
 
       {/* Mobile Prediction Sheet - Bottom Popup */}
       <MobilePredictionSheet
@@ -537,6 +548,6 @@ export default function EventDetailPage({ params }: PageProps) {
           handleMarketUpdate(updatedMarket)
         }}
       />
-    </div>
+    </div >
   )
 }

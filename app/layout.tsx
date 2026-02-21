@@ -1,12 +1,12 @@
 import React from "react"
 import type { Metadata, Viewport } from 'next'
-import { Geist, Geist_Mono } from 'next/font/google'
+import { Geist, Geist_Mono, Sora } from 'next/font/google'
 import { Analytics } from '@vercel/analytics/next'
 import './globals.css'
 
 const _geist = Geist({ subsets: ["latin"], variable: "--font-sans" });
 const _geistMono = Geist_Mono({ subsets: ["latin"], variable: "--font-mono" });
-
+const _sora = Sora({ subsets: ["latin"], variable: "--font-sora" });
 
 
 export const metadata: Metadata = {
@@ -63,7 +63,7 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="pt-BR">
-      <body className={`font-sans antialiased ${_geist.variable} ${_geistMono.variable}`}>
+      <body className={`font-sans antialiased ${_geist.variable} ${_geistMono.variable} ${_sora.variable}`}>
         {children}
         <Analytics />
       </body>

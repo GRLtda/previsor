@@ -610,6 +610,29 @@ export const adminApi = {
       '/me'
     ),
 
+  // Dashboard
+  getDashboardStats: (params?: { period?: string; start_date?: string; end_date?: string }) =>
+    baseFetch<{
+      success: true
+      data: {
+        period: string
+        users: { total: number; new_period: number }
+        kyc: { pending: number }
+        deposits: { total_count: number; total_amount: number; amount_period: number; count_period: number; pending_count: number; average_ticket_period: number; average_ticket_total: number }
+        withdrawals: { pending_count: number; total_amount: number; amount_period: number }
+        events: { active: number; total: number }
+        markets: { open: number; total: number; total_volume: number }
+        positions: { active: number; total_invested: number }
+        platform_health: number
+        financial_timeline: Array<{ day: string; deposit_amount: number; withdraw_amount: number }>
+        recent_activity: Array<{ id: string; action: string; resource_type: string; resource_id: string; admin_name: string; created_at: string }>
+      }
+    }>(
+      'admin',
+      '/dashboard/stats',
+      { params }
+    ),
+
   // Administrators
   getAdministrators: (params?: { page?: number; per_page?: number }) =>
     baseFetch<{

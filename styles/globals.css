@@ -123,3 +123,22 @@
     @apply bg-background text-foreground;
   }
 }
+
+/* ── Admin sidebar scrollbar ───────────────────────────────── */
+.admin-scrollbar-light::-webkit-scrollbar {
+  width: 4px;
+}
+.admin-scrollbar-light::-webkit-scrollbar-track {
+  background: transparent;
+}
+.admin-scrollbar-light::-webkit-scrollbar-thumb {
+  background: rgba(0, 0, 0, 0.08);
+  border-radius: 999px;
+}
+.admin-scrollbar-light::-webkit-scrollbar-thumb:hover {
+  background: rgba(0, 0, 0, 0.15);
+}
+.admin-scrollbar-light {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(0, 0, 0, 0.08) transparent;
+}

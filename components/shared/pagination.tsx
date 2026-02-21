@@ -9,6 +9,8 @@ import {
 interface PaginationProps {
     currentPage: number;
     totalPages: number;
+    totalItems?: number;
+    itemsPerPage?: number;
     onPageChange: (page: number) => void;
     isLoading?: boolean;
 }
@@ -16,6 +18,8 @@ interface PaginationProps {
 export function Pagination({
     currentPage,
     totalPages,
+    totalItems,
+    itemsPerPage,
     onPageChange,
     isLoading,
 }: PaginationProps) {
@@ -104,56 +108,47 @@ export function Pagination({
         return pages;
     };
 
-    if (totalPages <= 1) return null;
+    if (totalPages <= 1 && !totalItems) return null;
+
+    const startItem = itemsPerPage ? (currentPage - 1) * itemsPerPage + 1 : 0;
+    const endItem = itemsPerPage && totalItems ? Math.min(currentPage * itemsPerPage, totalItems) : 0;
 
     return (
         <div className="flex items-center justify-between px-2 py-4 border-t">
-            <div className="flex-1 text-sm text-muted-foreground">
-                Página {currentPage} de {totalPages}
+            <div className="flex-1 text-sm text-muted-foreground font-medium">
+                {totalItems !== undefined && itemsPerPage !== undefined
+                    ? `Mostrando ${startItem}-${endItem} de ${totalItems} registros`
+                    : `Página ${currentPage} de ${totalPages}`}
             </div>
-            <div className="flex items-center space-x-2">
-                <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => handlePageChange(1)}
-                    disabled={!canGoPrevious || isLoading}
-                    className="h-8 w-8 p-0 hidden sm:flex"
-                >
-                    <ChevronsLeft className="h-4 w-4" />
-                </Button>
-                <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => handlePageChange(currentPage - 1)}
-                    disabled={!canGoPrevious || isLoading}
-                    className="h-8 w-8 p-0"
-                >
-                    <ChevronLeft className="h-4 w-4" />
-                </Button>
+            {totalPages > 1 && (
+                <div className="flex items-center space-x-2">
+                    <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => handlePageChange(currentPage - 1)}
+                        disabled={!canGoPrevious || isLoading}
+                        className="h-8 gap-1 pl-2.5"
+                    >
+                        <ChevronLeft className="h-4 w-4" />
+                        <span className="hidden sm:inline">Anterior</span>
+                    </Button>
 
-                <div className="flex items-center space-x-1">
-                    {renderPageNumbers()}
+                    <div className="flex items-center space-x-1">
+                        {renderPageNumbers()}
+                    </div>
+
+                    <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => handlePageChange(currentPage + 1)}
+                        disabled={!canGoNext || isLoading}
+                        className="h-8 gap-1 pr-2.5"
+                    >
+                        <span className="hidden sm:inline">Próximo</span>
+                        <ChevronRight className="h-4 w-4" />
+                    </Button>
                 </div>
-
-                <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => handlePageChange(currentPage + 1)}
-                    disabled={!canGoNext || isLoading}
-                    className="h-8 w-8 p-0"
-                >
-                    <ChevronRight className="h-4 w-4" />
-                </Button>
-                <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => handlePageChange(totalPages)}
-                    disabled={!canGoNext || isLoading}
-                    className="h-8 w-8 p-0 hidden sm:flex"
-                >
-                    <ChevronsRight className="h-4 w-4" />
-                </Button>
-            </div>
+            )}
         </div>
     );
 }

@@ -43,6 +43,7 @@ export interface User {
     status: 'pending' | 'approved' | 'rejected'
     level: 'basic' | 'intermediate' | 'full'
   }
+  avatar_url?: string | null
   wallet: {
     balance: number
   }
@@ -224,6 +225,7 @@ export interface AdminUser {
   status: 'active' | 'suspended' | 'deleted'
   kyc_status: 'pending' | 'approved' | 'rejected'
   kyc_level: 'basic' | 'intermediate' | 'full'
+  avatar_url?: string | null
   flags: Record<string, boolean>
   verified_at: string | null
   accept_terms?: boolean

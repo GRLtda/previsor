@@ -6,14 +6,6 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
-import {
   Select,
   SelectContent,
   SelectItem,
@@ -56,6 +48,7 @@ import { useSearchParams } from "next/navigation";
 import { Suspense } from "react";
 import Loading from "./loading";
 import { PlaceholderIcon } from '@/components/ui/placeholder-icon';
+import { DataTable, ColumnDef } from "@/components/shared/data-table";
 
 export default function AdminEventsPage() {
   const [events, setEvents] = useState<Event[]>([]);
@@ -64,6 +57,8 @@ export default function AdminEventsPage() {
   const [statusFilter, setStatusFilter] = useState<string>("all");
   const [page, setPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
+  const [totalItems, setTotalItems] = useState(0);
+  const [selectedEvents, setSelectedEvents] = useState<string[]>([]);
   const [showCreateDialog, setShowCreateDialog] = useState(false);
   const [editEvent, setEditEvent] = useState<Event | null>(null);
   const [deleteEvent, setDeleteEvent] = useState<Event | null>(null);
@@ -93,6 +88,7 @@ export default function AdminEventsPage() {
       const response = await userApi.getEvents(params);
       setEvents(response.events || []);
       setTotalPages(Math.ceil((response.totalCount || 0) / 20));
+      setTotalItems(response.totalCount || 0);
     } catch (error) {
       console.error("Error loading events:", error);
     } finally {
@@ -187,11 +183,11 @@ export default function AdminEventsPage() {
   };
 
   const getStatusBadge = (status: string) => {
-    const variants: Record<string, "default" | "secondary" | "destructive" | "outline"> = {
-      active: "default",
-      draft: "secondary",
-      closed: "outline",
-      cancelled: "destructive",
+    const variants: Record<string, string> = {
+      active: "bg-emerald-50 text-emerald-600 border-emerald-100 dark:border-emerald-900/30 dark:bg-emerald-900/20",
+      draft: "bg-amber-50 text-amber-600 border-amber-100 dark:border-amber-900/30 dark:bg-amber-900/20",
+      closed: "bg-muted text-muted-foreground border-border",
+      cancelled: "bg-rose-50 text-rose-600 border-rose-100 dark:border-rose-900/30 dark:bg-rose-900/20",
     };
     const labels: Record<string, string> = {
       active: "Ativo",
@@ -199,182 +195,174 @@ export default function AdminEventsPage() {
       closed: "Encerrado",
       cancelled: "Cancelado",
     };
-    return <Badge variant={variants[status] || "outline"}>{labels[status] || status}</Badge>;
+    return (
+      <span className={`inline-flex items-center rounded-full border px-2.5 py-0.5 text-xs font-medium ${variants[status] || "bg-muted text-muted-foreground border-border"}`}>
+        {labels[status] || status}
+      </span>
+    );
   };
+
+  const columns: ColumnDef<Event>[] = [
+    {
+      header: "Evento",
+      cell: (event: any) => (
+        <div className="flex items-center gap-3 py-1">
+          <div className="w-10 h-10 shrink-0 rounded-lg overflow-hidden bg-muted flex items-center justify-center border">
+            {event.imageUrl ? (
+              <img
+                src={event.imageUrl}
+                alt={event.title}
+                className="w-full h-full object-cover"
+                onError={(e) => {
+                  e.currentTarget.style.display = 'none';
+                  const placeholder = e.currentTarget.nextElementSibling as HTMLElement;
+                  if (placeholder) placeholder.style.display = 'flex';
+                }}
+              />
+            ) : null}
+            <div style={{ display: event.imageUrl ? 'none' : 'flex' }}>
+              <PlaceholderIcon size={40} />
+            </div>
+          </div>
+          <div className="flex flex-col">
+            <span className="font-medium text-sm leading-tight max-w-[300px] sm:max-w-md truncate">{event.title}</span>
+            <span className="text-xs text-muted-foreground line-clamp-1 max-w-[300px] sm:max-w-md">
+              {event.description}
+            </span>
+          </div>
+        </div>
+      ),
+    },
+    {
+      header: "Categoria",
+      cell: (event: any) => (
+        <span className="inline-flex items-center rounded-md border px-2 py-0.5 text-xs font-medium text-muted-foreground border-border bg-transparent">
+          {event.category || "-"}
+        </span>
+      ),
+    },
+    {
+      header: "Status",
+      cell: (event: any) => getStatusBadge(event.status),
+    },
+    {
+      header: "Mercados",
+      cell: (event: any) => <span className="text-sm">{event.marketsCount || 0}</span>,
+    },
+    {
+      header: "Data",
+      cell: (event: any) => (
+        <span className="text-sm text-muted-foreground">
+          {event.startsAt ? new Date(event.startsAt).toLocaleDateString("pt-BR") : "-"}
+        </span>
+      ),
+    },
+    {
+      header: "Ações",
+      className: "text-right",
+      cell: (event: any) => (
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground hover:text-foreground">
+              <MoreHorizontal className="h-4 w-4" />
+            </Button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="end">
+            <DropdownMenuItem asChild>
+              <Link href={`/admin/eventos/${event.id}`}>
+                <Eye className="mr-2 h-4 w-4" />
+                Ver detalhes
+              </Link>
+            </DropdownMenuItem>
+            <DropdownMenuItem onClick={() => openEditDialog(event)}>
+              <Edit className="mr-2 h-4 w-4" />
+              Editar
+            </DropdownMenuItem>
+            <DropdownMenuItem
+              onClick={() => setDeleteEvent(event)}
+              className="text-destructive focus:text-destructive focus:bg-destructive/10"
+            >
+              <Trash className="mr-2 h-4 w-4" />
+              Excluir
+            </DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
+      ),
+    },
+  ];
 
   return (
     <Suspense fallback={<Loading />}>
       <div className="space-y-6">
-        <div className="flex items-center justify-between">
-          <h1 className="text-3xl font-bold">Eventos</h1>
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+          <div>
+            <h1 className="text-2xl font-bold tracking-tight">Eventos</h1>
+            <p className="text-sm text-muted-foreground mt-0.5">
+              Gerencie os eventos, adicione descrições e controle status.
+            </p>
+          </div>
           <Button onClick={() => setShowCreateDialog(true)}>
             <Plus className="mr-2 h-4 w-4" />
             Novo Evento
           </Button>
         </div>
 
-        <Card>
-          <CardHeader>
-            <CardTitle>Filtros</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="flex flex-wrap gap-4">
-              <div className="flex-1 min-w-[200px]">
-                <div className="relative">
-                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                  <Input
-                    placeholder="Buscar eventos..."
-                    value={search}
-                    onChange={(e) => setSearch(e.target.value)}
-                    className="pl-10"
-                  />
-                </div>
-              </div>
-              <Select value={statusFilter} onValueChange={setStatusFilter}>
-                <SelectTrigger className="w-[150px]">
-                  <SelectValue placeholder="Status" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">Todos</SelectItem>
-                  <SelectItem value="active">Ativo</SelectItem>
-                  <SelectItem value="draft">Rascunho</SelectItem>
-                  <SelectItem value="closed">Encerrado</SelectItem>
-                  <SelectItem value="cancelled">Cancelado</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-          </CardContent>
-        </Card>
+        {/* ── Filters ──────────────────────────────────────── */}
+        <div className="flex flex-col sm:flex-row items-center gap-4">
+          <div className="relative flex-1 w-full sm:max-w-md">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+            <Input
+              placeholder="Buscar eventos..."
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              className="pl-9 h-10 w-full rounded-lg border bg-background"
+            />
+          </div>
+          <div className="flex items-center gap-3 w-full sm:w-auto">
+            <Select value={statusFilter} onValueChange={setStatusFilter}>
+              <SelectTrigger className="w-full sm:w-[160px] bg-background">
+                <SelectValue placeholder="Status" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">Todos os Status</SelectItem>
+                <SelectItem value="active">Ativo</SelectItem>
+                <SelectItem value="draft">Rascunho</SelectItem>
+                <SelectItem value="closed">Encerrado</SelectItem>
+                <SelectItem value="cancelled">Cancelado</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+        </div>
 
-        <Card>
-          <CardContent className="p-0">
-            {loading ? (
-              <div className="flex items-center justify-center py-12">
-                <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
-              </div>
-            ) : (
+        <div className="w-full">
+          <DataTable
+            data={events}
+            columns={columns}
+            keyExtractor={(event) => event.id}
+            selectable={true}
+            selectedIds={selectedEvents}
+            onSelectionChange={setSelectedEvents}
+            isLoading={loading}
+            emptyMessage="Nenhum evento encontrado."
+            pagination={{
+              currentPage: page,
+              totalPages: totalPages,
+              totalItems: totalItems,
+              itemsPerPage: 20,
+              onPageChange: setPage,
+            }}
+            bulkActions={(selectedIds) => (
               <>
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>Evento</TableHead>
-                      <TableHead>Categoria</TableHead>
-                      <TableHead>Status</TableHead>
-                      <TableHead>Mercados</TableHead>
-                      <TableHead>Data</TableHead>
-                      <TableHead className="text-right">Acoes</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {events.length === 0 ? (
-                      <TableRow>
-                        <TableCell colSpan={6} className="text-center py-8 text-muted-foreground">
-                          Nenhum evento encontrado
-                        </TableCell>
-                      </TableRow>
-                    ) : (
-                      events.map((event) => (
-                        <TableRow key={event.id}>
-                          <TableCell>
-                            <div className="flex items-center gap-3">
-                              <div className="w-10 h-10 rounded overflow-hidden bg-muted flex items-center justify-center">
-                                {event.imageUrl ? (
-                                  <img
-                                    src={event.imageUrl}
-                                    alt={event.title}
-                                    className="w-full h-full object-cover"
-                                    onError={(e) => {
-                                      e.currentTarget.style.display = 'none'
-                                      const placeholder = e.currentTarget.nextElementSibling as HTMLElement
-                                      if (placeholder) placeholder.style.display = 'flex'
-                                    }}
-                                  />
-                                ) : null}
-                                <div style={{ display: event.imageUrl ? 'none' : 'flex' }}>
-                                  <PlaceholderIcon size={40} />
-                                </div>
-                              </div>
-                              <div>
-                                <p className="font-medium">{event.title}</p>
-                                <p className="text-sm text-muted-foreground line-clamp-1">
-                                  {event.description}
-                                </p>
-                              </div>
-                            </div>
-                          </TableCell>
-                          <TableCell>
-                            <Badge variant="outline">{event.category || "-"}</Badge>
-                          </TableCell>
-                          <TableCell>{getStatusBadge(event.status)}</TableCell>
-                          <TableCell>{(event as any).marketsCount || 0}</TableCell>
-                          <TableCell>
-                            {event.startsAt
-                              ? new Date(event.startsAt).toLocaleDateString("pt-BR")
-                              : "-"}
-                          </TableCell>
-                          <TableCell className="text-right">
-                            <DropdownMenu>
-                              <DropdownMenuTrigger asChild>
-                                <Button variant="ghost" size="icon">
-                                  <MoreHorizontal className="h-4 w-4" />
-                                </Button>
-                              </DropdownMenuTrigger>
-                              <DropdownMenuContent align="end">
-                                <DropdownMenuItem asChild>
-                                  <Link href={`/admin/eventos/${event.id}`}>
-                                    <Eye className="mr-2 h-4 w-4" />
-                                    Ver detalhes
-                                  </Link>
-                                </DropdownMenuItem>
-                                <DropdownMenuItem onClick={() => openEditDialog(event)}>
-                                  <Edit className="mr-2 h-4 w-4" />
-                                  Editar
-                                </DropdownMenuItem>
-                                <DropdownMenuItem
-                                  onClick={() => setDeleteEvent(event)}
-                                  className="text-destructive"
-                                >
-                                  <Trash className="mr-2 h-4 w-4" />
-                                  Excluir
-                                </DropdownMenuItem>
-                              </DropdownMenuContent>
-                            </DropdownMenu>
-                          </TableCell>
-                        </TableRow>
-                      ))
-                    )}
-                  </TableBody>
-                </Table>
-
-                {totalPages > 1 && (
-                  <div className="flex items-center justify-between px-4 py-4 border-t">
-                    <p className="text-sm text-muted-foreground">
-                      Pagina {page} de {totalPages}
-                    </p>
-                    <div className="flex gap-2">
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => setPage((p) => Math.max(1, p - 1))}
-                        disabled={page === 1}
-                      >
-                        <ChevronLeft className="h-4 w-4" />
-                      </Button>
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
-                        disabled={page === totalPages}
-                      >
-                        <ChevronRight className="h-4 w-4" />
-                      </Button>
-                    </div>
-                  </div>
-                )}
+                <Button size="sm" variant="secondary" className="h-8">
+                  Exportar ({selectedIds.length})
+                </Button>
+                <Button size="sm" variant="destructive" className="h-8">
+                  Excluir Selecionados
+                </Button>
               </>
             )}
-          </CardContent>
-        </Card>
+          />
+        </div>
 
         {/* Create/Edit Dialog */}
         <Dialog

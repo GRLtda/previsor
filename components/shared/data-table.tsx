@@ -83,8 +83,8 @@ export function DataTable<T extends { id?: string }>({
   const allSelected = data.length > 0 && selectedIds.length === data.length
 
   return (
-    <div className="relative flex flex-col w-full bg-card rounded-xl border border-border shadow-sm overflow-hidden">
-      <div className="overflow-x-auto">
+    <div className="relative flex flex-col w-full bg-card rounded-xl border border-border overflow-hidden min-h-[700px]">
+      <div className="overflow-x-auto flex-1">
         <Table>
           <TableHeader>
             <TableRow className="border-b bg-muted/30 hover:bg-muted/30 transition-none">

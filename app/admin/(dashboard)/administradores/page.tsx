@@ -5,13 +5,9 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
+  DataTable,
+  ColumnDef,
+} from "@/components/shared/data-table";
 import {
   Select,
   SelectContent,
@@ -33,8 +29,6 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { Badge } from "@/components/ui/badge";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
   Plus,
   MoreHorizontal,
@@ -42,21 +36,19 @@ import {
   Ban,
   CheckCircle,
   Loader2,
-  ChevronLeft,
-  ChevronRight,
   Shield,
   Key,
 } from "lucide-react";
 import { adminApi } from "@/lib/api/client";
 import type { Admin } from "@/lib/types";
 import { ConfirmDialog } from "@/components/shared/confirm-dialog";
-import { Pagination } from "@/components/shared/pagination";
 
 export default function AdminAdministratorsPage() {
   const [admins, setAdmins] = useState<Admin[]>([]);
   const [loading, setLoading] = useState(true);
   const [page, setPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
+  const [selectedAdmins, setSelectedAdmins] = useState<string[]>([]);
   const [showCreateDialog, setShowCreateDialog] = useState(false);
   const [editAdmin, setEditAdmin] = useState<Admin | null>(null);
   const [actionAdmin, setActionAdmin] = useState<Admin | null>(null);
@@ -141,7 +133,7 @@ export default function AdminAdministratorsPage() {
 
   const openEditDialog = (admin: Admin) => {
     setFormData({
-      name: admin.name,
+      name: admin.name || "",
       email: admin.email,
       password: "",
       role: admin.role,
@@ -159,153 +151,175 @@ export default function AdminAdministratorsPage() {
   };
 
   const getRoleBadge = (role: string) => {
-    const variants: Record<string, "default" | "secondary" | "destructive" | "outline"> = {
-      super_admin: "default",
-      admin: "secondary",
-      support: "outline",
+    const variants: Record<string, string> = {
+      super_admin: "bg-indigo-50 text-indigo-600 border-indigo-100 dark:border-indigo-900/30 dark:bg-indigo-900/20",
+      admin: "bg-blue-50 text-blue-600 border-blue-100 dark:border-blue-900/30 dark:bg-blue-900/20",
+      support: "bg-emerald-50 text-emerald-600 border-emerald-100 dark:border-emerald-900/30 dark:bg-emerald-900/20",
     };
     const labels: Record<string, string> = {
       super_admin: "Super Admin",
       admin: "Admin",
       support: "Suporte",
     };
-    return <Badge variant={variants[role] || "outline"}>{labels[role] || role}</Badge>;
+    return (
+      <span className={`inline-flex items-center rounded-full border px-2.5 py-0.5 text-xs font-medium ${variants[role] || "bg-muted text-muted-foreground border-border"}`}>
+        {labels[role] || role}
+      </span>
+    );
   };
 
   const getStatusBadge = (status: string) => {
     return (
-      <Badge variant={status === "active" ? "default" : "destructive"}>
+      <span className={`inline-flex items-center rounded-full border px-2.5 py-0.5 text-xs font-medium ${status === "active"
+        ? "bg-emerald-50 text-emerald-600 border-emerald-100 dark:border-emerald-900/30 dark:bg-emerald-900/20"
+        : "bg-rose-50 text-rose-600 border-rose-100 dark:border-rose-900/30 dark:bg-rose-900/20"
+        }`}>
         {status === "active" ? "Ativo" : "Bloqueado"}
-      </Badge>
+      </span>
     );
   };
 
+  const columns: ColumnDef<Admin>[] = [
+    {
+      header: "Administrador",
+      cell: (admin) => (
+        <div className="flex items-center gap-3">
+          <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center">
+            <Shield className="h-4 w-4 text-primary" />
+          </div>
+          <div className="flex flex-col">
+            <span className="font-medium text-sm leading-tight">{admin.name || "Administrador"}</span>
+            <span className="text-xs text-muted-foreground line-clamp-1">{admin.email}</span>
+          </div>
+        </div>
+      ),
+    },
+    {
+      header: "Função",
+      cell: (admin) => getRoleBadge(admin.role),
+    },
+    {
+      header: "Status",
+      cell: (admin) => getStatusBadge(admin.status || "active"),
+    },
+    {
+      header: "MFA",
+      cell: (admin) => (
+        <span className={`inline-flex items-center rounded-full border px-2.5 py-0.5 text-xs font-medium ${admin.mfaEnabled
+          ? "bg-emerald-50 text-emerald-600 border-emerald-100 dark:border-emerald-900/30 dark:bg-emerald-900/20"
+          : "bg-muted text-muted-foreground border-border"
+          }`}>
+          {admin.mfaEnabled ? "Ativo" : "Inativo"}
+        </span>
+      ),
+    },
+    {
+      header: "Último Acesso",
+      cell: (admin) => (
+        <span className="text-sm text-muted-foreground">
+          {admin.lastLoginAt
+            ? new Date(admin.lastLoginAt).toLocaleDateString("pt-BR")
+            : "-"}
+        </span>
+      ),
+    },
+    {
+      header: "Ações",
+      className: "text-right",
+      cell: (admin) => (
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground hover:text-foreground">
+              <MoreHorizontal className="h-4 w-4" />
+            </Button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="end">
+            <DropdownMenuItem onClick={() => openEditDialog(admin)}>
+              <Edit className="mr-2 h-4 w-4" />
+              Editar
+            </DropdownMenuItem>
+            {admin.mfaEnabled && (
+              <DropdownMenuItem
+                onClick={() => {
+                  setActionAdmin(admin);
+                  setActionType("resetMfa");
+                }}
+              >
+                <Key className="mr-2 h-4 w-4" />
+                Resetar MFA
+              </DropdownMenuItem>
+            )}
+            {admin.status === "active" ? (
+              <DropdownMenuItem
+                onClick={() => {
+                  setActionAdmin(admin);
+                  setActionType("block");
+                }}
+                className="text-destructive"
+              >
+                <Ban className="mr-2 h-4 w-4" />
+                Bloquear
+              </DropdownMenuItem>
+            ) : (
+              <DropdownMenuItem
+                onClick={() => {
+                  setActionAdmin(admin);
+                  setActionType("unblock");
+                }}
+              >
+                <CheckCircle className="mr-2 h-4 w-4" />
+                Desbloquear
+              </DropdownMenuItem>
+            )}
+          </DropdownMenuContent>
+        </DropdownMenu>
+      ),
+    },
+  ];
+
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <h1 className="text-3xl font-bold">Administradores</h1>
-        <Button onClick={() => setShowCreateDialog(true)}>
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div>
+          <h1 className="text-2xl font-bold tracking-tight">Administradores</h1>
+          <p className="text-sm text-muted-foreground mt-0.5">
+            Gerencie os acessos administrativos e permissões da plataforma.
+          </p>
+        </div>
+        <Button onClick={() => setShowCreateDialog(true)} className="h-9">
           <Plus className="mr-2 h-4 w-4" />
           Novo Admin
         </Button>
       </div>
 
-      <Card>
-        <CardContent>
-          {loading ? (
-            <div className="flex items-center justify-center py-12">
-              <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
-            </div>
-          ) : (
+      <div className="w-full">
+        <DataTable
+          data={admins}
+          columns={columns}
+          keyExtractor={(admin) => admin.id}
+          selectable={true}
+          selectedIds={selectedAdmins}
+          onSelectionChange={setSelectedAdmins}
+          isLoading={loading}
+          emptyMessage="Nenhum administrador encontrado."
+          pagination={{
+            currentPage: page,
+            totalPages: totalPages,
+            onPageChange: setPage,
+            itemsPerPage: 20,
+          }}
+          bulkActions={(selectedIds) => (
             <>
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Administrador</TableHead>
-                    <TableHead>Funcao</TableHead>
-                    <TableHead>Status</TableHead>
-                    <TableHead>MFA</TableHead>
-                    <TableHead>Ultimo Acesso</TableHead>
-                    <TableHead className="text-right">Acoes</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {admins.length === 0 ? (
-                    <TableRow>
-                      <TableCell colSpan={6} className="text-center py-8 text-muted-foreground">
-                        Nenhum administrador encontrado
-                      </TableCell>
-                    </TableRow>
-                  ) : (
-                    admins.map((admin) => (
-                      <TableRow key={admin.id}>
-                        <TableCell>
-                          <div className="flex items-center gap-3">
-                            <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center">
-                              <Shield className="h-4 w-4 text-primary" />
-                            </div>
-                            <div>
-                              <p className="font-medium">{admin.name}</p>
-                              <p className="text-sm text-muted-foreground">{admin.email}</p>
-                            </div>
-                          </div>
-                        </TableCell>
-                        <TableCell>{getRoleBadge(admin.role)}</TableCell>
-                        <TableCell>{getStatusBadge(admin.status)}</TableCell>
-                        <TableCell>
-                          <Badge variant={admin.mfaEnabled ? "default" : "outline"}>
-                            {admin.mfaEnabled ? "Ativo" : "Inativo"}
-                          </Badge>
-                        </TableCell>
-                        <TableCell>
-                          {admin.lastLoginAt
-                            ? new Date(admin.lastLoginAt).toLocaleDateString("pt-BR")
-                            : "-"}
-                        </TableCell>
-                        <TableCell className="text-right">
-                          <DropdownMenu>
-                            <DropdownMenuTrigger asChild>
-                              <Button variant="ghost" size="icon">
-                                <MoreHorizontal className="h-4 w-4" />
-                              </Button>
-                            </DropdownMenuTrigger>
-                            <DropdownMenuContent align="end">
-                              <DropdownMenuItem onClick={() => openEditDialog(admin)}>
-                                <Edit className="mr-2 h-4 w-4" />
-                                Editar
-                              </DropdownMenuItem>
-                              {admin.mfaEnabled && (
-                                <DropdownMenuItem
-                                  onClick={() => {
-                                    setActionAdmin(admin);
-                                    setActionType("resetMfa");
-                                  }}
-                                >
-                                  <Key className="mr-2 h-4 w-4" />
-                                  Resetar MFA
-                                </DropdownMenuItem>
-                              )}
-                              {admin.status === "active" ? (
-                                <DropdownMenuItem
-                                  onClick={() => {
-                                    setActionAdmin(admin);
-                                    setActionType("block");
-                                  }}
-                                  className="text-destructive"
-                                >
-                                  <Ban className="mr-2 h-4 w-4" />
-                                  Bloquear
-                                </DropdownMenuItem>
-                              ) : (
-                                <DropdownMenuItem
-                                  onClick={() => {
-                                    setActionAdmin(admin);
-                                    setActionType("unblock");
-                                  }}
-                                >
-                                  <CheckCircle className="mr-2 h-4 w-4" />
-                                  Desbloquear
-                                </DropdownMenuItem>
-                              )}
-                            </DropdownMenuContent>
-                          </DropdownMenu>
-                        </TableCell>
-                      </TableRow>
-                    ))
-                  )}
-                </TableBody>
-              </Table>
-
-              <Pagination
-                currentPage={page}
-                totalPages={totalPages}
-                onPageChange={setPage}
-                isLoading={loading}
-              />
+              <Button size="sm" variant="secondary" className="h-8">
+                Exportar ({selectedIds.length})
+              </Button>
+              <Button size="sm" variant="destructive" className="h-8">
+                Bloquear Selecionados
+              </Button>
             </>
           )}
-        </CardContent>
-      </Card>
+        />
+      </div>
 
       {/* Create/Edit Dialog */}
       <Dialog

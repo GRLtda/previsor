@@ -67,8 +67,6 @@ export function PositionModal({ market, open, onOpenChange, onSuccess, defaultSi
     setIsLoading(true)
     try {
       const response = await userApi.openPosition(market.id, side, amountCents)
-      const shares = response.position.shares
-      toast.success(`Posição aberta! Você recebeu ${shares.toLocaleString('pt-BR')} shares.`)
       onSuccess?.({
         ...market,
         qYes: response.market.qYes,

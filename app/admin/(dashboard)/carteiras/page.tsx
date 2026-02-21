@@ -3,14 +3,7 @@
 import { useState, useEffect, useCallback } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
+import { DataTable, ColumnDef } from "@/components/shared/data-table";
 import {
   Dialog,
   DialogContent,
@@ -36,14 +29,13 @@ import type { WalletInfo } from "@/lib/types";
 import { StatCard } from "@/components/shared/stat-card";
 import { useSearchParams } from "next/navigation";
 import { Suspense } from "react";
-import { Pagination } from "@/components/shared/pagination";
-
 export default function AdminWalletsPage() {
   const [wallets, setWallets] = useState<WalletInfo[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
   const [page, setPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
+  const [selectedWallets, setSelectedWallets] = useState<string[]>([]);
   const [stats, setStats] = useState({
     totalWallets: 0,
     totalBalance: 0,
@@ -121,10 +113,112 @@ export default function AdminWalletsPage() {
     }).format(value / 100);
   };
 
+  const getStatusBadge = (status: string) => {
+    return (
+      <span className={`inline-flex items-center rounded-full border px-2.5 py-0.5 text-xs font-medium ${status === 'active'
+        ? 'bg-emerald-50 text-emerald-600 border-emerald-100 dark:border-emerald-900/30 dark:bg-emerald-900/20'
+        : 'bg-rose-50 text-rose-600 border-rose-100 dark:border-rose-900/30 dark:bg-rose-900/20'
+        }`}>
+        {status === 'active' ? 'Ativo' : 'Congelado'}
+      </span>
+    );
+  };
+
+  const getRiskBadge = (risk: string) => {
+    const variants: Record<string, string> = {
+      low: "bg-emerald-50 text-emerald-600 border-emerald-100 dark:border-emerald-900/30 dark:bg-emerald-900/20",
+      medium: "bg-amber-50 text-amber-600 border-amber-100 dark:border-amber-900/30 dark:bg-amber-900/20",
+      high: "bg-rose-50 text-rose-600 border-rose-100 dark:border-rose-900/30 dark:bg-rose-900/20",
+    };
+    const labels: Record<string, string> = {
+      low: "Baixo",
+      medium: "Médio",
+      high: "Alto",
+    };
+    return (
+      <span className={`inline-flex items-center rounded-full border px-2.5 py-0.5 text-xs font-medium ${variants[risk] || "bg-muted text-muted-foreground border-border"}`}>
+        {labels[risk] || risk}
+      </span>
+    );
+  };
+
+  const columns: ColumnDef<any>[] = [
+    {
+      header: "Usuário",
+      cell: (wallet: any) => (
+        <div className="flex flex-col">
+          <span className="font-medium text-sm leading-tight">{wallet.user_full_name}</span>
+          <span className="text-xs text-muted-foreground line-clamp-1">{wallet.user_email}</span>
+        </div>
+      ),
+    },
+    {
+      header: "Saldo",
+      cell: (wallet: any) => (
+        <span className="font-medium">
+          {wallet.balance_formatted || formatCurrency(wallet.balance || 0)}
+        </span>
+      ),
+    },
+    {
+      header: "Status",
+      cell: (wallet: any) => getStatusBadge(wallet.status),
+    },
+    {
+      header: "Nível de Risco",
+      cell: (wallet: any) => getRiskBadge(wallet.risk_level),
+    },
+    {
+      header: "Criado em",
+      cell: (wallet: any) => (
+        <span className="text-sm text-muted-foreground">
+          {wallet.created_at ? new Date(wallet.created_at).toLocaleDateString("pt-BR") : "-"}
+        </span>
+      ),
+    },
+    {
+      header: "Ações",
+      className: "text-right",
+      cell: (wallet: any) => (
+        <div className="flex justify-end gap-2">
+          <Button
+            variant="outline"
+            size="sm"
+            className="h-8"
+            onClick={() => {
+              setAdjustWallet(wallet);
+              setAdjustType("credit");
+            }}
+          >
+            <Plus className="mr-1 h-3 w-3" />
+            Creditar
+          </Button>
+          <Button
+            variant="outline"
+            size="sm"
+            className="h-8"
+            onClick={() => {
+              setAdjustWallet(wallet);
+              setAdjustType("debit");
+            }}
+          >
+            <Minus className="mr-1 h-3 w-3" />
+            Debitar
+          </Button>
+        </div>
+      ),
+    },
+  ];
+
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <h1 className="text-3xl font-bold">Carteiras</h1>
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div>
+          <h1 className="text-2xl font-bold tracking-tight">Carteiras</h1>
+          <p className="text-sm text-muted-foreground mt-0.5">
+            Gerencie os saldos dos usuários e efetue ajustes de crédito ou débito.
+          </p>
+        </div>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
@@ -148,126 +242,45 @@ export default function AdminWalletsPage() {
         />
       </div>
 
-      <Card>
-        <CardHeader>
-          <CardTitle>Buscar</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="relative max-w-md">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-            <Input
-              placeholder="Buscar por nome ou email..."
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              className="pl-10"
-            />
-          </div>
-        </CardContent>
-      </Card>
+      {/* ── Filters ──────────────────────────────────────── */}
+      <div className="flex flex-col sm:flex-row items-center gap-4">
+        <div className="relative flex-1 w-full sm:max-w-md">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+          <Input
+            placeholder="Buscar por nome ou email..."
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            className="pl-9 h-10 w-full rounded-lg border bg-background"
+          />
+        </div>
+      </div>
 
-      <Card>
-        <CardContent>
-          {loading ? (
-            <div className="flex items-center justify-center py-12">
-              <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
-            </div>
-          ) : (
+      <div className="w-full">
+        <DataTable
+          data={wallets}
+          columns={columns}
+          keyExtractor={(wallet) => wallet.id}
+          selectable={true}
+          selectedIds={selectedWallets}
+          onSelectionChange={setSelectedWallets}
+          isLoading={loading}
+          emptyMessage="Nenhuma carteira encontrada."
+          pagination={{
+            currentPage: page,
+            totalPages: totalPages,
+            totalItems: stats.totalWallets,
+            itemsPerPage: 20,
+            onPageChange: setPage,
+          }}
+          bulkActions={(selectedIds) => (
             <>
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Usuario</TableHead>
-                    <TableHead>Saldo</TableHead>
-                    <TableHead>Status</TableHead>
-                    <TableHead>Nivel de Risco</TableHead>
-                    <TableHead>Criado em</TableHead>
-                    <TableHead className="text-right">Acoes</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {wallets.length === 0 ? (
-                    <TableRow>
-                      <TableCell colSpan={6} className="text-center py-8 text-muted-foreground">
-                        Nenhuma carteira encontrada
-                      </TableCell>
-                    </TableRow>
-                  ) : (
-                    wallets.map((wallet: any) => (
-                      <TableRow key={wallet.id}>
-                        <TableCell>
-                          <div>
-                            <p className="font-medium">{wallet.user_full_name}</p>
-                            <p className="text-sm text-muted-foreground">{wallet.user_email}</p>
-                          </div>
-                        </TableCell>
-                        <TableCell className="font-medium">
-                          {wallet.balance_formatted || formatCurrency(wallet.balance || 0)}
-                        </TableCell>
-                        <TableCell>
-                          <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${wallet.status === 'active'
-                            ? 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400'
-                            : 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400'
-                            }`}>
-                            {wallet.status === 'active' ? 'Ativo' : 'Congelado'}
-                          </span>
-                        </TableCell>
-                        <TableCell>
-                          <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${wallet.risk_level === 'low'
-                            ? 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400'
-                            : wallet.risk_level === 'medium'
-                              ? 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-400'
-                              : 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400'
-                            }`}>
-                            {wallet.risk_level === 'low' ? 'Baixo' : wallet.risk_level === 'medium' ? 'Medio' : 'Alto'}
-                          </span>
-                        </TableCell>
-                        <TableCell>
-                          {wallet.created_at
-                            ? new Date(wallet.created_at).toLocaleDateString("pt-BR")
-                            : "-"}
-                        </TableCell>
-                        <TableCell className="text-right">
-                          <div className="flex justify-end gap-2">
-                            <Button
-                              variant="outline"
-                              size="sm"
-                              onClick={() => {
-                                setAdjustWallet(wallet);
-                                setAdjustType("credit");
-                              }}
-                            >
-                              <Plus className="mr-1 h-3 w-3" />
-                              Creditar
-                            </Button>
-                            <Button
-                              variant="outline"
-                              size="sm"
-                              onClick={() => {
-                                setAdjustWallet(wallet);
-                                setAdjustType("debit");
-                              }}
-                            >
-                              <Minus className="mr-1 h-3 w-3" />
-                              Debitar
-                            </Button>
-                          </div>
-                        </TableCell>
-                      </TableRow>
-                    ))
-                  )}
-                </TableBody>
-              </Table>
-
-              <Pagination
-                currentPage={page}
-                totalPages={totalPages}
-                onPageChange={setPage}
-                isLoading={loading}
-              />
+              <Button size="sm" variant="secondary" className="h-8">
+                Exportar ({selectedIds.length})
+              </Button>
             </>
           )}
-        </CardContent>
-      </Card>
+        />
+      </div>
 
       {/* Adjust Balance Dialog */}
       <Suspense fallback={null}>

@@ -52,7 +52,7 @@ export function SubHeader() {
     return (
         <>
             <div className="fixed top-[60px] left-0 w-full bg-background z-30">
-                <div className="px-4 md:px-8 lg:px-12 xl:px-16 2xl:px-[120px]">
+                <div className="px-4 md:px-12 lg:px-24 xl:px-[140px] 2xl:px-[256px]">
                     <div className="flex items-center gap-4 py-1.5 overflow-x-auto no-scrollbar">
                         {categories.map((category) => {
                             const Icon = category.icon

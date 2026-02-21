@@ -154,68 +154,55 @@ export function DepositModal({ isOpen, onOpenChange }: DepositModalProps) {
                                 </div>
 
                                 {/* Banner Content */}
-                                <div className="relative z-10 w-full flex justify-between items-center pr-2 mt-2">
-                                    <h2 className="text-[20px] sm:text-[22px] font-black italic text-white leading-[1.15] tracking-wide">
-                                        GANHE <span className="text-white drop-shadow-md">CASHBACK</span><br />
-                                        TODOS OS DIAS
+                                <div className="absolute top-0 inset-x-0 bg-[#35d985] text-black text-[9px] font-black uppercase text-center py-1 tracking-[0.3em] z-20">
+                                    CAIXA DE BÔNUS LIBERADA
+                                </div>
+                                <div className="relative z-10 w-full flex justify-between items-center pr-2 mt-4">
+                                    <h2 className="text-[20px] sm:text-[22px] font-black text-white leading-[1.15] tracking-tight">
+                                        <span className="text-white drop-shadow-sm text-[16px] font-medium leading-none mb-1 block">COMPRE NO PIX &</span>
+                                        <span className="text-white drop-shadow-md text-[28px] leading-none mb-1 block tracking-[-0.02em]">RECEBA NO PIX</span>
+                                        <span className="text-white/90 drop-shadow-sm text-[10px] font-semibold tracking-widest block mt-1">ACHE 3 IGUAIS E GANHE NA HORA!</span>
                                     </h2>
                                     <div className="text-white drop-shadow-md mb-2 mr-2">
-                                        <svg width="46" height="46" viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg">
-                                            <path d="M10 12H38L18 36H40" stroke="currentColor" strokeWidth="9" strokeLinecap="round" strokeLinejoin="round" />
-                                        </svg>
+                                        <div className="w-16 h-16 bg-gradient-to-br from-[#77f0a6] to-[#01b559] rounded-2xl rotate-45 flex items-center justify-center shadow-lg border-[3px] border-[#a0f4c3]">
+                                            <div className="w-10 h-10 border-2 border-[#16c66b] border-t-white border-l-white rounded-xl shadow-inner rotate-45"></div>
+                                        </div>
                                     </div>
                                 </div>
                             </div>
 
                             {/* Section Title */}
-                            <div className="mb-[18px]">
+                            <div className="mb-4">
                                 <div className="flex items-center gap-2 mb-1.5">
-                                    <div className="w-[3px] h-5 bg-brand rounded-full"></div>
-                                    <h3 className="text-[19px] font-bold text-black dark:text-white tracking-tight">Depositar</h3>
+                                    <div className="bg-white dark:bg-white text-black p-1 rounded-sm flex items-center justify-center">
+                                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><rect x="2" y="5" width="20" height="14" rx="2" /><line x1="2" y1="10" x2="22" y2="10" /></svg>
+                                    </div>
+                                    <h3 className="text-[20px] font-bold text-black dark:text-white tracking-tight">Depósito</h3>
                                 </div>
-                                <p className="text-sm font-medium text-[#606E85] dark:text-white/50 ml-3.5">
-                                    Saldo atual: {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(currentBalance)}
-                                </p>
                             </div>
 
-                            {/* Pix Method Card */}
-                            <div className="rounded-xl border border-brand/40 bg-brand/[0.03] dark:bg-brand/[0.05] p-4 flex items-center justify-between mb-6 shadow-sm">
-                                <div className="flex items-center gap-4">
-                                    <img src="/assets/img/pix-logo-modal.png" alt="Pix" className="h-[22px] object-contain ml-1 brightness-0 dark:brightness-100 dark:opacity-90" />
-                                    <div className="h-9 w-[1px] bg-black/10 dark:bg-white/10 mx-1"></div>
-                                    <div className="flex flex-col">
-                                        <span className="text-black dark:text-white font-bold text-[17px] leading-tight">Pix</span>
-                                        <span className="text-[#606E85] dark:text-white/50 text-[13px] font-medium mt-0.5">Depósito Real brasileiro</span>
-                                    </div>
-                                </div>
-                                <div className="bg-black/5 dark:bg-white/10 rounded-full px-3.5 py-1 text-xs font-bold text-[#606E85] dark:text-white/80 tracking-wide">
-                                    5 minutos
-                                </div>
-                            </div>
+
+
 
                             {/* Amount Section Title */}
-                            <div className="flex justify-between items-center mb-3">
-                                <span className="text-[15px] font-bold text-black dark:text-white tracking-wide">Valor a ser depositado:</span>
-                                <button className="text-[13px] font-semibold text-brand hover:text-brand/80 transition-colors">Possui cupom?</button>
+                            <div className="flex justify-between items-center mb-2">
+                                <span className="text-[14px] font-bold text-black dark:text-white">Valor:</span>
                             </div>
 
                             {/* Amount Input */}
-                            <div className="relative mb-4 group">
+                            <div className="relative mb-6 group">
                                 <input
-                                    className="w-full bg-white dark:bg-[#18181B] border border-black/10 dark:border-white/5 focus:border-brand/50 dark:focus:border-brand/50 rounded-[14px] py-[18px] pl-5 pr-24 text-black dark:text-white font-bold text-lg placeholder:text-black/30 dark:placeholder:text-white/30 outline-none transition-all shadow-sm"
-                                    placeholder="R$0"
-                                    value={amount ? `R$${amount}` : ''}
+                                    className="w-full bg-black/5 dark:bg-[#12121a] border border-black/10 dark:border-white/5 focus:border-brand/50 dark:focus:border-brand/50 rounded-xl py-4 pl-4 pr-12 text-black dark:text-white font-semibold text-[15px] outline-none transition-all shadow-sm"
+                                    placeholder="R$ 0,00"
+                                    value={amount ? `R$ ${amount}` : ''}
                                     onChange={handleInputChange}
                                     type="text"
                                     inputMode="decimal"
                                     autoComplete="off"
                                     spellCheck="false"
                                 />
-                                <div className="absolute right-4 top-1/2 -translate-y-1/2 flex items-center gap-2">
-                                    <div className="w-[18px] h-[18px] rounded-full overflow-hidden flex items-center justify-center bg-gray-100 dark:bg-[#1E1E22]">
-                                        <img src="https://flagcdn.com/br.svg" alt="BRL" className="w-full h-full object-cover" />
-                                    </div>
-                                    <span className="text-black dark:text-white font-bold text-sm tracking-wide">BRL</span>
+                                <div className="absolute right-4 top-1/2 -translate-y-1/2 flex items-center text-muted-foreground/70 justify-center">
+                                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 12 20 22 4 22 4 12" /><rect x="2" y="7" width="20" height="5" /><line x1="12" y1="22" x2="12" y2="7" /><path d="M12 7H7.5a2.5 2.5 0 0 1 0-5C11 2 12 7 12 7z" /><path d="M12 7h4.5a2.5 2.5 0 0 0 0-5C13 2 12 7 12 7z" /></svg>
                                 </div>
                             </div>
 
@@ -224,49 +211,55 @@ export function DepositModal({ isOpen, onOpenChange }: DepositModalProps) {
                             )}
 
                             {/* Quick amounts */}
-                            <div className="grid grid-cols-3 gap-3 mb-4">
+                            <div className="flex flex-wrap gap-2.5 mb-8">
                                 {[
-                                    { val: 20, isHot: false },
-                                    { val: 50, isHot: true },
+                                    { val: 10, isHot: false },
+                                    { val: 30, isHot: true },
+                                    { val: 50, isHot: false },
                                     { val: 100, isHot: false },
-                                    { val: 250, isHot: true },
-                                    { val: 500, isHot: false },
-                                    { val: 1000, isHot: true }
+                                    { val: 200, isHot: false },
+                                    { val: 500, isHot: false }
                                 ].map(({ val, isHot }) => (
-                                    <div key={val} className="relative">
+                                    <div key={val} className="relative flex-1 min-w-[70px]">
                                         <button
-                                            onClick={() => addAmount(val)}
-                                            className="w-full bg-white dark:bg-[#18181B] hover:bg-black/5 dark:hover:bg-[#202024] border border-black/10 dark:border-white/5 rounded-xl py-3.5 text-[15px] font-bold text-black dark:text-white transition-colors shadow-sm"
+                                            onClick={() => setAmount(val.toString())}
+                                            className={cn(
+                                                "w-full bg-black/5 dark:bg-[#12121a] hover:bg-black/10 dark:hover:bg-[#1a1a24] border rounded-lg py-2.5 text-[14px] font-semibold transition-colors shadow-sm",
+                                                isHot && Number(amount) === val
+                                                    ? "border-[#eab308] text-brand"
+                                                    : isHot
+                                                        ? "border-[#eab308] text-brand"
+                                                        : Number(amount) === val
+                                                            ? "border-brand text-brand bg-brand/5 dark:bg-brand/10"
+                                                            : "border-border dark:border-white/5 text-black dark:text-white"
+                                            )}
                                         >
-                                            +R${val}
+                                            {val.toFixed(2).replace('.', ',')}
                                         </button>
                                         {isHot && (
-                                            <div className="absolute -top-1.5 -right-1.5 bg-brand text-white text-[9px] font-black italic px-1.5 py-[3px] rounded shadow-sm tracking-wider leading-none">
-                                                HOT
+                                            <div className="absolute -top-[10px] left-1/2 -translate-x-1/2 bg-[#FFD700] text-black text-[9px] font-bold px-1.5 py-[2px] rounded-md shadow-sm whitespace-nowrap z-10 flex items-center gap-0.5">
+                                                <svg width="8" height="8" viewBox="0 0 24 24" fill="currentColor" stroke="none"><path d="M17.082 10.368c.277-2.3-1.077-4.499-2.227-6.273-1.127-1.74-2.827-3.768-2.827-3.768A.999.999 0 0 0 11.23.639c-.198.536-1.536 4.312-1.396 7.21-1.01.696-1.928 2.37-1.928 4.673a3.5 3.5 0 0 0 .584 1.83 5.483 5.483 0 0 0 .199.309c-.066-.183-.346-.967-.406-2.174-.017-.354-.429-.533-.679-.283-.483.483-1.603 1.879-1.603 4.296 0 3.033 2.467 5.5 5.5 5.5 1.488 0 2.824-.593 3.8-1.551 1.053-.9 1.7-2.348 1.7-3.949a6.007 6.007 0 0 0-.822-2.903c.513.799.349 2.062.261 2.366-.101.349.378.583.593.308.572-.733 1.157-2.31 1.059-4.225l.011-.005C17.07 10.975 17.082 10.368 17.082 10.368z" /></svg>
+                                                QUENTE
                                             </div>
                                         )}
                                     </div>
                                 ))}
                             </div>
 
-                            {/* Min Amount Indicator */}
-                            <p className="text-[#606E85] dark:text-white/40 text-[13px] font-medium mb-6 ml-1">
-                                Depósito mínimo: R$11.00
-                            </p>
-
                             {/* Submit Button */}
                             <button
                                 onClick={handleAmountSubmit}
                                 disabled={amountNumber < 11 || isLoading}
                                 className={cn(
-                                    "w-full py-4 rounded-xl font-bold text-[16px] transition-all flex justify-center items-center tracking-wide",
+                                    "w-full py-3.5 rounded-xl font-bold text-[15px] transition-all flex justify-center items-center",
                                     amountNumber >= 11 && !isLoading
-                                        ? "text-white bg-brand hover:brightness-110 shadow-md"
+                                        ? "text-white bg-brand hover:brightness-110 shadow-sm"
                                         : "text-black/40 dark:text-white/40 bg-black/5 dark:bg-white/5 cursor-not-allowed"
                                 )}
                             >
                                 {isLoading ? <Loader2 className="mr-2 h-5 w-5 animate-spin inline" /> : null}
-                                Continuar
+                                <svg className="w-5 h-5 mr-1" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M3 5v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V5v0a2 2 0 0 0-2-2H5a2 2 0 0 0-2 2v0Z" /><path d="M7 10h10" /><path d="M7 14h10" /><path d="M10 10v4" /></svg>
+                                Gerar QR Code
                             </button>
                         </div>
                     )}

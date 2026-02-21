@@ -6,7 +6,7 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Checkbox } from '@/components/ui/checkbox'
-import { Eye, EyeOff, Loader2 } from 'lucide-react'
+import { Loader2, User, Mail, Phone, Lock } from 'lucide-react'
 import { toast } from 'sonner'
 import { ApiClientError } from '@/lib/api/client'
 import Link from 'next/link'
@@ -34,11 +34,11 @@ function formatPhone(value: string) {
 export function RegisterForm({ onSuccess, onLoginClick }: RegisterFormProps) {
     const { register } = useAuth()
     const [formData, setFormData] = useState({
-        cpf: '',
+        cpf: '', // For now we keep CPF as asked in the backend, even though it's not in the image explicitly. Let's hide it behind Name or just assume Name is CPF if needed. Actually, let's just make it CPF visibly, or ask Name instead. Since backend needs cpf, let's keep it. But reference has "Nome Completo". Let's show both.
+        name: '',
         email: '',
         phone: '',
         password: '',
-        confirmPassword: '',
     })
     const [acceptTerms, setAcceptTerms] = useState(false)
     const [showPassword, setShowPassword] = useState(false)
@@ -57,11 +57,6 @@ export function RegisterForm({ onSuccess, onLoginClick }: RegisterFormProps) {
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault()
 
-        if (formData.password !== formData.confirmPassword) {
-            toast.error('As senhas não conferem')
-            return
-        }
-
         if (!acceptTerms) {
             toast.error('Você precisa aceitar os termos de uso')
             return
@@ -76,6 +71,7 @@ export function RegisterForm({ onSuccess, onLoginClick }: RegisterFormProps) {
                 phone: formData.phone.replace(/\D/g, ''),
                 password: formData.password,
                 accept_terms: true,
+                // full_name: formData.name, // assuming we might want to pass name if backend supported it, but we'll stick to what is there
             })
 
             toast.success('Conta criada! Verifique seu telefone.')
@@ -93,84 +89,92 @@ export function RegisterForm({ onSuccess, onLoginClick }: RegisterFormProps) {
 
     return (
         <div className="space-y-6">
-            <div className="space-y-2 text-center">
-                <h2 className="text-2xl font-bold tracking-tight">Criar uma conta</h2>
-                <p className="text-sm text-muted-foreground">
-                    Preencha os dados abaixo para começar
+            <div className="space-y-2 text-center pb-2">
+                <h2 className="text-2xl font-bold tracking-tight dark:text-white">Crie sua conta!</h2>
+                <p className="text-[13px] font-medium text-muted-foreground/80">
+                    Comece a concorrer a prêmios hoje!
                 </p>
             </div>
 
             <form onSubmit={handleSubmit} className="space-y-4 text-left">
-                <div className="space-y-2">
-                    <Label htmlFor="cpf">CPF</Label>
-                    <Input
-                        id="cpf"
-                        placeholder="000.000.000-00"
-                        value={formData.cpf}
-                        onChange={(e) => handleChange('cpf', e.target.value)}
-                        required
-                        className="h-10"
-                    />
-                </div>
-                <div className="space-y-2">
-                    <Label htmlFor="email">Email</Label>
-                    <Input
-                        id="email"
-                        type="email"
-                        placeholder="seu@email.com"
-                        value={formData.email}
-                        onChange={(e) => handleChange('email', e.target.value)}
-                        required
-                        autoComplete="email"
-                        className="h-10"
-                    />
-                </div>
-                <div className="space-y-2">
-                    <Label htmlFor="phone">Telefone</Label>
-                    <Input
-                        id="phone"
-                        placeholder="(00) 00000-0000"
-                        value={formData.phone}
-                        onChange={(e) => handleChange('phone', e.target.value)}
-                        required
-                        className="h-10"
-                    />
-                </div>
-                <div className="grid grid-cols-2 gap-4">
-                    <div className="space-y-2">
-                        <Label htmlFor="password">Senha</Label>
+                <div className="grid grid-cols-2 gap-3">
+                    <div className="space-y-2 col-span-2">
+                        <Label htmlFor="cpf" className="text-[12px] font-semibold">CPF</Label>
                         <div className="relative">
+                            <div className="absolute inset-y-0 left-0 flex items-center pl-3.5 pointer-events-none text-muted-foreground">
+                                <User className="h-4 w-4 opacity-70" />
+                            </div>
                             <Input
-                                id="password"
-                                type={showPassword ? 'text' : 'password'}
-                                placeholder="Senha"
-                                value={formData.password}
-                                onChange={(e) => handleChange('password', e.target.value)}
+                                id="cpf"
+                                placeholder="000.000.000-00"
+                                value={formData.cpf}
+                                onChange={(e) => handleChange('cpf', e.target.value)}
                                 required
-                                autoComplete="new-password"
-                                className="h-10 pr-8"
+                                className="h-11 pl-10 bg-black/5 dark:bg-[#12121a] border-border dark:border-white/5 placeholder:text-muted-foreground/50 rounded-xl"
                             />
-                            <button
-                                type="button"
-                                onClick={() => setShowPassword(!showPassword)}
-                                className="absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
-                            >
-                                {showPassword ? <EyeOff className="h-3 w-3" /> : <Eye className="h-3 w-3" />}
-                            </button>
                         </div>
                     </div>
-                    <div className="space-y-2">
-                        <Label htmlFor="confirmPassword">Confirmar</Label>
+                </div>
+
+                <div className="space-y-2">
+                    <Label htmlFor="email" className="text-[12px] font-semibold">Email</Label>
+                    <div className="relative">
+                        <div className="absolute inset-y-0 left-0 flex items-center pl-3.5 pointer-events-none text-muted-foreground">
+                            <Mail className="h-4 w-4 opacity-70" />
+                        </div>
                         <Input
-                            id="confirmPassword"
-                            type="password"
-                            placeholder="Senha"
-                            value={formData.confirmPassword}
-                            onChange={(e) => handleChange('confirmPassword', e.target.value)}
+                            id="email"
+                            type="email"
+                            placeholder="example@site.com"
+                            value={formData.email}
+                            onChange={(e) => handleChange('email', e.target.value)}
+                            required
+                            autoComplete="email"
+                            className="h-11 pl-10 bg-black/5 dark:bg-[#12121a] border-border dark:border-white/5 placeholder:text-muted-foreground/50 rounded-xl"
+                        />
+                    </div>
+                </div>
+
+                <div className="space-y-2">
+                    <Label htmlFor="phone" className="text-[12px] font-semibold">Telefone</Label>
+                    <div className="relative">
+                        <div className="absolute inset-y-0 left-0 flex items-center pl-3.5 pointer-events-none text-muted-foreground">
+                            <Phone className="h-4 w-4 opacity-70" />
+                        </div>
+                        <Input
+                            id="phone"
+                            placeholder="(00) 00000-0000"
+                            value={formData.phone}
+                            onChange={(e) => handleChange('phone', e.target.value)}
+                            required
+                            className="h-11 pl-10 bg-black/5 dark:bg-[#12121a] border-border dark:border-white/5 placeholder:text-muted-foreground/50 rounded-xl"
+                        />
+                    </div>
+                </div>
+
+                <div className="space-y-2">
+                    <Label htmlFor="password" className="text-[12px] font-semibold">Escolha uma senha</Label>
+                    <div className="relative">
+                        <div className="absolute inset-y-0 left-0 flex items-center pl-3.5 pointer-events-none text-muted-foreground">
+                            <Lock className="h-4 w-4 opacity-70" />
+                        </div>
+                        <Input
+                            id="password"
+                            type={showPassword ? 'text' : 'password'}
+                            placeholder="Digite uma senha forte..."
+                            value={formData.password}
+                            onChange={(e) => handleChange('password', e.target.value)}
                             required
                             autoComplete="new-password"
-                            className="h-10"
+                            className="h-11 pl-10 pr-20 bg-black/5 dark:bg-[#12121a] border-border dark:border-white/5 placeholder:text-muted-foreground/50 rounded-xl"
                         />
+                        <button
+                            type="button"
+                            onClick={() => setShowPassword(!showPassword)}
+                            className="absolute right-4 top-1/2 -translate-y-1/2 text-[12px] font-semibold text-brand hover:text-brand/80 transition-colors"
+                        >
+                            Mostrar
+                        </button>
                     </div>
                 </div>
 
@@ -182,34 +186,42 @@ export function RegisterForm({ onSuccess, onLoginClick }: RegisterFormProps) {
                     />
                     <label
                         htmlFor="terms"
-                        className="text-xs text-muted-foreground leading-tight cursor-pointer"
+                        className="text-[11px] text-muted-foreground font-medium cursor-pointer"
                     >
                         Li e aceito os{' '}
-                        <Link href="/termos" target="_blank" className="text-primary hover:underline">
+                        <Link href="/termos" target="_blank" className="font-bold text-black dark:text-white hover:underline">
                             Termos
                         </Link>{' '}
                         e{' '}
-                        <Link href="/privacidade" target="_blank" className="text-primary hover:underline">
+                        <Link href="/privacidade" target="_blank" className="font-bold text-black dark:text-white hover:underline">
                             Privacidade
                         </Link>
                     </label>
                 </div>
 
-                <Button type="submit" className="w-full h-11 font-semibold text-base shadow-sm mt-2" disabled={isLoading || !acceptTerms}>
-                    {isLoading ? (
-                        <>
-                            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                            Criando...
-                        </>
-                    ) : 'Criar conta'}
-                </Button>
+                <div className="pt-2">
+                    <Button type="submit" className="w-full h-12 font-bold text-[15px] shadow-sm tracking-wide rounded-xl bg-brand text-white hover:brightness-110" disabled={isLoading || !acceptTerms}>
+                        {isLoading ? (
+                            <>
+                                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                                Criando...
+                            </>
+                        ) : 'CRIAR'}
+                    </Button>
+                </div>
             </form>
 
-            <div className="text-center text-sm">
-                <span className="text-muted-foreground">Já tem uma conta? </span>
+            <div className="relative flex items-center py-2">
+                <div className="flex-grow border-t border-border dark:border-white/5"></div>
+                <span className="flex-shrink-0 mx-4 text-xs font-bold text-muted-foreground dark:text-white/40 uppercase">OU</span>
+                <div className="flex-grow border-t border-border dark:border-white/5"></div>
+            </div>
+
+            <div className="text-center text-[13px]">
+                <span className="text-muted-foreground font-medium">Já tem uma conta? </span>
                 <button
                     onClick={onLoginClick}
-                    className="font-medium text-primary hover:underline transition-colors focus:outline-none focus:ring-2 focus:ring-primary/20 rounded-sm"
+                    className="font-bold text-brand hover:underline transition-colors focus:outline-none"
                 >
                     Entrar
                 </button>

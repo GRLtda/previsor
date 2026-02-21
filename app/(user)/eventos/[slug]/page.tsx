@@ -158,7 +158,7 @@ export default function EventDetailPage({ params }: PageProps) {
 
   if (isLoading) {
     return (
-      <div className="relative z-10 mx-auto flex w-full py-0 dark:bg-transparent lg:gap-x-[26px] px-4 md:px-8 lg:px-12 xl:px-16 2xl:px-[120px]">
+      <div className="relative z-10 mx-auto flex w-full py-0 dark:bg-transparent lg:gap-x-[26px] px-4 md:px-12 lg:px-24 xl:px-[140px] 2xl:px-[256px]">
         <div className="flex w-full flex-col lg:max-w-[calc(100%-380px)]">
           <Skeleton className="h-8 w-32 mb-8 mt-6" />
           <div className="flex gap-4 items-start mb-6">
@@ -186,7 +186,7 @@ export default function EventDetailPage({ params }: PageProps) {
     : new Date(event.endsAt)
 
   return (
-    <div className="relative z-10 mx-auto flex w-full py-0 dark:bg-transparent lg:gap-x-[26px] px-4 md:px-8 lg:px-12 xl:px-16 2xl:px-[120px]">
+    <div className="relative z-10 mx-auto flex w-full py-0 dark:bg-transparent lg:gap-x-[26px] px-4 md:px-12 lg:px-24 xl:px-[140px] 2xl:px-[256px]">
       <div className="flex w-full flex-col lg:max-w-[calc(100%-380px)]">
         {/* Back Button - Desktop */}
         <Link
@@ -315,44 +315,147 @@ export default function EventDetailPage({ params }: PageProps) {
           </div>
         </div>
 
-        {/* Probability Chart */}
-        {event.markets && event.markets.length > 0 && (
-          <div className="mt-4 rounded-xl border border-border/40 bg-card/50 p-4 lg:mt-6 lg:p-5">
-            <ProbabilityChart
-              marketId={selectedMarket?.id || event.markets[0].id}
-              currentProbYes={selectedMarket?.probYes ?? event.markets[0].probYes}
-            />
-          </div>
-        )}
-
-        {/* Markets Grid */}
-        <div className="mt-4 lg:mt-6">
-          <div className="size-full overflow-hidden rounded-lg pb-1 lg:mt-0 lg:overflow-visible lg:pb-0">
-            {!event.markets || event.markets.length === 0 ? (
-              <div className="py-12 text-center rounded-2xl bg-black/5 dark:bg-white/5">
-                <p className="text-muted-foreground">
-                  Nenhum mercado disponível para este evento ainda.
-                </p>
+        {/* Content based on market count */}
+        {event.markets && event.markets.length === 1 ? (
+          <div className="mt-4 rounded-xl border border-border/40 bg-card/50 p-6 lg:mt-6">
+            <div className="flex justify-between items-end w-full mb-3 px-1">
+              <div className="flex flex-col gap-1">
+                <div className="flex items-center gap-2 text-[#22c55e] font-semibold">
+                  <svg width="18" height="18" viewBox="0 0 14 14" fill="none" xmlns="http://www.w3.org/2000/svg" className="min-w-4">
+                    <path d="M6.99935 12.8332C10.2077 12.8332 12.8327 10.2082 12.8327 6.99984C12.8327 3.7915 10.2077 1.1665 6.99935 1.1665C3.79102 1.1665 1.16602 3.7915 1.16602 6.99984C1.16602 10.2082 3.79102 12.8332 6.99935 12.8332Z" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+                    <path d="M4.52051 6.99995L6.17134 8.65079L9.47884 5.34912" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+                  </svg>
+                  Sim
+                </div>
+                <span className="text-[32px] sm:text-[40px] font-bold dark:text-white leading-none tracking-tight">
+                  {Math.round(event.markets[0].probYes)}%
+                </span>
               </div>
-            ) : (
-              <div className="grid grid-cols-1 gap-4 xl:grid-cols-2 xl:items-start">
-                {event.markets.map((market) => (
-                  <MarketCardTriad
-                    key={market.id}
-                    market={market}
-                    onYesClick={() => handleSelectPrediction(market, 'YES')}
-                    onNoClick={() => handleSelectPrediction(market, 'NO')}
-                  />
-                ))}
+
+              <span className="text-[13px] sm:text-sm font-semibold text-[#606E85] mb-2">Chance</span>
+
+              <div className="flex flex-col gap-1 items-end">
+                <div className="flex items-center gap-2 text-[#ef4444] font-semibold">
+                  Não
+                  <svg width="18" height="18" viewBox="0 0 14 14" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <path d="M6.99935 12.8332C10.2077 12.8332 12.8327 10.2082 12.8327 6.99984C12.8327 3.7915 10.2077 1.1665 6.99935 1.1665C3.79102 1.1665 1.16602 3.7915 1.16602 6.99984C1.16602 10.2082 3.79102 12.8332 6.99935 12.8332Z" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+                    <path d="M5.34863 8.65079L8.6503 5.34912" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+                    <path d="M8.6503 8.65079L5.34863 5.34912" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+                  </svg>
+                </div>
+                <span className="text-[32px] sm:text-[40px] font-bold dark:text-white leading-none tracking-tight">
+                  {Math.round(event.markets[0].probNo)}%
+                </span>
+              </div>
+            </div>
+
+            {/* Green and Red Progress Bar */}
+            <div className="flex h-[14px] sm:h-[18px] w-full gap-1 overflow-hidden mt-2 mb-8 rounded-[6px]">
+              <div className="bg-[#22c55e] h-full" style={{ width: `${event.markets[0].probYes}%`, borderRadius: '6px' }} />
+              <div className="bg-[#ef4444] h-full" style={{ width: `${event.markets[0].probNo}%`, borderRadius: '6px' }} />
+            </div>
+
+            {/* The Bet buttons for Mobile (shows prediction panel sheet) */}
+            <div className="grid grid-cols-2 gap-3 mb-8 lg:hidden">
+              <button
+                onClick={() => handleSelectPrediction(event.markets![0], 'YES')}
+                className="w-full flex justify-center items-center py-4 rounded-xl bg-[#22c55e]/10 text-[#22c55e] border border-[#22c55e]/20 font-bold text-sm hover:bg-[#22c55e]/20 transition-colors"
+              >
+                Sim
+              </button>
+              <button
+                onClick={() => handleSelectPrediction(event.markets![0], 'NO')}
+                className="w-full flex justify-center items-center py-4 rounded-xl bg-[#ef4444]/10 text-[#ef4444] border border-[#ef4444]/20 font-bold text-sm hover:bg-[#ef4444]/20 transition-colors"
+              >
+                Não
+              </button>
+            </div>
+
+            {/* The Bet buttons for Desktop (updates selected side on the prediction panel) */}
+            <div className="hidden lg:grid grid-cols-2 gap-4 mb-8">
+              <button
+                onClick={() => handleSelectPrediction(event.markets![0], 'YES')}
+                className={`w-full flex justify-center items-center py-4 rounded-xl border transition-all duration-200 font-bold text-[15px]
+                  ${selectedSide === 'YES'
+                    ? 'bg-[#22c55e] border-[#22c55e] text-white shadow-md shadow-[#22c55e]/20'
+                    : 'bg-[#22c55e]/10 border-[#22c55e]/20 text-[#22c55e] hover:bg-[#22c55e]/20'}
+                `}
+              >
+                <div className="flex items-center gap-2">
+                  <svg width="18" height="18" viewBox="0 0 14 14" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <path d="M6.99935 12.8332C10.2077 12.8332 12.8327 10.2082 12.8327 6.99984C12.8327 3.7915 10.2077 1.1665 6.99935 1.1665C3.79102 1.1665 1.16602 3.7915 1.16602 6.99984C1.16602 10.2082 3.79102 12.8332 6.99935 12.8332Z" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+                    <path d="M4.52051 6.99995L6.17134 8.65079L9.47884 5.34912" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+                  </svg>
+                  Sim
+                </div>
+              </button>
+
+              <button
+                onClick={() => handleSelectPrediction(event.markets![0], 'NO')}
+                className={`w-full flex justify-center items-center py-4 rounded-xl border transition-all duration-200 font-bold text-[15px]
+                  ${selectedSide === 'NO'
+                    ? 'bg-[#ef4444] border-[#ef4444] text-white shadow-md shadow-[#ef4444]/20'
+                    : 'bg-[#ef4444]/10 border-[#ef4444]/20 text-[#ef4444] hover:bg-[#ef4444]/20'}
+                `}
+              >
+                <div className="flex items-center gap-2">
+                  <svg width="18" height="18" viewBox="0 0 14 14" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <path d="M6.99935 12.8332C10.2077 12.8332 12.8327 10.2082 12.8327 6.99984C12.8327 3.7915 10.2077 1.1665 6.99935 1.1665C3.79102 1.1665 1.16602 3.7915 1.16602 6.99984C1.16602 10.2082 3.79102 12.8332 6.99935 12.8332Z" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+                    <path d="M5.34863 8.65079L8.6503 5.34912" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+                    <path d="M8.6503 8.65079L5.34863 5.34912" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+                  </svg>
+                  Não
+                </div>
+              </button>
+            </div>
+
+            <div className="flex flex-col items-center justify-center mt-6 mb-2">
+              <span className="text-xs sm:text-[13px] font-medium text-[#606E85] mb-4">O mercado fechará em</span>
+              <CountdownTimer targetDate={closestMarketClose} />
+            </div>
+          </div>
+        ) : (
+          <>
+            {/* Probability Chart */}
+            {event.markets && event.markets.length > 0 && (
+              <div className="mt-4 rounded-xl border border-border/40 bg-card/50 p-4 lg:mt-6 lg:p-5">
+                <ProbabilityChart
+                  marketId={selectedMarket?.id || event.markets[0].id}
+                  currentProbYes={selectedMarket?.probYes ?? event.markets[0].probYes}
+                />
               </div>
             )}
-          </div>
-        </div>
 
-        {/* Countdown Timer */}
-        <div className="mt-5 lg:mt-3">
-          <CountdownTimer targetDate={closestMarketClose} />
-        </div>
+            {/* Markets Grid */}
+            <div className="mt-4 lg:mt-6">
+              <div className="size-full overflow-hidden rounded-lg pb-1 lg:mt-0 lg:overflow-visible lg:pb-0">
+                {!event.markets || event.markets.length === 0 ? (
+                  <div className="py-12 text-center rounded-2xl bg-black/5 dark:bg-white/5">
+                    <p className="text-muted-foreground">
+                      Nenhum mercado disponível para este evento ainda.
+                    </p>
+                  </div>
+                ) : (
+                  <div className="grid grid-cols-1 gap-4 xl:grid-cols-2 xl:items-start">
+                    {event.markets.map((market) => (
+                      <MarketCardTriad
+                        key={market.id}
+                        market={market}
+                        onYesClick={() => handleSelectPrediction(market, 'YES')}
+                        onNoClick={() => handleSelectPrediction(market, 'NO')}
+                      />
+                    ))}
+                  </div>
+                )}
+              </div>
+            </div>
+
+            {/* Countdown Timer */}
+            <div className="mt-5 lg:mt-3">
+              <CountdownTimer targetDate={closestMarketClose} />
+            </div>
+          </>
+        )}
 
         {/* Mobile Action Buttons */}
         <div className="my-4 flex gap-2 lg:hidden">

@@ -154,7 +154,7 @@ export function UserHeader() {
         className="fixed left-0 lg:h-[60px] place-content-center top-0 bg-background z-30 w-full"
       >
         <div>
-          <div className="mx-auto flex h-full max-h-[60px] min-h-[60px] items-center justify-between px-4 md:px-8 lg:px-12 xl:px-16 2xl:px-[120px]">
+          <div className="mx-auto flex h-full max-h-[60px] min-h-[60px] items-center justify-between px-4 md:px-12 lg:px-24 xl:px-[140px] 2xl:px-[256px]">
             {/* Left: Logo */}
             <div className="flex items-center">
               <Logo width={100} height={34} />
@@ -175,35 +175,31 @@ export function UserHeader() {
                 <div className="w-[100px] h-9" />
               ) : isLoggedIn ? (
                 <div className="flex items-center justify-end lg:mr-4">
-                  {/* Balance Display */}
-                  <Link
-                    href="/app/carteira"
-                    className="mr-5 flex h-[46px] items-center justify-center rounded-lg px-3 ease-out hover:bg-black/[6%] hover:dark:bg-white/5"
-                  >
-                    <div className="flex flex-col items-center -space-y-[3px]">
-                      <span className="flex items-center gap-1 text-[11px] font-medium text-[#606E85] dark:text-[#A1A7BB]">
-                        Saldo
-                        <svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
-                          <path d="M7.86016 5.36016C7.60448 5.38964 7.41152 5.60612 7.41152 5.8635C7.41152 6.12087 7.60448 6.33736 7.86016 6.36683C7.9945 6.36869 8.12379 6.31569 8.21815 6.22007C8.31252 6.12444 8.36381 5.99446 8.36016 5.86016C8.35657 5.58552 8.1348 5.36375 7.86016 5.36016Z" fill="#A1A7BB" />
-                          <path d="M7.86016 7.28016C7.72701 7.27835 7.59877 7.33045 7.50461 7.42461C7.41045 7.51877 7.35835 7.64701 7.36016 7.78016V9.86016C7.36016 10.1363 7.58402 10.3602 7.86016 10.3602C8.1363 10.3602 8.36016 10.1363 8.36016 9.86016V7.7935C8.36376 7.65859 8.31268 7.52796 8.21851 7.43129C8.12435 7.33462 7.99511 7.28011 7.86016 7.28016Z" fill="#A1A7BB" />
-                          <path fillRule="evenodd" clipRule="evenodd" d="M7.86016 1.3335C4.25711 1.33717 1.33717 4.25711 1.3335 7.86016C1.3335 11.4647 4.25558 14.3868 7.86016 14.3868C11.4647 14.3868 14.3868 11.4647 14.3868 7.86016C14.3832 4.25711 11.4632 1.33717 7.86016 1.3335ZM7.86016 13.3868C4.80787 13.3868 2.3335 10.9125 2.3335 7.86016C2.3335 4.80787 4.80787 2.3335 7.86016 2.3335C10.9125 2.3335 13.3868 4.80787 13.3868 7.86016C13.3832 10.9109 10.9109 13.3832 7.86016 13.3868Z" fill="#A1A7BB" />
-                        </svg>
-                      </span>
-                      <span className="truncate font-semibold text-[#00C805] max-sm:text-sm">
-                        {balanceFormatted}
-                      </span>
-                    </div>
-                  </Link>
+                  {/* Unified Balance & Deposit Pill */}
+                  <div className="flex items-center bg-black/5 dark:bg-white/5 rounded-xl p-1 mr-4 border border-black/5 dark:border-white/5">
+                    <Link
+                      href="/app/carteira"
+                      className="flex items-center justify-center rounded-lg px-3 py-1.5 transition-colors hover:bg-black/5 dark:hover:bg-white/10"
+                    >
+                      <div className="flex items-center gap-2">
+                        <span className="flex items-center justify-center size-5 rounded-full bg-brand/10 text-brand">
+                          <svg width="12" height="12" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
+                            <path d="M7.86016 5.36016C7.60448 5.38964 7.41152 5.60612 7.41152 5.8635C7.41152 6.12087 7.60448 6.33736 7.86016 6.36683C7.9945 6.36869 8.12379 6.31569 8.21815 6.22007C8.31252 6.12444 8.36381 5.99446 8.36016 5.86016C8.35657 5.58552 8.1348 5.36375 7.86016 5.36016Z" fill="currentColor" />
+                            <path d="M7.86016 7.28016C7.72701 7.27835 7.59877 7.33045 7.50461 7.42461C7.41045 7.51877 7.35835 7.64701 7.36016 7.78016V9.86016C7.36016 10.1363 7.58402 10.3602 7.86016 10.3602C8.1363 10.3602 8.36016 10.1363 8.36016 9.86016V7.7935C8.36376 7.65859 8.31268 7.52796 8.21851 7.43129C8.12435 7.33462 7.99511 7.28011 7.86016 7.28016Z" fill="currentColor" />
+                            <path fillRule="evenodd" clipRule="evenodd" d="M7.86016 1.3335C4.25711 1.33717 1.33717 4.25711 1.3335 7.86016C1.3335 11.4647 4.25558 14.3868 7.86016 14.3868C11.4647 14.3868 14.3868 11.4647 14.3868 7.86016C14.3832 4.25711 11.4632 1.33717 7.86016 1.3335ZM7.86016 13.3868C4.80787 13.3868 2.3335 10.9125 2.3335 7.86016C2.3335 4.80787 4.80787 2.3335 7.86016 2.3335C10.9125 2.3335 13.3868 4.80787 13.3868 7.86016C13.3832 10.9109 10.9109 13.3832 7.86016 13.3868Z" fill="currentColor" />
+                          </svg>
+                        </span>
+                        <span className="font-semibold text-black dark:text-white text-sm">
+                          {balanceFormatted}
+                        </span>
+                      </div>
+                    </Link>
 
-                  {/* Deposit Button */}
-                  <div className="flex items-center gap-5">
                     <button
                       onClick={() => setDepositModalOpen(true)}
-                      className="flex items-center"
+                      className="ml-1 flex items-center justify-center rounded-lg bg-brand px-4 py-1.5 text-[13px] font-semibold text-white transition-colors hover:bg-brand/90 shadow-sm"
                     >
-                      <div className="relative z-10 block rounded-lg bg-brand px-4 py-2.5 text-[13px] font-semibold text-white hover:bg-brand/90 transition-colors">
-                        Depositar
-                      </div>
+                      Depositar
                     </button>
                   </div>
 
@@ -211,11 +207,11 @@ export function UserHeader() {
                   <DropdownMenu>
                     <DropdownMenuTrigger asChild>
                       <div className="relative cursor-pointer z-20 flex items-center gap-x-2 ml-2.5">
-                        <div className="relative flex w-fit items-center justify-center rounded-full bg-gradient-to-r from-[#CDAB6A] via-[#6979CC] to-[#4064F4] p-[1.5px]">
-                          <div className="rounded-full bg-white p-0.5 dark:bg-[#1f2023ec]">
-                            <Avatar className="h-[34px] w-[34px]">
-                              <AvatarFallback className="bg-[#eb9947] text-white font-bold text-sm">
-                                {user?.full_name?.[0]?.toUpperCase() || 'U'}
+                        <div className="relative flex w-fit items-center justify-center rounded-full bg-brand/20 p-[2px] transition-colors hover:bg-brand/40">
+                          <div className="rounded-full bg-white p-0.5 dark:bg-[#12121a]">
+                            <Avatar className="h-[32px] w-[32px]">
+                              <AvatarFallback className="bg-brand/10 text-brand font-bold text-xs uppercase">
+                                {user?.full_name?.[0] || 'U'}
                               </AvatarFallback>
                             </Avatar>
                           </div>
@@ -234,11 +230,11 @@ export function UserHeader() {
                     >
                       {/* Profile Header */}
                       <div className="flex items-center gap-3 px-4 py-4">
-                        <div className="relative flex w-fit items-center justify-center rounded-full bg-gradient-to-r from-[#CDAB6A] via-[#6979CC] to-[#4064F4] p-[1.5px]">
-                          <div className="rounded-full bg-white p-0.5 dark:bg-[#1f2023ec]">
-                            <Avatar className="h-[50px] w-[50px]">
-                              <AvatarFallback className="bg-[#eb9947] text-white font-bold text-lg">
-                                {user?.full_name?.[0]?.toUpperCase() || 'U'}
+                        <div className="relative flex w-fit items-center justify-center rounded-full bg-brand/20 p-[2px]">
+                          <div className="rounded-full bg-white p-0.5 dark:bg-[#12121a]">
+                            <Avatar className="h-[46px] w-[46px]">
+                              <AvatarFallback className="bg-brand/10 text-brand font-bold text-lg uppercase">
+                                {user?.full_name?.[0] || 'U'}
                               </AvatarFallback>
                             </Avatar>
                           </div>

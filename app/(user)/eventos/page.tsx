@@ -21,6 +21,8 @@ import {
 } from 'lucide-react'
 import { toast } from 'sonner'
 
+import { BannerSlider } from '@/components/user/banner-slider'
+
 const CATEGORIES: { value: string; label: string; icon: LucideIcon }[] = [
   { value: 'all', label: 'Todas', icon: Globe },
   { value: 'esportes', label: 'Esportes', icon: Trophy },
@@ -93,7 +95,13 @@ function EventsContent() {
   const categoryInfo = CATEGORIES.find(c => c.value === category)
 
   return (
-    <div className="w-full px-4 md:px-8 lg:px-12 xl:px-16 2xl:px-[120px] py-6">
+    <div className="w-full px-4 md:px-12 lg:px-24 xl:px-[140px] 2xl:px-[256px] py-6">
+
+      {/* Banner Slider - Only show on 'all' category and no search term */}
+      {category === 'all' && !search && (
+        <BannerSlider />
+      )}
+
       {/* Category Section */}
       {isLoading ? (
         <>

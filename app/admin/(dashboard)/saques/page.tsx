@@ -3,14 +3,7 @@
 import { useState, useEffect, useCallback } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
+import { DataTable, ColumnDef } from "@/components/shared/data-table";
 import {
   Select,
   SelectContent,
@@ -45,7 +38,6 @@ import { StatCard } from "@/components/shared/stat-card";
 import { useSearchParams } from "next/navigation";
 import { Suspense } from "react";
 import Loading from "./loading";
-import { Pagination } from "@/components/shared/pagination";
 
 export default function AdminWithdrawalsPage() {
   const [withdrawals, setWithdrawals] = useState<import("@/lib/types").AdminWithdrawal[]>([]);
@@ -54,6 +46,7 @@ export default function AdminWithdrawalsPage() {
   const [statusFilter, setStatusFilter] = useState<string>("pending");
   const [page, setPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
+  const [selectedWithdrawals, setSelectedWithdrawals] = useState<string[]>([]);
   const [stats, setStats] = useState({
     total: 0,
     pending: 0,
@@ -121,12 +114,12 @@ export default function AdminWithdrawalsPage() {
   };
 
   const getStatusBadge = (status: string) => {
-    const variants: Record<string, "default" | "secondary" | "destructive" | "outline"> = {
-      completed: "default",
-      approved: "default",
-      pending: "secondary",
-      rejected: "destructive",
-      processing: "outline",
+    const variants: Record<string, string> = {
+      completed: "bg-emerald-50 text-emerald-600 border-emerald-100 dark:border-emerald-900/30 dark:bg-emerald-900/20",
+      approved: "bg-emerald-50 text-emerald-600 border-emerald-100 dark:border-emerald-900/30 dark:bg-emerald-900/20",
+      pending: "bg-amber-50 text-amber-600 border-amber-100 dark:border-amber-900/30 dark:bg-amber-900/20",
+      rejected: "bg-rose-50 text-rose-600 border-rose-100 dark:border-rose-900/30 dark:bg-rose-900/20",
+      processing: "bg-blue-50 text-blue-600 border-blue-100 dark:border-blue-900/30 dark:bg-blue-900/20",
     };
     const labels: Record<string, string> = {
       completed: "Concluido",
@@ -135,14 +128,86 @@ export default function AdminWithdrawalsPage() {
       rejected: "Rejeitado",
       processing: "Processando",
     };
-    return <Badge variant={variants[status] || "outline"}>{labels[status] || status}</Badge>;
+    return (
+      <span className={`inline-flex items-center rounded-full border px-2.5 py-0.5 text-xs font-medium ${variants[status] || "bg-muted text-muted-foreground border-border"}`}>
+        {labels[status] || status}
+      </span>
+    );
   };
+
+  const columns: ColumnDef<any>[] = [
+    {
+      header: "ID",
+      cell: (withdrawal: any) => (
+        <span className="font-mono text-xs bg-muted px-2 py-1 rounded">
+          {withdrawal.id.slice(0, 8)}...
+        </span>
+      ),
+    },
+    {
+      header: "Usuário",
+      cell: (withdrawal: any) => (
+        <div className="flex flex-col">
+          <span className="font-medium text-sm leading-tight">{withdrawal.user_full_name}</span>
+          <span className="text-xs text-muted-foreground line-clamp-1">{withdrawal.user_email}</span>
+        </div>
+      ),
+    },
+    {
+      header: "Chave PIX",
+      cell: (withdrawal: any) => (
+        <span className="font-mono text-xs bg-muted px-2 py-1 rounded">
+          {withdrawal.pix_key_value ? `${withdrawal.pix_key_value.slice(0, 15)}...` : '-'}
+        </span>
+      ),
+    },
+    {
+      header: "Valor",
+      cell: (withdrawal: any) => (
+        <span className="font-medium text-red-600">
+          -{withdrawal.amount_formatted || formatCurrency(withdrawal.amount)}
+        </span>
+      ),
+    },
+    {
+      header: "Status",
+      cell: (withdrawal: any) => getStatusBadge(withdrawal.status),
+    },
+    {
+      header: "Data",
+      cell: (withdrawal: any) => (
+        <span className="text-sm text-muted-foreground">
+          {withdrawal.created_at ? new Date(withdrawal.created_at).toLocaleDateString("pt-BR") : "-"}
+        </span>
+      ),
+    },
+    {
+      header: "Ações",
+      className: "text-right",
+      cell: (withdrawal: any) => (
+        <Button
+          variant="ghost"
+          size="sm"
+          className="h-8 text-muted-foreground hover:text-foreground"
+          onClick={() => setSelectedWithdrawal(withdrawal)}
+        >
+          <Eye className="mr-2 h-4 w-4" />
+          {withdrawal.status === "pending" ? "Revisar" : "Ver"}
+        </Button>
+      ),
+    },
+  ];
 
   return (
     <Suspense fallback={<Loading />}>
       <div className="space-y-6">
-        <div className="flex items-center justify-between">
-          <h1 className="text-3xl font-bold">Saques</h1>
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+          <div>
+            <h1 className="text-2xl font-bold tracking-tight">Saques</h1>
+            <p className="text-sm text-muted-foreground mt-0.5">
+              Visualize, aprove e gerencie os saques solicitados pelos usuários.
+            </p>
+          </div>
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
@@ -174,116 +239,65 @@ export default function AdminWithdrawalsPage() {
           />
         </div>
 
-        <Card>
-          <CardHeader>
-            <CardTitle>Filtros</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="flex flex-wrap gap-4">
-              <div className="flex-1 min-w-[200px]">
-                <div className="relative">
-                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                  <Input
-                    placeholder="Buscar por usuario ou ID..."
-                    value={search}
-                    onChange={(e) => setSearch(e.target.value)}
-                    className="pl-10"
-                  />
-                </div>
-              </div>
-              <Select value={statusFilter} onValueChange={setStatusFilter}>
-                <SelectTrigger className="w-[150px]">
-                  <SelectValue placeholder="Status" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">Todos</SelectItem>
-                  <SelectItem value="pending">Pendente</SelectItem>
-                  <SelectItem value="approved">Aprovado</SelectItem>
-                  <SelectItem value="completed">Concluido</SelectItem>
-                  <SelectItem value="rejected">Rejeitado</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-          </CardContent>
-        </Card>
+        {/* ── Filters ──────────────────────────────────────── */}
+        <div className="flex flex-col sm:flex-row items-center gap-4">
+          <div className="relative flex-1 w-full sm:max-w-md">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+            <Input
+              placeholder="Buscar por usuário ou ID..."
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              className="pl-9 h-10 w-full rounded-lg border bg-background"
+            />
+          </div>
+          <div className="flex items-center gap-3 w-full sm:w-auto">
+            <Select value={statusFilter} onValueChange={setStatusFilter}>
+              <SelectTrigger className="w-full sm:w-[160px] bg-background">
+                <SelectValue placeholder="Status" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">Todos os Status</SelectItem>
+                <SelectItem value="pending">Pendente</SelectItem>
+                <SelectItem value="approved">Aprovado</SelectItem>
+                <SelectItem value="completed">Concluido</SelectItem>
+                <SelectItem value="rejected">Rejeitado</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+        </div>
 
-        <Card>
-          <CardContent>
-            {loading ? (
-              <div className="flex items-center justify-center py-12">
-                <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
-              </div>
-            ) : (
+        <div className="w-full">
+          <DataTable
+            data={withdrawals}
+            columns={columns}
+            keyExtractor={(withdrawal) => withdrawal.id}
+            selectable={true}
+            selectedIds={selectedWithdrawals}
+            onSelectionChange={setSelectedWithdrawals}
+            isLoading={loading}
+            emptyMessage="Nenhum saque encontrado."
+            pagination={{
+              currentPage: page,
+              totalPages: totalPages,
+              totalItems: stats.total,
+              itemsPerPage: 20,
+              onPageChange: setPage,
+            }}
+            bulkActions={(selectedIds) => (
               <>
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>ID</TableHead>
-                      <TableHead>Usuario</TableHead>
-                      <TableHead>Chave PIX</TableHead>
-                      <TableHead>Valor</TableHead>
-                      <TableHead>Status</TableHead>
-                      <TableHead>Data</TableHead>
-                      <TableHead className="text-right">Acoes</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {withdrawals.length === 0 ? (
-                      <TableRow>
-                        <TableCell colSpan={7} className="text-center py-8 text-muted-foreground">
-                          Nenhum saque encontrado
-                        </TableCell>
-                      </TableRow>
-                    ) : (
-                      withdrawals.map((withdrawal: any) => (
-                        <TableRow key={withdrawal.id}>
-                          <TableCell className="font-mono text-sm">
-                            {withdrawal.id.slice(0, 8)}...
-                          </TableCell>
-                          <TableCell>
-                            <div>
-                              <p className="font-medium">{withdrawal.user_full_name}</p>
-                              <p className="text-sm text-muted-foreground">{withdrawal.user_email}</p>
-                            </div>
-                          </TableCell>
-                          <TableCell className="font-mono text-sm">
-                            {withdrawal.pix_key_value ? `${withdrawal.pix_key_value.slice(0, 15)}...` : '-'}
-                          </TableCell>
-                          <TableCell className="font-medium text-red-600">
-                            -{withdrawal.amount_formatted || formatCurrency(withdrawal.amount)}
-                          </TableCell>
-                          <TableCell>{getStatusBadge(withdrawal.status)}</TableCell>
-                          <TableCell>
-                            {withdrawal.created_at
-                              ? new Date(withdrawal.created_at).toLocaleDateString("pt-BR")
-                              : "-"}
-                          </TableCell>
-                          <TableCell className="text-right">
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              onClick={() => setSelectedWithdrawal(withdrawal)}
-                            >
-                              <Eye className="mr-2 h-4 w-4" />
-                              {withdrawal.status === "pending" ? "Revisar" : "Ver"}
-                            </Button>
-                          </TableCell>
-                        </TableRow>
-                      ))
-                    )}
-                  </TableBody>
-                </Table>
-
-                <Pagination
-                  currentPage={page}
-                  totalPages={totalPages}
-                  onPageChange={setPage}
-                  isLoading={loading}
-                />
+                <Button size="sm" variant="secondary" className="h-8">
+                  Exportar ({selectedIds.length})
+                </Button>
+                <Button size="sm" variant="outline" className="h-8">
+                  Aprovar Selecionados
+                </Button>
+                <Button size="sm" variant="destructive" className="h-8">
+                  Rejeitar Selecionados
+                </Button>
               </>
             )}
-          </CardContent>
-        </Card>
+          />
+        </div>
 
         {/* Review Dialog */}
         <Dialog open={!!selectedWithdrawal} onOpenChange={() => setSelectedWithdrawal(null)}>

@@ -5,14 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
+import { DataTable, ColumnDef } from "@/components/shared/data-table";
 import {
   Select,
   SelectContent,
@@ -68,6 +61,8 @@ export default function AdminMarketsPage() {
   const [statusFilter, setStatusFilter] = useState<string>("all");
   const [page, setPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
+  const [totalItems, setTotalItems] = useState(0);
+  const [selectedMarkets, setSelectedMarkets] = useState<string[]>([]);
   const [showCreateDialog, setShowCreateDialog] = useState(false);
   const [resolveMarket, setResolveMarket] = useState<Market | null>(null);
   const [selectedOption, setSelectedOption] = useState<string>("");
@@ -113,6 +108,7 @@ export default function AdminMarketsPage() {
 
       setMarkets(filteredMarkets);
       setTotalPages(1);
+      setTotalItems(filteredMarkets.length);
     } catch (error) {
       console.error("Error loading markets:", error);
     } finally {
@@ -181,11 +177,11 @@ export default function AdminMarketsPage() {
   };
 
   const getStatusBadge = (status: string) => {
-    const variants: Record<string, "default" | "secondary" | "destructive" | "outline"> = {
-      open: "default",
-      closed: "secondary",
-      resolved: "outline",
-      cancelled: "destructive",
+    const variants: Record<string, string> = {
+      open: "bg-emerald-50 text-emerald-600 border-emerald-100 dark:border-emerald-900/30 dark:bg-emerald-900/20",
+      closed: "bg-amber-50 text-amber-600 border-amber-100 dark:border-amber-900/30 dark:bg-amber-900/20",
+      resolved: "bg-blue-50 text-blue-600 border-blue-100 dark:border-blue-900/30 dark:bg-blue-900/20",
+      cancelled: "bg-rose-50 text-rose-600 border-rose-100 dark:border-rose-900/30 dark:bg-rose-900/20",
     };
     const labels: Record<string, string> = {
       open: "Aberto",
@@ -193,155 +189,151 @@ export default function AdminMarketsPage() {
       resolved: "Resolvido",
       cancelled: "Cancelado",
     };
-    return <Badge variant={variants[status] || "outline"}>{labels[status] || status}</Badge>;
+    return (
+      <span className={`inline-flex items-center rounded-full border px-2.5 py-0.5 text-xs font-medium ${variants[status] || "bg-muted text-muted-foreground border-border"}`}>
+        {labels[status] || status}
+      </span>
+    );
   };
+
+  const columns: ColumnDef<Market>[] = [
+    {
+      header: "Mercado",
+      cell: (market: any) => (
+        <div>
+          <p className="font-medium text-sm max-w-[300px] sm:max-w-md line-clamp-2">{market.statement}</p>
+        </div>
+      ),
+    },
+    {
+      header: "Evento",
+      cell: (market: any) => (
+        <span className="inline-flex items-center rounded-md border px-2 py-0.5 text-xs font-medium text-muted-foreground border-border bg-transparent max-w-[200px] truncate">
+          {market.event?.title || "-"}
+        </span>
+      ),
+    },
+    {
+      header: "Status",
+      cell: (market: any) => getStatusBadge(market.status),
+    },
+    {
+      header: "Volume",
+      cell: (market: any) => <span className="text-sm font-medium">{formatCurrency(market.liquidityB || 0)}</span>,
+    },
+    {
+      header: "Encerramento",
+      cell: (market: any) => (
+        <span className="text-sm text-muted-foreground">
+          {market.closesAt ? new Date(market.closesAt).toLocaleDateString("pt-BR") : "-"}
+        </span>
+      ),
+    },
+    {
+      header: "Ações",
+      className: "text-right",
+      cell: (market: any) => (
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground hover:text-foreground">
+              <MoreHorizontal className="h-4 w-4" />
+            </Button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="end">
+            <DropdownMenuItem asChild>
+              <Link href={`/admin/mercados/${market.id}`}>
+                <Eye className="mr-2 h-4 w-4" />
+                Ver detalhes
+              </Link>
+            </DropdownMenuItem>
+            {market.status === "closed" && (
+              <DropdownMenuItem onClick={() => setResolveMarket(market)}>
+                <CheckCircle className="mr-2 h-4 w-4 text-emerald-500" />
+                Resolver
+              </DropdownMenuItem>
+            )}
+            <DropdownMenuItem className="text-destructive focus:text-destructive focus:bg-destructive/10">
+              <XCircle className="mr-2 h-4 w-4" />
+              Cancelar
+            </DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
+      ),
+    },
+  ];
 
   return (
     <Suspense fallback={<Loading />}>
       <div className="space-y-6">
-        <div className="flex items-center justify-between">
-          <h1 className="text-3xl font-bold">Mercados</h1>
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+          <div>
+            <h1 className="text-2xl font-bold tracking-tight">Mercados</h1>
+            <p className="text-sm text-muted-foreground mt-0.5">
+              Gerencie os mercados de previsão, acompanhe volumes e resolva resultados.
+            </p>
+          </div>
           <Button onClick={() => setShowCreateDialog(true)}>
             <Plus className="mr-2 h-4 w-4" />
             Novo Mercado
           </Button>
         </div>
 
-        <Card>
-          <CardHeader>
-            <CardTitle>Filtros</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="flex flex-wrap gap-4">
-              <div className="flex-1 min-w-[200px]">
-                <div className="relative">
-                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                  <Input
-                    placeholder="Buscar mercados..."
-                    value={search}
-                    onChange={(e) => setSearch(e.target.value)}
-                    className="pl-10"
-                  />
-                </div>
-              </div>
-              <Select value={statusFilter} onValueChange={setStatusFilter}>
-                <SelectTrigger className="w-[150px]">
-                  <SelectValue placeholder="Status" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">Todos</SelectItem>
-                  <SelectItem value="open">Aberto</SelectItem>
-                  <SelectItem value="closed">Fechado</SelectItem>
-                  <SelectItem value="resolved">Resolvido</SelectItem>
-                  <SelectItem value="cancelled">Cancelado</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-          </CardContent>
-        </Card>
+        {/* ── Filters ──────────────────────────────────────── */}
+        <div className="flex flex-col sm:flex-row items-center gap-4">
+          <div className="relative flex-1 w-full sm:max-w-md">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+            <Input
+              placeholder="Buscar mercados..."
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              className="pl-9 h-10 w-full rounded-lg border bg-background"
+            />
+          </div>
+          <div className="flex items-center gap-3 w-full sm:w-auto">
+            <Select value={statusFilter} onValueChange={setStatusFilter}>
+              <SelectTrigger className="w-full sm:w-[160px] bg-background">
+                <SelectValue placeholder="Status" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">Todos os Status</SelectItem>
+                <SelectItem value="open">Aberto</SelectItem>
+                <SelectItem value="closed">Fechado</SelectItem>
+                <SelectItem value="resolved">Resolvido</SelectItem>
+                <SelectItem value="cancelled">Cancelado</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+        </div>
 
-        <Card>
-          <CardContent className="p-0">
-            {loading ? (
-              <div className="flex items-center justify-center py-12">
-                <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
-              </div>
-            ) : (
+        <div className="w-full">
+          <DataTable
+            data={markets}
+            columns={columns}
+            keyExtractor={(market) => market.id}
+            selectable={true}
+            selectedIds={selectedMarkets}
+            onSelectionChange={setSelectedMarkets}
+            isLoading={loading}
+            emptyMessage="Nenhum mercado encontrado."
+            pagination={{
+              currentPage: page,
+              totalPages: totalPages,
+              totalItems: totalItems,
+              itemsPerPage: 20, /* the api limits at 100 for events, so it might return all markets, adjusting for visual only since it's client side filtered here but keeping consistency */
+              onPageChange: setPage,
+            }}
+            bulkActions={(selectedIds) => (
               <>
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>Mercado</TableHead>
-                      <TableHead>Evento</TableHead>
-                      <TableHead>Status</TableHead>
-                      <TableHead>Volume</TableHead>
-                      <TableHead>Encerramento</TableHead>
-                      <TableHead className="text-right">Acoes</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {markets.length === 0 ? (
-                      <TableRow>
-                        <TableCell colSpan={6} className="text-center py-8 text-muted-foreground">
-                          Nenhum mercado encontrado
-                        </TableCell>
-                      </TableRow>
-                    ) : (
-                      markets.map((market) => (
-                        <TableRow key={market.id}>
-                          <TableCell>
-                            <div>
-                              <p className="font-medium">{market.statement}</p>
-                            </div>
-                          </TableCell>
-                          <TableCell>
-                            <Badge variant="outline">{market.event?.title || "-"}</Badge>
-                          </TableCell>
-                          <TableCell>{getStatusBadge(market.status)}</TableCell>
-                          <TableCell>{formatCurrency(market.liquidityB || 0)}</TableCell>
-                          <TableCell>
-                            {market.closesAt
-                              ? new Date(market.closesAt).toLocaleDateString("pt-BR")
-                              : "-"}
-                          </TableCell>
-                          <TableCell className="text-right">
-                            <DropdownMenu>
-                              <DropdownMenuTrigger asChild>
-                                <Button variant="ghost" size="icon">
-                                  <MoreHorizontal className="h-4 w-4" />
-                                </Button>
-                              </DropdownMenuTrigger>
-                              <DropdownMenuContent align="end">
-                                <DropdownMenuItem asChild>
-                                  <Link href={`/admin/mercados/${market.id}`}>
-                                    <Eye className="mr-2 h-4 w-4" />
-                                    Ver detalhes
-                                  </Link>
-                                </DropdownMenuItem>
-                                {market.status === "closed" && (
-                                  <DropdownMenuItem onClick={() => setResolveMarket(market)}>
-                                    <CheckCircle className="mr-2 h-4 w-4" />
-                                    Resolver
-                                  </DropdownMenuItem>
-                                )}
-                              </DropdownMenuContent>
-                            </DropdownMenu>
-                          </TableCell>
-                        </TableRow>
-                      ))
-                    )}
-                  </TableBody>
-                </Table>
-
-                {totalPages > 1 && (
-                  <div className="flex items-center justify-between px-4 py-4 border-t">
-                    <p className="text-sm text-muted-foreground">
-                      Pagina {page} de {totalPages}
-                    </p>
-                    <div className="flex gap-2">
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => setPage((p) => Math.max(1, p - 1))}
-                        disabled={page === 1}
-                      >
-                        <ChevronLeft className="h-4 w-4" />
-                      </Button>
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
-                        disabled={page === totalPages}
-                      >
-                        <ChevronRight className="h-4 w-4" />
-                      </Button>
-                    </div>
-                  </div>
-                )}
+                <Button size="sm" variant="secondary" className="h-8">
+                  Exportar ({selectedIds.length})
+                </Button>
+                <Button size="sm" variant="destructive" className="h-8">
+                  Cancelar Selecionados
+                </Button>
               </>
             )}
-          </CardContent>
-        </Card>
+          />
+        </div>
 
         {/* Create Dialog */}
         <Dialog open={showCreateDialog} onOpenChange={setShowCreateDialog}>

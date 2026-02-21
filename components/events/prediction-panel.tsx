@@ -95,7 +95,6 @@ export function PredictionPanel({ market, side, onSuccess }: PredictionPanelProp
         try {
             const response = await userApi.openPosition(market.id, side, amountCents)
             const shares = response.position.shares
-            toast.success(`Posição aberta! Você recebeu ${shares} shares.`)
             onSuccess?.({
                 ...market,
                 qYes: response.market.qYes,

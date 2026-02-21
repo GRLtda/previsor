@@ -24,45 +24,41 @@ export function StatCard({
   variant = 'default',
   className,
 }: StatCardProps) {
-  const variantStyles = {
-    default: '',
-    success: 'border-green-500/20 bg-green-50/50 dark:bg-green-900/10',
-    warning: 'border-yellow-500/20 bg-yellow-50/50 dark:bg-yellow-900/10',
-    destructive: 'border-red-500/20 bg-red-50/50 dark:bg-red-900/10',
+  const iconContainerStyles = {
+    default: 'bg-blue-50 dark:bg-blue-900/20',
+    success: 'bg-emerald-50 dark:bg-emerald-900/20',
+    warning: 'bg-amber-50 dark:bg-amber-900/20',
+    destructive: 'bg-rose-50 dark:bg-rose-900/20',
   }
 
   const iconStyles = {
-    default: 'text-muted-foreground',
-    success: 'text-green-600 dark:text-green-400',
-    warning: 'text-yellow-600 dark:text-yellow-400',
-    destructive: 'text-red-600 dark:text-red-400',
+    default: 'text-blue-500',
+    success: 'text-emerald-500 dark:text-emerald-400',
+    warning: 'text-amber-500 dark:text-amber-400',
+    destructive: 'text-rose-500 dark:text-rose-400',
   }
 
   return (
-    <Card className={cn(variantStyles[variant], className)}>
-      <CardContent className="p-6">
-        <div className="flex items-center justify-between">
-          <p className="text-sm font-medium text-muted-foreground">{title}</p>
-          {Icon && <Icon className={cn("h-5 w-5", iconStyles[variant])} />}
-        </div>
-        <div className="mt-2">
-          <p className="text-2xl font-bold">{value}</p>
-          {description && (
-            <p className="text-xs text-muted-foreground mt-1">{description}</p>
-          )}
-          {trend && (
-            <p
-              className={cn(
-                'text-xs mt-1',
-                trend.value >= 0 ? 'text-green-600' : 'text-red-600'
-              )}
-            >
-              {trend.value >= 0 ? '+' : ''}
-              {trend.value}% {trend.label}
-            </p>
-          )}
-        </div>
-      </CardContent>
-    </Card>
+    <div className={cn("rounded-xl border bg-card p-4", className)}>
+      <div className="flex items-center justify-between mb-3">
+        <p className="text-sm font-medium text-muted-foreground">{title}</p>
+        {Icon && (
+          <div className={cn("flex h-8 w-8 items-center justify-center rounded-full", iconContainerStyles[variant])}>
+            <Icon className={cn("h-4 w-4", iconStyles[variant])} />
+          </div>
+        )}
+      </div>
+      <div className="flex items-baseline gap-2">
+        <p className="text-2xl font-bold tracking-tight">{value}</p>
+        {trend && (
+          <span className={cn("text-xs font-medium", trend.value >= 0 ? "text-emerald-600" : "text-rose-600")}>
+            {trend.value >= 0 ? '+' : ''}{trend.value}% {trend.label}
+          </span>
+        )}
+      </div>
+      {description && (
+        <p className="mt-0.5 text-xs text-muted-foreground">{description}</p>
+      )}
+    </div>
   )
 }

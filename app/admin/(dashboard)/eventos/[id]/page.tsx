@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
@@ -18,9 +18,17 @@ import {
     DialogTitle,
     DialogTrigger,
 } from "@/components/ui/dialog";
+import {
+    Select,
+    SelectContent,
+    SelectItem,
+    SelectTrigger,
+    SelectValue,
+} from "@/components/ui/select";
 import { toast } from "sonner";
-import { ArrowLeft, Edit, Plus, Trash, Loader2, Check, Trophy } from "lucide-react";
+import { ArrowLeft, Edit, Plus, Trash, Loader2, Check, Trophy, Upload, ImageIcon } from "lucide-react";
 import { adminApi, userApi } from "@/lib/api/client";
+import { ApiClientError } from "@/lib/api/client";
 import type { Event } from "@/lib/types";
 import { PlaceholderIcon } from "@/components/ui/placeholder-icon";
 
@@ -29,6 +37,7 @@ export default function AdminEventDetailsPage() {
     const router = useRouter();
 
     const [event, setEvent] = useState<Event | null>(null);
+    const [categories, setCategories] = useState<import("@/lib/types").Category[]>([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
     const [actionLoading, setActionLoading] = useState(false);
@@ -39,8 +48,26 @@ export default function AdminEventDetailsPage() {
         opensAt: "",
         closesAt: "",
         resolvesAt: "",
+        resolveRules: "",
+        imageUrl: "",
         feeBps: 200,
     });
+
+    const [editMarketOpen, setEditMarketOpen] = useState(false);
+    const [editMarketData, setEditMarketData] = useState({
+        id: "",
+        statement: "",
+        opensAt: "",
+        closesAt: "",
+        resolvesAt: "",
+        resolveRules: "",
+        imageUrl: "",
+        feeBps: 200,
+    });
+    const [isUploadingMarketImage, setIsUploadingMarketImage] = useState(false);
+    const [isUploadingEditMarketImage, setIsUploadingEditMarketImage] = useState(false);
+    const marketImageInputRef = useRef<HTMLInputElement>(null);
+    const editMarketImageInputRef = useRef<HTMLInputElement>(null);
 
     const [editEventOpen, setEditEventOpen] = useState(false);
     const [editEventData, setEditEventData] = useState({
@@ -60,8 +87,14 @@ export default function AdminEventDetailsPage() {
         setLoading(true);
         setError(null);
         try {
-            const response = await adminApi.getEvent(id);
+            const [response, catResponse] = await Promise.all([
+                adminApi.getEvent(id),
+                userApi.getCategories()
+            ]);
             setEvent((response as any)?.data?.event || (response as any)?.data || response);
+            if (catResponse.success && catResponse.data) {
+                setCategories(catResponse.data.categories || []);
+            }
         } catch (err: any) {
             console.error("Error loading event details:", err);
             setError("Não foi possível carregar os detalhes do evento.");
@@ -107,14 +140,78 @@ export default function AdminEventDetailsPage() {
                 opensAt: new Date(newMarket.opensAt).toISOString(),
                 closesAt: new Date(newMarket.closesAt).toISOString(),
                 resolvesAt: new Date(newMarket.resolvesAt).toISOString(),
+                resolveRules: newMarket.resolveRules,
+                imageUrl: newMarket.imageUrl || undefined,
                 feeBps: Number(newMarket.feeBps),
             });
             toast.success("Mercado criado com sucesso!");
             setCreateMarketOpen(false);
-            setNewMarket({ statement: "", opensAt: "", closesAt: "", resolvesAt: "", feeBps: 200 });
+            setNewMarket({ statement: "", opensAt: "", closesAt: "", resolvesAt: "", resolveRules: "", imageUrl: "", feeBps: 200 });
             loadEvent();
         } catch (err: any) {
             toast.error(err.message || "Erro ao criar mercado.");
+        } finally {
+            setActionLoading(false);
+        }
+    };
+
+    const handleMarketImageUpload = async (e: React.ChangeEvent<HTMLInputElement>, target: 'create' | 'edit') => {
+        const file = e.target.files?.[0];
+        if (!file) return;
+        const setUploading = target === 'create' ? setIsUploadingMarketImage : setIsUploadingEditMarketImage;
+        setUploading(true);
+        try {
+            const formDataUpload = new FormData();
+            formDataUpload.append("file", file, file.name);
+            const response = await adminApi.uploadEventImage(formDataUpload);
+            const url = response.data.imageUrl;
+            if (target === 'create') {
+                setNewMarket(prev => ({ ...prev, imageUrl: url }));
+            } else {
+                setEditMarketData(prev => ({ ...prev, imageUrl: url }));
+            }
+            toast.success("Imagem enviada com sucesso!");
+        } catch (err: any) {
+            toast.error(err.message || "Erro ao fazer upload da imagem");
+        } finally {
+            setUploading(false);
+            if (target === 'create' && marketImageInputRef.current) marketImageInputRef.current.value = "";
+            if (target === 'edit' && editMarketImageInputRef.current) editMarketImageInputRef.current.value = "";
+        }
+    };
+
+    const openEditMarket = (market: any) => {
+        setEditMarketData({
+            id: market.id,
+            statement: market.statement || "",
+            opensAt: market.opensAt ? new Date(market.opensAt).toISOString().slice(0, 16) : "",
+            closesAt: market.closesAt ? new Date(market.closesAt).toISOString().slice(0, 16) : "",
+            resolvesAt: market.resolvesAt ? new Date(market.resolvesAt).toISOString().slice(0, 16) : "",
+            resolveRules: market.resolveRules || "",
+            imageUrl: market.imageUrl || "",
+            feeBps: market.feeBps ?? 200,
+        });
+        setEditMarketOpen(true);
+    };
+
+    const handleEditMarket = async (e: React.FormEvent) => {
+        e.preventDefault();
+        setActionLoading(true);
+        try {
+            await adminApi.updateMarket(editMarketData.id, {
+                statement: editMarketData.statement,
+                imageUrl: editMarketData.imageUrl || null,
+                resolveRules: editMarketData.resolveRules || null,
+                opensAt: editMarketData.opensAt ? new Date(editMarketData.opensAt).toISOString() : undefined,
+                closesAt: editMarketData.closesAt ? new Date(editMarketData.closesAt).toISOString() : undefined,
+                resolvesAt: editMarketData.resolvesAt ? new Date(editMarketData.resolvesAt).toISOString() : undefined,
+                feeBps: Number(editMarketData.feeBps),
+            });
+            toast.success("Mercado atualizado com sucesso!");
+            setEditMarketOpen(false);
+            loadEvent();
+        } catch (err: any) {
+            toast.error(err.message || "Erro ao atualizar mercado.");
         } finally {
             setActionLoading(false);
         }
@@ -330,6 +427,34 @@ export default function AdminEventDetailsPage() {
                                                 <Input id="feeBps" type="number" required value={newMarket.feeBps} onChange={e => setNewMarket({ ...newMarket, feeBps: Number(e.target.value) })} />
                                                 <p className="text-xs text-muted-foreground">200 bps = 2%</p>
                                             </div>
+                                            <div className="space-y-2">
+                                                <Label htmlFor="resolveRules">Regras e Detalhes de Resolução</Label>
+                                                <Textarea id="resolveRules" rows={2} value={newMarket.resolveRules} onChange={e => setNewMarket({ ...newMarket, resolveRules: e.target.value })} placeholder="Descreva como o mercado será decidido (fontes, critérios, etc) caso seja diferente do evento principal." />
+                                            </div>
+                                            <div className="space-y-2">
+                                                <Label>Imagem do Mercado</Label>
+                                                <div className="flex items-center gap-4">
+                                                    {newMarket.imageUrl ? (
+                                                        <div className="relative size-16 rounded-lg border overflow-hidden">
+                                                            <img src={newMarket.imageUrl} alt="" className="size-full object-cover" />
+                                                            <button type="button" onClick={() => setNewMarket(prev => ({ ...prev, imageUrl: "" }))} className="absolute top-0 right-0 bg-red-500 text-white rounded-bl p-0.5">
+                                                                <Trash className="h-3 w-3" />
+                                                            </button>
+                                                        </div>
+                                                    ) : (
+                                                        <div className="size-16 rounded-lg border-2 border-dashed flex items-center justify-center text-muted-foreground">
+                                                            <ImageIcon className="h-6 w-6" />
+                                                        </div>
+                                                    )}
+                                                    <div>
+                                                        <input ref={marketImageInputRef} type="file" accept="image/*" className="hidden" onChange={(e) => handleMarketImageUpload(e, 'create')} />
+                                                        <Button type="button" variant="outline" size="sm" disabled={isUploadingMarketImage} onClick={() => marketImageInputRef.current?.click()}>
+                                                            {isUploadingMarketImage ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <Upload className="h-4 w-4 mr-2" />}
+                                                            {isUploadingMarketImage ? "Enviando..." : "Upload"}
+                                                        </Button>
+                                                    </div>
+                                                </div>
+                                            </div>
                                         </div>
                                         <DialogFooter>
                                             <Button type="button" variant="outline" onClick={() => setCreateMarketOpen(false)}>Cancelar</Button>
@@ -367,13 +492,82 @@ export default function AdminEventDetailsPage() {
                                                         <span className="text-xs text-muted-foreground block">Liquidez</span>
                                                         <span className="font-medium">R$ {((market.liquidityB ?? 0) / 100).toFixed(2)}</span>
                                                     </div>
-                                                    <Button variant="ghost" size="icon" className="shrink-0">
+                                                    <Button variant="ghost" size="icon" className="shrink-0" onClick={(e) => { e.preventDefault(); e.stopPropagation(); openEditMarket(market); }}>
                                                         <Edit className="h-4 w-4" />
                                                     </Button>
                                                 </div>
                                             </div>
                                         </Link>
                                     ))}
+
+                                    {/* Edit Market Dialog */}
+                                    <Dialog open={editMarketOpen} onOpenChange={setEditMarketOpen}>
+                                        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+                                            <form onSubmit={handleEditMarket}>
+                                                <DialogHeader>
+                                                    <DialogTitle>Editar Mercado</DialogTitle>
+                                                    <DialogDescription>Altere as informações deste mercado.</DialogDescription>
+                                                </DialogHeader>
+                                                <div className="space-y-4 py-4">
+                                                    <div className="space-y-2">
+                                                        <Label>Afirmação (Statement)</Label>
+                                                        <Input required value={editMarketData.statement} onChange={e => setEditMarketData({ ...editMarketData, statement: e.target.value })} />
+                                                    </div>
+                                                    <div className="space-y-2">
+                                                        <Label>Data de Abertura</Label>
+                                                        <Input type="datetime-local" value={editMarketData.opensAt} onChange={e => setEditMarketData({ ...editMarketData, opensAt: e.target.value })} />
+                                                    </div>
+                                                    <div className="grid grid-cols-2 gap-4">
+                                                        <div className="space-y-2">
+                                                            <Label>Data de Fechamento</Label>
+                                                            <Input type="datetime-local" value={editMarketData.closesAt} onChange={e => setEditMarketData({ ...editMarketData, closesAt: e.target.value })} />
+                                                        </div>
+                                                        <div className="space-y-2">
+                                                            <Label>Data de Resolução</Label>
+                                                            <Input type="datetime-local" value={editMarketData.resolvesAt} onChange={e => setEditMarketData({ ...editMarketData, resolvesAt: e.target.value })} />
+                                                        </div>
+                                                    </div>
+                                                    <div className="space-y-2">
+                                                        <Label>Taxa Base (bps)</Label>
+                                                        <Input type="number" value={editMarketData.feeBps} onChange={e => setEditMarketData({ ...editMarketData, feeBps: Number(e.target.value) })} />
+                                                        <p className="text-xs text-muted-foreground">200 bps = 2%</p>
+                                                    </div>
+                                                    <div className="space-y-2">
+                                                        <Label>Regras de Resolução</Label>
+                                                        <Textarea rows={2} value={editMarketData.resolveRules} onChange={e => setEditMarketData({ ...editMarketData, resolveRules: e.target.value })} />
+                                                    </div>
+                                                    <div className="space-y-2">
+                                                        <Label>Imagem do Mercado</Label>
+                                                        <div className="flex items-center gap-4">
+                                                            {editMarketData.imageUrl ? (
+                                                                <div className="relative size-16 rounded-lg border overflow-hidden">
+                                                                    <img src={editMarketData.imageUrl} alt="" className="size-full object-cover" />
+                                                                    <button type="button" onClick={() => setEditMarketData(prev => ({ ...prev, imageUrl: "" }))} className="absolute top-0 right-0 bg-red-500 text-white rounded-bl p-0.5">
+                                                                        <Trash className="h-3 w-3" />
+                                                                    </button>
+                                                                </div>
+                                                            ) : (
+                                                                <div className="size-16 rounded-lg border-2 border-dashed flex items-center justify-center text-muted-foreground">
+                                                                    <ImageIcon className="h-6 w-6" />
+                                                                </div>
+                                                            )}
+                                                            <div>
+                                                                <input ref={editMarketImageInputRef} type="file" accept="image/*" className="hidden" onChange={(e) => handleMarketImageUpload(e, 'edit')} />
+                                                                <Button type="button" variant="outline" size="sm" disabled={isUploadingEditMarketImage} onClick={() => editMarketImageInputRef.current?.click()}>
+                                                                    {isUploadingEditMarketImage ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <Upload className="h-4 w-4 mr-2" />}
+                                                                    {isUploadingEditMarketImage ? "Enviando..." : "Upload"}
+                                                                </Button>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                                <DialogFooter>
+                                                    <Button type="button" variant="outline" onClick={() => setEditMarketOpen(false)}>Cancelar</Button>
+                                                    <Button type="submit" disabled={actionLoading}>Salvar Alterações</Button>
+                                                </DialogFooter>
+                                            </form>
+                                        </DialogContent>
+                                    </Dialog>
                                 </div>
                             ) : (
                                 <div className="flex flex-col items-center justify-center py-8 text-center border-2 border-dashed rounded-lg bg-muted/20">
@@ -419,7 +613,19 @@ export default function AdminEventDetailsPage() {
                                             <div className="grid grid-cols-2 gap-4">
                                                 <div className="space-y-2">
                                                     <Label htmlFor="category">Categoria</Label>
-                                                    <Input id="category" required value={editEventData.category} onChange={e => setEditEventData({ ...editEventData, category: e.target.value })} />
+                                                    <Select
+                                                        value={editEventData.category}
+                                                        onValueChange={value => setEditEventData({ ...editEventData, category: value })}
+                                                    >
+                                                        <SelectTrigger id="category">
+                                                            <SelectValue placeholder="Selecione" />
+                                                        </SelectTrigger>
+                                                        <SelectContent>
+                                                            {categories.map((cat) => (
+                                                                <SelectItem key={cat.id} value={cat.slug}>{cat.name}</SelectItem>
+                                                            ))}
+                                                        </SelectContent>
+                                                    </Select>
                                                 </div>
                                                 <div className="space-y-2">
                                                     <Label htmlFor="imageUrl">URL da Imagem</Label>

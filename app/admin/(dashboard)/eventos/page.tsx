@@ -56,6 +56,7 @@ import { DataTable, ColumnDef } from "@/components/shared/data-table";
 
 export default function AdminEventsPage() {
   const [events, setEvents] = useState<Event[]>([]);
+  const [categories, setCategories] = useState<import("@/lib/types").Category[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>("all");
@@ -76,6 +77,7 @@ export default function AdminEventsPage() {
     imageUrl: "",
     startDate: "",
     endDate: "",
+    resolveRules: "",
   });
 
   const searchParams = useSearchParams();
@@ -95,6 +97,11 @@ export default function AdminEventsPage() {
       setEvents(response.events || []);
       setTotalPages(Math.ceil((response.totalCount || 0) / 20));
       setTotalItems(response.totalCount || 0);
+
+      const catResponse = await userApi.getCategories();
+      if (catResponse.success && catResponse.data) {
+        setCategories(catResponse.data.categories || []);
+      }
     } catch (error) {
       console.error("Error loading events:", error);
     } finally {
@@ -116,7 +123,7 @@ export default function AdminEventsPage() {
         category: formData.category,
         startsAt: formData.startDate,
         endsAt: formData.endDate,
-        resolveRules: '',
+        resolveRules: formData.resolveRules,
         sourceUrls: [],
       });
       loadEvents();
@@ -140,6 +147,7 @@ export default function AdminEventsPage() {
         imageUrl: formData.imageUrl || undefined,
         startsAt: formData.startDate || undefined,
         endsAt: formData.endDate || undefined,
+        resolveRules: formData.resolveRules,
       });
       loadEvents();
       setEditEvent(null);
@@ -173,6 +181,7 @@ export default function AdminEventsPage() {
       imageUrl: event.imageUrl || "",
       startDate: event.startsAt?.split("T")[0] || "",
       endDate: event.endsAt?.split("T")[0] || "",
+      resolveRules: event.resolveRules || "",
     });
     setEditEvent(event);
   };
@@ -185,6 +194,7 @@ export default function AdminEventsPage() {
       imageUrl: "",
       startDate: "",
       endDate: "",
+      resolveRules: "",
     });
   };
 
@@ -499,12 +509,9 @@ export default function AdminEventsPage() {
                       <SelectValue placeholder="Selecione" />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="politics">Politica</SelectItem>
-                      <SelectItem value="sports">Esportes</SelectItem>
-                      <SelectItem value="economy">Economia</SelectItem>
-                      <SelectItem value="entertainment">Entretenimento</SelectItem>
-                      <SelectItem value="technology">Tecnologia</SelectItem>
-                      <SelectItem value="other">Outros</SelectItem>
+                      {categories.map((cat) => (
+                        <SelectItem key={cat.id} value={cat.slug}>{cat.name}</SelectItem>
+                      ))}
                     </SelectContent>
                   </Select>
                 </div>
@@ -577,6 +584,17 @@ export default function AdminEventsPage() {
                     onChange={(e) => setFormData({ ...formData, endDate: e.target.value })}
                   />
                 </div>
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="resolveRules">Regras e Detalhes de Resolução</Label>
+                <Textarea
+                  id="resolveRules"
+                  value={formData.resolveRules}
+                  onChange={(e) => setFormData({ ...formData, resolveRules: e.target.value })}
+                  placeholder="Descreva as regras para a resolução de todos os mercados deste evento..."
+                  rows={2}
+                />
               </div>
             </div>
 

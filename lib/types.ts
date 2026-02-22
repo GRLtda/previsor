@@ -86,6 +86,8 @@ export interface Market {
   opensAt?: string
   closesAt: string
   resolvesAt?: string
+  resolveRules?: string
+  imageUrl?: string | null
   feeBps?: number
   qYes: number
   qNo: number
@@ -101,6 +103,21 @@ export interface Market {
     title: string
     category: string
   }
+}
+
+export interface ActivityItem {
+  id: string
+  user: {
+    firstName: string
+    avatarUrl: string | null
+  }
+  side: 'YES' | 'NO'
+  shares: number
+  avgPrice: number
+  amount: number
+  marketStatement: string
+  marketImageUrl: string | null
+  createdAt: string
 }
 
 export interface Position {
@@ -376,6 +393,30 @@ export interface FinancialEvent {
   metadata?: Record<string, unknown>
   request_id?: string
   created_at: string
+}
+
+export interface MarketHistory {
+  timestamp: string
+  probYes: number
+  probNo: number
+}
+
+export interface Category {
+  id: string
+  slug: string
+  name: string
+  icon: string
+  displayOrder: number
+  isActive: boolean
+}
+
+export interface Banner {
+  id: string
+  title: string | null
+  imageUrl: string
+  linkUrl: string | null
+  displayOrder: number
+  isActive: boolean
 }
 
 // Pagination

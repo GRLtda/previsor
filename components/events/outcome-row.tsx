@@ -28,9 +28,13 @@ export function OutcomeRow({ market, onYesClick, onNoClick }: OutcomeRowProps) {
                 <div className="flex w-4/12 items-center gap-1.5 lg:w-[37%]">
                     {/* Icon Circle */}
                     <div className="flex max-h-5 min-h-5 min-w-5 max-w-5 items-center justify-center overflow-hidden rounded-full bg-muted">
-                        <span className="text-[10px] font-bold">
-                            {market.statement.charAt(0).toUpperCase()}
-                        </span>
+                        {market.imageUrl ? (
+                            <img src={market.imageUrl} alt="" className="size-full object-cover" />
+                        ) : (
+                            <span className="text-[10px] font-bold">
+                                {market.statement.charAt(0).toUpperCase()}
+                            </span>
+                        )}
                     </div>
                     {/* Name */}
                     <h3 className="truncate whitespace-nowrap text-[13px] font-medium dark:text-white">

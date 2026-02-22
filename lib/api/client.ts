@@ -413,6 +413,13 @@ export const userApi = {
       `/v1/markets/${id}`
     ),
 
+  getEventActivity: (eventId: string, params?: { limit?: number; offset?: number }) =>
+    baseFetch<{ success: true; data: { activity: import('@/lib/types').ActivityItem[]; total: number; limit: number; offset: number } }>(
+      'user',
+      `/v1/events/${eventId}/activity`,
+      { params }
+    ),
+
   getQuote: (marketId: string, side: 'YES' | 'NO', amount: number) =>
     baseFetch<{
       success: true
@@ -554,6 +561,19 @@ export const userApi = {
       'user',
       '/v1/me/favorites',
       { params }
+    ),
+
+  // Configs (Categories & Banners)
+  getCategories: () =>
+    baseFetch<{ success: true; data: { categories: import('@/lib/types').Category[] } }>(
+      'user',
+      '/v1/public/categories'
+    ),
+
+  getBanners: () =>
+    baseFetch<{ success: true; data: { banners: import('@/lib/types').Banner[] } }>(
+      'user',
+      '/v1/public/banners'
     ),
 }
 
@@ -798,6 +818,62 @@ export const adminApi = {
       { method: 'POST' }
     ),
 
+  // Categories
+  getCategories: () =>
+    baseFetch<{ success: true; categories: import('@/lib/types').Category[] }>(
+      'admin',
+      '/categories'
+    ),
+  createCategory: (data: { slug: string; name: string; icon: string; displayOrder: number; isActive: boolean }) =>
+    baseFetch<{ success: true; category: import('@/lib/types').Category }>(
+      'admin',
+      '/categories',
+      { method: 'POST', body: data }
+    ),
+  updateCategory: (id: string, data: Partial<{ slug: string; name: string; icon: string; displayOrder: number; isActive: boolean }>) =>
+    baseFetch<{ success: true; category: import('@/lib/types').Category }>(
+      'admin',
+      `/categories/${id}`,
+      { method: 'PUT', body: data }
+    ),
+  deleteCategory: (id: string) =>
+    baseFetch<{ success: true }>(
+      'admin',
+      `/categories/${id}`,
+      { method: 'DELETE' }
+    ),
+
+  // Banners
+  getBanners: () =>
+    baseFetch<{ success: true; banners: import('@/lib/types').Banner[] }>(
+      'admin',
+      '/banners'
+    ),
+  createBanner: (data: { title?: string; imageUrl: string; linkUrl?: string; displayOrder: number; isActive: boolean }) =>
+    baseFetch<{ success: true; banner: import('@/lib/types').Banner }>(
+      'admin',
+      '/banners',
+      { method: 'POST', body: data }
+    ),
+  updateBanner: (id: string, data: Partial<{ title?: string; imageUrl: string; linkUrl?: string; displayOrder: number; isActive: boolean }>) =>
+    baseFetch<{ success: true; banner: import('@/lib/types').Banner }>(
+      'admin',
+      `/banners/${id}`,
+      { method: 'PUT', body: data }
+    ),
+  deleteBanner: (id: string) =>
+    baseFetch<{ success: true }>(
+      'admin',
+      `/banners/${id}`,
+      { method: 'DELETE' }
+    ),
+  uploadBannerImage: (formData: FormData) =>
+    baseFetch<{ imageUrl: string }>(
+      'admin',
+      '/banners/upload',
+      { method: 'POST', body: formData }
+    ),
+
   rejectWithdrawal: (id: string, reason: string) =>
     baseFetch<{ success: true; data: { withdrawal_id: string; status: string; reason: string; rejected_at: string } }>(
       'admin',
@@ -1004,6 +1080,8 @@ export const adminApi = {
     opensAt: string
     closesAt: string
     resolvesAt: string
+    resolveRules?: string
+    imageUrl?: string
     feeBps?: number
   }) =>
     baseFetch<{ success: true; data: { id: string; status: string } }>(
@@ -1069,5 +1147,20 @@ export const adminApi = {
       'admin',
       '/events/upload',
       { method: 'POST', body: formData }
+    ),
+
+  updateMarket: (id: string, data: {
+    statement?: string
+    imageUrl?: string | null
+    resolveRules?: string | null
+    opensAt?: string
+    closesAt?: string
+    resolvesAt?: string
+    feeBps?: number
+  }) =>
+    baseFetch<{ success: true; data: { id: string; statement: string; status: string } }>(
+      'admin',
+      `/markets/${id}`,
+      { method: 'PATCH', body: data }
     ),
 }

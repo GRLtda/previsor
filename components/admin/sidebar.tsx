@@ -13,6 +13,7 @@ import {
   FileText,
   LogOut,
   ChevronDown,
+  Settings,
 } from "lucide-react";
 import { useState, useEffect } from "react";
 import { useAdminAuth } from "@/contexts/admin-auth-context";
@@ -85,6 +86,19 @@ const menuSections: MenuSection[] = [
         title: "Auditoria",
         href: "/admin/auditoria",
         icon: FileText,
+      },
+    ],
+  },
+  {
+    label: "Configurações",
+    items: [
+      {
+        title: "Aparência",
+        icon: Settings,
+        children: [
+          { title: "Categorias", href: "/admin/categorias" },
+          { title: "Banners", href: "/admin/banners" },
+        ],
       },
     ],
   },

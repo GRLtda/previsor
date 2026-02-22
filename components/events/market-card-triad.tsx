@@ -43,8 +43,12 @@ export function MarketCardTriad({
                 {/* Header */}
                 <div className="flex items-center justify-between">
                     <div className="flex items-center">
-                        <div className="mr-3 size-[38px] min-h-[38px] min-w-[38px] rounded-[10px] bg-muted flex items-center justify-center overflow-hidden lg:mr-4 lg:size-[46px] lg:min-w-[46px]">
-                            <span className="text-lg font-bold">{market.statement.charAt(0).toUpperCase()}</span>
+                        <div className="mr-3 size-[38px] min-h-[38px] min-w-[38px] rounded-[10px] flex items-center justify-center overflow-hidden lg:mr-4 lg:size-[46px] lg:min-w-[46px]">
+                            {market.imageUrl ? (
+                                <img src={market.imageUrl} alt={market.statement} className="size-full object-cover" />
+                            ) : (
+                                <span className="text-lg font-bold">{market.statement.charAt(0).toUpperCase()}</span>
+                            )}
                         </div>
                         <div className="ml-0.5 flex flex-col">
                             {/* Title now wraps to multiple lines */}

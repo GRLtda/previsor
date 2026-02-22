@@ -6,26 +6,10 @@ import { useSearchParams } from 'next/navigation'
 import type { Event } from '@/lib/types'
 import { EventCard } from '@/components/user/event-card'
 import { Skeleton } from '@/components/ui/skeleton'
-import {
-  Globe,
-  Trophy,
-  Landmark,
-  TrendingUp,
-  Laptop,
-  Clapperboard,
-  type LucideIcon
-} from 'lucide-react'
 import { toast } from 'sonner'
 import { BannerSlider } from '@/components/user/banner-slider'
-
-const CATEGORIES: { value: string; label: string; icon: LucideIcon }[] = [
-  { value: 'all', label: 'Todas', icon: Globe },
-  { value: 'esportes', label: 'Esportes', icon: Trophy },
-  { value: 'politica', label: 'Política', icon: Landmark },
-  { value: 'economia', label: 'Economia', icon: TrendingUp },
-  { value: 'tecnologia', label: 'Tecnologia', icon: Laptop },
-  { value: 'entretenimento', label: 'Entretenimento', icon: Clapperboard },
-]
+import { DynamicIcon } from '@/components/ui/dynamic-icon'
+import type { Category } from '@/lib/types'
 
 const LIMIT = 12
 
@@ -45,12 +29,29 @@ function EventsContent() {
   const [totalCount, setTotalCount] = useState(0)
   const [offset, setOffset] = useState(0)
   const [hasMore, setHasMore] = useState(true)
+  const [categories, setCategories] = useState<Category[]>([])
 
   const category = searchParams.get('category') || 'all'
   const search = searchParams.get('search') || ''
 
   // Intersection Observer ref for infinite scroll
   const observerTarget = useRef<HTMLDivElement>(null)
+
+  useEffect(() => {
+    let mounted = true
+    async function loadCategories() {
+      try {
+        const res = await userApi.getCategories()
+        if (mounted && res.success && res.data) {
+          setCategories(res.data.categories || [])
+        }
+      } catch (err) {
+        console.error('Failed to load categories', err)
+      }
+    }
+    loadCategories()
+    return () => { mounted = false }
+  }, [])
 
   const fetchEvents = useCallback(async (currentOffset: number, isAppending: boolean) => {
     if (isAppending) {
@@ -71,7 +72,15 @@ function EventsContent() {
       const newEvents = response.events || []
 
       if (isAppending) {
-        setEvents(prev => [...prev, ...newEvents])
+        setEvents(prev => {
+          const combined = [...prev, ...newEvents]
+          const seen = new Set<string>()
+          return combined.filter(e => {
+            if (seen.has(e.id)) return false
+            seen.add(e.id)
+            return true
+          })
+        })
       } else {
         setEvents(newEvents)
       }
@@ -134,7 +143,7 @@ function EventsContent() {
     setEvents(prev => prev.map(e => e.id === eventId ? { ...e, isFavorite } : e))
   }
 
-  const categoryInfo = CATEGORIES.find(c => c.value === category)
+  const categoryInfo = categories.find(c => c.slug === category)
 
   return (
     <div className="w-full px-4 md:px-12 lg:px-24 xl:px-[140px] 2xl:px-[256px] py-6">
@@ -176,10 +185,14 @@ function EventsContent() {
               <div className="flex items-center gap-1.5">
                 {/* Category Icon */}
                 <div className="flex size-10 items-center justify-center rounded-[10px] bg-blue-500/5 dark:bg-white/5">
-                  {categoryInfo?.icon && <categoryInfo.icon className="size-5 text-blue-500" />}
+                  {(category === 'all' || !categoryInfo) ? (
+                    <DynamicIcon name="LayoutGrid" className="size-5 text-blue-500" />
+                  ) : (
+                    <DynamicIcon name={categoryInfo.icon} className="size-5 text-blue-500" />
+                  )}
                 </div>
                 <h3 className="text-xl font-bold dark:text-white">
-                  {category === 'all' ? 'Todos os Eventos' : categoryInfo?.label || category}
+                  {category === 'all' ? 'Todos os Eventos' : categoryInfo?.name || category}
                 </h3>
               </div>
             </div>

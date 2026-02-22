@@ -17,6 +17,7 @@ import { MobilePredictionSheet } from '@/components/events/mobile-prediction-she
 import { ProbabilityChart } from '@/components/events/probability-chart'
 import { MultiProbabilityChart } from '@/components/events/multi-probability-chart'
 import { PlaceholderIcon } from '@/components/ui/placeholder-icon'
+import { ActivityFeed } from '@/components/events/activity-feed'
 
 interface PageProps {
   params: Promise<{ slug: string }>
@@ -502,7 +503,7 @@ export default function EventDetailPage({ params }: PageProps) {
           </button>
         </div>
 
-        {/* Tabs - Activity (Placeholder) */}
+        {/* Activity Section */}
         <div className="mt-7 w-full lg:mt-0 lg:block mb-10">
           <div className="relative mx-auto w-full pb-10 lg:pb-0">
             <div className="relative flex items-baseline mx-auto mb-0 w-full gap-x-4 lg:mt-10 lg:px-0">
@@ -511,17 +512,10 @@ export default function EventDetailPage({ params }: PageProps) {
                   <span className="flex items-center">Atividade</span>
                 </span>
               </button>
-              <button className="relative outline-0 py-3 text-[#606E85]/30 dark:text-[#A1A7BB]/30 flex pb-5 px-0 items-center justify-center font-bold h-7 text-xl whitespace-nowrap w-fit hover:text-[#606E85]/50 dark:hover:text-[#A1A7BB]/50">
-                <span className="relative flex items-center">
-                  <span className="flex items-center">Titulares</span>
-                </span>
-              </button>
             </div>
 
-            <div className="mt-5 w-full lg:pb-20">
-              <div className="min-h-[200px] flex items-center justify-center text-muted-foreground">
-                <p>Nenhuma atividade recente</p>
-              </div>
+            <div className="mt-2 w-full lg:pb-20">
+              <ActivityFeed eventId={event.id} />
             </div>
           </div>
         </div>

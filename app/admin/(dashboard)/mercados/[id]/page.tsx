@@ -144,6 +144,12 @@ export default function AdminMarketDetailsPage() {
                                 {market.eventId && (
                                     <p className="text-sm text-muted-foreground">Evento ID: {market.eventId}</p>
                                 )}
+                                {market.resolveRules && (
+                                    <div className="mt-4 p-3 bg-muted rounded-md border text-sm">
+                                        <h4 className="font-semibold mb-1">Regras de Resolução</h4>
+                                        <p className="text-muted-foreground whitespace-pre-wrap">{market.resolveRules}</p>
+                                    </div>
+                                )}
                             </div>
 
                             <div className="flex flex-wrap gap-2">

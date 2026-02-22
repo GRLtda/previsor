@@ -47,7 +47,7 @@ const menuSections: MenuSection[] = [
         icon: Users,
         children: [
           { title: "Lista de Usuários", href: "/admin/usuarios" },
-          { title: "Verificação KYC", href: "/admin/kyc" },
+          // { title: "Verificação KYC", href: "/admin/kyc" },
         ],
       },
       {

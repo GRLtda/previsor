@@ -23,12 +23,29 @@ import {
   Wallet,
   Plus,
   Minus,
+  Eye,
+  ExternalLink,
+  MoreVertical,
+  Copy,
+  Check,
 } from "lucide-react";
 import { adminApi } from "@/lib/api/client";
 import type { WalletInfo } from "@/lib/types";
 import { StatCard } from "@/components/shared/stat-card";
 import { useSearchParams } from "next/navigation";
 import { Suspense } from "react";
+import Link from "next/link";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { cn } from "@/lib/utils";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import { toast } from "sonner";
 export default function AdminWalletsPage() {
   const [wallets, setWallets] = useState<WalletInfo[]>([]);
   const [loading, setLoading] = useState(true);
@@ -146,11 +163,56 @@ export default function AdminWalletsPage() {
     {
       header: "Usuário",
       cell: (wallet: any) => (
-        <div className="flex flex-col">
-          <span className="font-medium text-sm leading-tight">{wallet.user_full_name}</span>
-          <span className="text-xs text-muted-foreground line-clamp-1">{wallet.user_email}</span>
-        </div>
+        <Link
+          href={`/admin/usuarios/${wallet.user_id}`}
+          className="flex items-center gap-3 group"
+        >
+          <Avatar className="h-8 w-8 rounded-full border shadow-sm transition-transform duration-200 group-hover:scale-105">
+            <AvatarImage src={(wallet as any).user_avatar_url || ''} />
+            <AvatarFallback className="bg-primary/5 text-primary text-[10px] font-bold">
+              {wallet.user_full_name?.split(' ').map((n: string) => n[0]).join('').slice(0, 2).toUpperCase() || 'U'}
+            </AvatarFallback>
+          </Avatar>
+          <div className="flex flex-col">
+            <span className="font-medium text-sm leading-tight text-foreground transition-colors group-hover:text-primary">
+              {wallet.user_full_name}
+            </span>
+            <span className="text-xs text-muted-foreground line-clamp-1">{wallet.user_email}</span>
+          </div>
+        </Link>
       ),
+    },
+    {
+      header: "ID da Carteira",
+      cell: (wallet: any) => {
+        const [copied, setCopied] = useState(false);
+
+        const copyToClipboard = () => {
+          navigator.clipboard.writeText(wallet.id);
+          setCopied(true);
+          toast.success("ID copiado para a área de transferência");
+          setTimeout(() => setCopied(false), 2000);
+        };
+
+        return (
+          <div className="flex items-center gap-2 group/copy">
+            <code className="text-[10px] font-mono text-muted-foreground bg-muted/30 px-1.5 py-0.5 rounded border">
+              {wallet.id.split('-')[0]}...
+            </code>
+            <button
+              onClick={copyToClipboard}
+              className="p-1 rounded-md hover:bg-muted opacity-0 group-hover/copy:opacity-100 transition-opacity"
+              title="Copiar ID"
+            >
+              {copied ? (
+                <Check className="h-3 w-3 text-emerald-500" />
+              ) : (
+                <Copy className="h-3 w-3 text-muted-foreground" />
+              )}
+            </button>
+          </div>
+        );
+      },
     },
     {
       header: "Saldo",
@@ -177,34 +239,47 @@ export default function AdminWalletsPage() {
       ),
     },
     {
-      header: "Ações",
+      header: "",
       className: "text-right",
       cell: (wallet: any) => (
-        <div className="flex justify-end gap-2">
-          <Button
-            variant="outline"
-            size="sm"
-            className="h-8"
-            onClick={() => {
-              setAdjustWallet(wallet);
-              setAdjustType("credit");
-            }}
-          >
-            <Plus className="mr-1 h-3 w-3" />
-            Creditar
-          </Button>
-          <Button
-            variant="outline"
-            size="sm"
-            className="h-8"
-            onClick={() => {
-              setAdjustWallet(wallet);
-              setAdjustType("debit");
-            }}
-          >
-            <Minus className="mr-1 h-3 w-3" />
-            Debitar
-          </Button>
+        <div className="flex justify-end">
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="ghost" size="icon" className="h-8 w-8">
+                <MoreVertical className="h-4 w-4" />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end" className="w-48">
+              <DropdownMenuLabel>Ações da Carteira</DropdownMenuLabel>
+              <DropdownMenuSeparator />
+              <DropdownMenuItem asChild>
+                <Link href={`/admin/carteiras/${wallet.id}`} className="cursor-pointer">
+                  <Eye className="mr-2 h-4 w-4" />
+                  Ver Histórico
+                </Link>
+              </DropdownMenuItem>
+              <DropdownMenuItem
+                onClick={() => {
+                  setAdjustWallet(wallet);
+                  setAdjustType("credit");
+                }}
+                className="cursor-pointer"
+              >
+                <Plus className="mr-2 h-4 w-4" />
+                Creditar Saldo
+              </DropdownMenuItem>
+              <DropdownMenuItem
+                onClick={() => {
+                  setAdjustWallet(wallet);
+                  setAdjustType("debit");
+                }}
+                className="cursor-pointer"
+              >
+                <Minus className="mr-2 h-4 w-4" />
+                Debitar Saldo
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
         </div>
       ),
     },

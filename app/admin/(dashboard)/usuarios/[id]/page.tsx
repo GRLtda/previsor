@@ -42,7 +42,14 @@ export default function UserDetailPage({
   const router = useRouter();
   const [user, setUser] = useState<import("@/lib/types").AdminUser | null>(null);
   const [positions, setPositions] = useState<Position[]>([]);
-  const [transactions, setTransactions] = useState<Transaction[]>([]);
+
+  // Extended type for transactions to support 'deposit'/'withdrawal' types and 'status'
+  type UILevelTransaction = Omit<Transaction, 'type'> & {
+    type: Transaction['type'] | 'deposit' | 'withdrawal' | 'withdraw';
+    status?: 'completed' | 'pending' | 'failed' | 'processing' | 'cancelled';
+  };
+
+  const [transactions, setTransactions] = useState<UILevelTransaction[]>([]);
   const [loading, setLoading] = useState(true);
   const [actionType, setActionType] = useState<"block" | "unblock" | "approveKyc" | "rejectKyc" | null>(null);
   const [actionLoading, setActionLoading] = useState(false);
@@ -302,7 +309,7 @@ export default function UserDetailPage({
                         </TableCell>
                         <TableCell>{position.optionTitle}</TableCell>
                         <TableCell>{position.quantity}</TableCell>
-                        <TableCell>{formatCurrency(position.averagePrice)}</TableCell>
+                        <TableCell>{formatCurrency(position.avgPrice)}</TableCell>
                         <TableCell>
                           <Badge
                             variant={
@@ -350,7 +357,7 @@ export default function UserDetailPage({
                           <Badge variant="outline">
                             {transaction.type === "deposit"
                               ? "Deposito"
-                              : transaction.type === "withdrawal"
+                              : transaction.type === "withdrawal" || transaction.type === "withdraw"
                                 ? "Saque"
                                 : transaction.type}
                           </Badge>
@@ -383,7 +390,7 @@ export default function UserDetailPage({
                           </Badge>
                         </TableCell>
                         <TableCell>
-                          {new Date(transaction.createdAt).toLocaleDateString(
+                          {new Date(transaction.created_at).toLocaleDateString(
                             "pt-BR"
                           )}
                         </TableCell>

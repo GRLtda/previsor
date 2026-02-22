@@ -257,6 +257,8 @@ export interface AdminWallet {
   user_id: string
   user_email?: string
   user_full_name?: string
+  user_avatar_version: number | null;
+  user_avatar_ext: string | null;
   status: 'active' | 'frozen' | 'closed'
   balance: number
   balance_formatted: string

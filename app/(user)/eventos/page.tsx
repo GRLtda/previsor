@@ -146,7 +146,7 @@ function EventsContent() {
   const categoryInfo = categories.find(c => c.slug === category)
 
   return (
-    <div className="w-full px-4 md:px-12 lg:px-24 xl:px-[140px] 2xl:px-[256px] py-6">
+    <div className="w-full px-4 md:px-6 lg:px-10 xl:px-16 2xl:px-24 py-6">
       {/* Banner Slider - Only show on 'all' category and no search term */}
       {category === 'all' && !search && (
         <BannerSlider />

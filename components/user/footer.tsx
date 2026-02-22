@@ -7,7 +7,7 @@ export function UserFooter() {
 
     return (
         <footer className="w-full bg-background border-t border-black/10 dark:border-white/5 py-12 mt-auto">
-            <div className="mx-auto w-full px-4 md:px-12 lg:px-24 xl:px-[140px] 2xl:px-[256px]">
+            <div className="mx-auto w-full px-4 md:px-6 lg:px-10 xl:px-16 2xl:px-24">
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-12 gap-12 lg:gap-8">
 
                     {/* Logo and Copyright Info */}

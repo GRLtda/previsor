@@ -154,7 +154,7 @@ export function UserHeader() {
         className="fixed left-0 lg:h-[60px] place-content-center top-0 bg-background z-30 w-full"
       >
         <div>
-          <div className="mx-auto flex h-full max-h-[60px] min-h-[60px] items-center justify-between px-4 md:px-12 lg:px-24 xl:px-[140px] 2xl:px-[256px]">
+          <div className="mx-auto flex h-full max-h-[60px] min-h-[60px] items-center justify-between px-4 md:px-6 lg:px-10 xl:px-16 2xl:px-24">
             {/* Left: Logo */}
             <div className="flex items-center">
               <Logo width={100} height={34} />

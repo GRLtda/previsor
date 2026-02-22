@@ -10,6 +10,7 @@ import {
   setOtpVerified,
   ApiClientError,
 } from '@/lib/api/client'
+import { useWalletWs } from '@/hooks/use-wallet-ws'
 import type { User } from '@/lib/types'
 
 interface AuthContextType {
@@ -87,6 +88,21 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     refreshUser()
   }, [refreshUser])
+
+  // Real-time wallet balance update via WebSocket
+  const updateWalletBalance = useCallback((balance: number) => {
+    setUser(prev => {
+      if (!prev) return prev
+      return { ...prev, wallet: { ...prev.wallet, balance } }
+    })
+  }, [])
+
+  const accessToken = getTokens('user')?.access_token ?? null
+  useWalletWs({
+    token: accessToken,
+    onBalanceUpdate: updateWalletBalance,
+    enabled: !!user && otpVerified,
+  })
 
   const login = async (email: string, password: string) => {
     setError(null)

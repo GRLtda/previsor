@@ -60,7 +60,7 @@ export function SubHeader() {
     return (
         <>
             <div className="fixed top-[60px] left-0 w-full bg-background z-30">
-                <div className="px-4 md:px-12 lg:px-24 xl:px-[140px] 2xl:px-[256px]">
+                <div className="px-4 md:px-6 lg:px-10 xl:px-16 2xl:px-24">
                     <div className="flex items-center gap-4 py-1.5 overflow-x-auto no-scrollbar">
                         <Link
                             href="/eventos"

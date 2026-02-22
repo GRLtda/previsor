@@ -122,15 +122,33 @@ export function ProbabilityChart({
             try {
                 const res = await userApi.getMarketHistory(marketId, period)
                 if (!cancelled) {
-                    setData(res.history)
+                    let historyData = res.history || []
+                    if (historyData.length === 0) {
+                        const now = new Date()
+                        const oneDayAgo = new Date(now.getTime() - 24 * 60 * 60 * 1000).toISOString()
+                        historyData = [
+                            { timestamp: oneDayAgo, probYes: currentProbYes, probNo: 100 - currentProbYes },
+                            { timestamp: now.toISOString(), probYes: currentProbYes, probNo: 100 - currentProbYes }
+                        ]
+                    } else if (historyData.length === 1) {
+                        const time = new Date(historyData[0].timestamp)
+                        const oneDayAgo = new Date(time.getTime() - 24 * 60 * 60 * 1000).toISOString()
+                        historyData = [
+                            { timestamp: oneDayAgo, probYes: historyData[0].probYes, probNo: historyData[0].probNo },
+                            historyData[0]
+                        ]
+                    }
+                    setData(historyData)
                 }
             } catch (err) {
                 if (!cancelled) {
                     setError(true)
                     // Fallback: show just the current prob as a flat line
-                    const now = new Date().toISOString()
+                    const now = new Date()
+                    const oneDayAgo = new Date(now.getTime() - 24 * 60 * 60 * 1000).toISOString()
                     setData([
-                        { timestamp: now, probYes: currentProbYes, probNo: 100 - currentProbYes },
+                        { timestamp: oneDayAgo, probYes: currentProbYes, probNo: 100 - currentProbYes },
+                        { timestamp: now.toISOString(), probYes: currentProbYes, probNo: 100 - currentProbYes },
                     ])
                 }
             } finally {

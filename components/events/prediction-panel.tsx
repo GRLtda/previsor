@@ -143,7 +143,7 @@ export function PredictionPanel({ market, side, onSuccess }: PredictionPanelProp
     if (showSuccess) {
         return (
             <div className="hidden lg:block w-full max-w-[360px] shrink-0 mt-[20px]">
-                <div className="flex flex-col border lg:dark:border-none border-black/10 rounded-[20px] bg-white p-5 dark:bg-white/5 max-h-[calc(100vh-200px)] h-auto animate-in zoom-in-95 fade-in duration-300" style={{ boxShadow: 'rgba(0, 0, 0, 0.05) 0px 8px 20px' }}>
+                <div className="flex flex-col border border-border/40 rounded-xl bg-card/50 p-5 max-h-[calc(100vh-200px)] h-auto animate-in zoom-in-95 fade-in duration-300">
                     <div className="custom-scroll flex min-h-0 flex-1 flex-col overflow-y-auto">
                         <div className="h-full" style={{ willChange: 'auto', opacity: 1, transform: 'none' }}>
                             <div className="flex h-full min-h-[400px] flex-col items-center justify-center text-center lg:min-h-[290px]">
@@ -192,8 +192,7 @@ export function PredictionPanel({ market, side, onSuccess }: PredictionPanelProp
         // Part of page layout - NOT fixed, just in the flexbox
         <div className="hidden lg:block w-full max-w-[360px] shrink-0 mt-[20px]">
             <div
-                className="flex flex-col border lg:dark:border-none border-black/10 rounded-[20px] bg-white p-5 dark:bg-white/5"
-                style={{ boxShadow: '#0000000D 0px 8px 20px' }}
+                className="flex flex-col border border-border/40 rounded-xl bg-card/50 p-5"
             >
                 <div className="flex min-h-0 flex-1 flex-col">
                     <div className="h-full">
@@ -201,7 +200,7 @@ export function PredictionPanel({ market, side, onSuccess }: PredictionPanelProp
                             <div className="flex size-full flex-col rounded-2xl">
                                 {/* Header */}
                                 <div className="relative flex w-full items-center">
-                                    <div className="flex items-center gap-1 w-full rounded-lg border border-black/10 p-2.5 text-xs font-semibold dark:border-white/5 dark:text-white overflow-hidden">
+                                    <div className="flex items-center gap-1 w-full rounded-lg bg-black/5 dark:bg-white/5 p-2.5 text-xs font-semibold dark:text-white overflow-hidden">
                                         <span className="shrink-0">Sua Previsão:</span>
                                         <span className={cn(
                                             "flex items-center gap-[2px] min-w-0",
@@ -231,7 +230,7 @@ export function PredictionPanel({ market, side, onSuccess }: PredictionPanelProp
 
                                 {/* Amount Input */}
                                 <div className="mt-3 flex w-full flex-col items-center bg-transparent">
-                                    <div className="relative my-1 flex h-14 w-full items-center justify-center rounded-lg p-3 text-lg font-semibold">
+                                    <div className="relative my-1 flex h-14 w-full items-center justify-center rounded-lg bg-transparent p-3 text-lg font-semibold">
                                         <div className="flex w-full flex-col items-center justify-center">
                                             <div className="relative flex w-full items-center justify-center">
                                                 <input

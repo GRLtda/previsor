@@ -264,16 +264,16 @@ export function MultiProbabilityChart({
                 </div>
 
                 {/* Period tabs */}
-                <div className="flex items-center gap-1 rounded-lg bg-black/5 dark:bg-white/5 p-0.5 mt-2 sm:mt-0 ml-auto">
+                <div className="flex items-center gap-1 rounded-lg bg-muted/50 p-0.5 mt-2 sm:mt-0 ml-auto">
                     {PERIODS.map(p => (
                         <button
                             key={p.value}
                             onClick={() => setPeriod(p.value)}
                             className={cn(
-                                'rounded-md px-3 py-1.5 text-xs font-bold transition-colors',
+                                'rounded-md px-3 py-1.5 text-xs font-medium transition-colors',
                                 period === p.value
-                                    ? 'bg-[#1A6BFF] text-white shadow-sm'
-                                    : 'text-[#606E85] dark:text-[#A1A7BB] hover:text-black dark:hover:text-white hover:bg-black/10 dark:hover:bg-white/10'
+                                    ? 'bg-background text-foreground shadow-sm'
+                                    : 'text-muted-foreground hover:text-foreground'
                             )}
                         >
                             {p.label}

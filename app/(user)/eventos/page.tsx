@@ -1,26 +1,21 @@
 'use client'
 
-import { useState, useEffect, useCallback, Suspense } from 'react'
-import { userApi, ApiClientError, getTokens } from '@/lib/api/client'
+import { useState, useEffect, useCallback, Suspense, useRef } from 'react'
+import { userApi, ApiClientError } from '@/lib/api/client'
 import { useSearchParams } from 'next/navigation'
 import type { Event } from '@/lib/types'
 import { EventCard } from '@/components/user/event-card'
-import { Button } from '@/components/ui/button'
 import { Skeleton } from '@/components/ui/skeleton'
 import {
-  ChevronLeft,
-  ChevronRight,
   Globe,
   Trophy,
   Landmark,
   TrendingUp,
   Laptop,
   Clapperboard,
-  Sparkles,
   type LucideIcon
 } from 'lucide-react'
 import { toast } from 'sonner'
-
 import { BannerSlider } from '@/components/user/banner-slider'
 
 const CATEGORIES: { value: string; label: string; icon: LucideIcon }[] = [
@@ -45,25 +40,51 @@ export default function EventosPage() {
 function EventsContent() {
   const searchParams = useSearchParams()
   const [events, setEvents] = useState<Event[]>([])
-  const [isLoading, setIsLoading] = useState(true)
+  const [isLoading, setIsLoading] = useState(true)       // For initial/reset load
+  const [isFetchingMore, setIsFetchingMore] = useState(false) // For infinite scroll loads
   const [totalCount, setTotalCount] = useState(0)
   const [offset, setOffset] = useState(0)
+  const [hasMore, setHasMore] = useState(true)
 
   const category = searchParams.get('category') || 'all'
   const search = searchParams.get('search') || ''
 
-  const fetchEvents = useCallback(async () => {
-    setIsLoading(true)
+  // Intersection Observer ref for infinite scroll
+  const observerTarget = useRef<HTMLDivElement>(null)
+
+  const fetchEvents = useCallback(async (currentOffset: number, isAppending: boolean) => {
+    if (isAppending) {
+      setIsFetchingMore(true)
+    } else {
+      setIsLoading(true)
+    }
+
     try {
       const response = await userApi.getEvents({
         status: 'active',
         category: category === 'all' ? undefined : category,
         title: search || undefined,
         limit: LIMIT,
-        offset,
+        offset: currentOffset,
       })
-      setEvents(response.events || [])
+
+      const newEvents = response.events || []
+
+      if (isAppending) {
+        setEvents(prev => [...prev, ...newEvents])
+      } else {
+        setEvents(newEvents)
+      }
+
       setTotalCount(response.totalCount || 0)
+
+      // Stop fetching if we've reached the total or received exactly 0 in this chunk
+      if (newEvents.length === 0 || (currentOffset + newEvents.length >= (response.totalCount || 0))) {
+        setHasMore(false)
+      } else {
+        setHasMore(true)
+      }
+
     } catch (err) {
       if (err instanceof ApiClientError) {
         toast.error(err.message)
@@ -72,31 +93,51 @@ function EventsContent() {
       }
     } finally {
       setIsLoading(false)
+      setIsFetchingMore(false)
     }
-  }, [category, search, offset])
-
-
-
-  useEffect(() => {
-    fetchEvents()
-  }, [fetchEvents])
-
-  useEffect(() => {
-    setOffset(0)
   }, [category, search])
+
+  // Reset and fetch when category or search changes
+  useEffect(() => {
+    setEvents([])
+    setOffset(0)
+    setHasMore(true)
+    fetchEvents(0, false)
+  }, [category, search, fetchEvents])
+
+  // Infinite Scroll Observer Effect
+  useEffect(() => {
+    const observer = new IntersectionObserver(
+      entries => {
+        if (entries[0].isIntersecting && hasMore && !isLoading && !isFetchingMore) {
+          const nextOffset = offset + LIMIT
+          setOffset(nextOffset)
+          fetchEvents(nextOffset, true)
+        }
+      },
+      { threshold: 0.1 }
+    )
+
+    const target = observerTarget.current
+    if (target) {
+      observer.observe(target)
+    }
+
+    return () => {
+      if (target) {
+        observer.unobserve(target)
+      }
+    }
+  }, [hasMore, isLoading, isFetchingMore, fetchEvents, offset])
 
   const handleFavoriteChange = (eventId: string, isFavorite: boolean) => {
     setEvents(prev => prev.map(e => e.id === eventId ? { ...e, isFavorite } : e))
   }
 
-  const totalPages = Math.ceil(totalCount / LIMIT)
-  const currentPage = Math.floor(offset / LIMIT) + 1
-
   const categoryInfo = CATEGORIES.find(c => c.value === category)
 
   return (
     <div className="w-full px-4 md:px-12 lg:px-24 xl:px-[140px] 2xl:px-[256px] py-6">
-
       {/* Banner Slider - Only show on 'all' category and no search term */}
       {category === 'all' && !search && (
         <BannerSlider />
@@ -156,32 +197,16 @@ function EventsContent() {
             ))}
           </div>
 
-          {/* Pagination */}
-          {totalPages > 1 && (
-            <div className="flex items-center justify-center gap-4 mt-8">
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => setOffset(Math.max(0, offset - LIMIT))}
-                disabled={offset === 0}
-                className="rounded-lg"
-              >
-                <ChevronLeft className="h-4 w-4 mr-1" />
-                Anterior
-              </Button>
-              <span className="text-sm text-muted-foreground">
-                Página {currentPage} de {totalPages}
-              </span>
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => setOffset(offset + LIMIT)}
-                disabled={currentPage >= totalPages}
-                className="rounded-lg"
-              >
-                Próximo
-                <ChevronRight className="h-4 w-4 ml-1" />
-              </Button>
+          {/* Infinite Scroll trigger / Loading Indicator */}
+          {hasMore && (
+            <div ref={observerTarget} className="mt-8 mb-4 w-full flex flex-col gap-4">
+              {isFetchingMore && (
+                <div className="grid w-full grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                  {Array.from({ length: 3 }).map((_, i) => (
+                    <Skeleton key={i} className="h-[198px] w-full rounded-2xl" />
+                  ))}
+                </div>
+              )}
             </div>
           )}
         </>

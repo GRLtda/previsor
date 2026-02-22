@@ -38,13 +38,12 @@ export function MarketCardTriad({
     const noMultiplier = calcMultiplier(market.probNo)
 
     return (
-        <div className="mt-2.5 rounded-2xl bg-black/5 transition-all duration-300 ease-in-out first-of-type:mt-0 dark:bg-white/5 lg:mt-0 lg:p-0">
-            <div className="flex w-full flex-col gap-y-2.5 rounded-2xl p-3 hover:lg:bg-white/5">
+        <div className="h-full rounded-xl border border-border/40 bg-card/50 transition-all duration-300 ease-in-out p-4 lg:p-5">
+            <div className="flex h-full w-full flex-col justify-between">
                 {/* Header */}
                 <div className="flex items-center justify-between">
                     <div className="flex items-center">
-                        {/* Market Image - using first letter as fallback */}
-                        <div className="mr-3 size-10 min-h-10 min-w-10 rounded-[10px] bg-muted flex items-center justify-center overflow-hidden lg:mr-4 lg:size-[46px] lg:min-w-[46px]">
+                        <div className="mr-3 size-[38px] min-h-[38px] min-w-[38px] rounded-[10px] bg-muted flex items-center justify-center overflow-hidden lg:mr-4 lg:size-[46px] lg:min-w-[46px]">
                             <span className="text-lg font-bold">{market.statement.charAt(0).toUpperCase()}</span>
                         </div>
                         <div className="ml-0.5 flex flex-col">
@@ -56,8 +55,7 @@ export function MarketCardTriad({
                     </div>
                 </div>
 
-                {/* Always expanded content (no toggle) */}
-                <div>
+                <div className="mt-4">
                     {/* Probability Display */}
                     <div className="flex flex-col gap-1">
                         <div className="flex w-full items-center justify-between">
@@ -68,14 +66,14 @@ export function MarketCardTriad({
                     </div>
 
                     {/* Progress Bar */}
-                    <div className="relative mt-1 w-full overflow-hidden rounded-lg" style={{ height: '6px' }}>
+                    <div className="flex h-[10px] w-full gap-[3px] overflow-hidden mt-3 rounded-[4px]">
                         <div
-                            className="absolute left-0 top-0 h-full rounded-l-full bg-[#00B471]"
-                            style={{ width: `calc(${yesPercent}% - 5px)` }}
+                            className="bg-[#22c55e] h-full"
+                            style={{ width: `${yesPercent}%`, borderRadius: '4px' }}
                         />
                         <div
-                            className="absolute right-0 top-0 h-full rounded-r-full bg-[#EE5F67]"
-                            style={{ width: `calc(${noPercent}% - 5px)` }}
+                            className="bg-[#ef4444] h-full"
+                            style={{ width: `${noPercent}%`, borderRadius: '4px' }}
                         />
                     </div>
 
@@ -90,17 +88,17 @@ export function MarketCardTriad({
                                         e.stopPropagation()
                                         onYesClick?.()
                                     }}
-                                    className="touch-manipulation flex px-3 h-[48px] w-full items-center justify-between rounded-[10px] font-bold transition-colors duration-100 ease-in-out hover:bg-[#00A366] active:bg-[#00B471] bg-[#00B471] text-white text-sm"
+                                    className="touch-manipulation flex px-3 h-[42px] lg:h-[48px] w-full items-center justify-between rounded-xl font-bold transition-all duration-200 border bg-[#22c55e]/10 border-[#22c55e]/30 text-[#22c55e] hover:bg-[#22c55e]/20 text-sm"
                                 >
                                     <div className="flex items-center justify-center gap-1">
                                         <svg width="18" height="18" viewBox="0 0 12 12" fill="none" xmlns="http://www.w3.org/2000/svg">
-                                            <path d="M6 11C8.75 11 11 8.75 11 6C11 3.25 8.75 1 6 1C3.25 1 1 3.25 1 6C1 8.75 3.25 11 6 11Z" stroke="#fff" strokeLinecap="round" strokeLinejoin="round" />
-                                            <path d="M3.875 5.99996L5.29 7.41496L8.125 4.58496" stroke="#fff" strokeWidth="1.03571" strokeLinecap="round" strokeLinejoin="round" />
+                                            <path d="M6 11C8.75 11 11 8.75 11 6C11 3.25 8.75 1 6 1C3.25 1 1 3.25 1 6C1 8.75 3.25 11 6 11Z" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" />
+                                            <path d="M3.875 5.99996L5.29 7.41496L8.125 4.58496" stroke="currentColor" strokeWidth="1.03571" strokeLinecap="round" strokeLinejoin="round" />
                                         </svg>
                                         <span>Sim</span>
                                     </div>
-                                    <div className="flex h-[23px] w-[51px] items-center justify-center rounded-[200px] bg-white">
-                                        <span className="text-xs font-semibold text-black">{yesMultiplier}</span>
+                                    <div className="flex min-h-[22px] px-2 items-center justify-center rounded-[6px] bg-[#22c55e]">
+                                        <span className="text-[11px] font-bold text-white">{yesMultiplier}</span>
                                     </div>
                                 </button>
                                 <div className="mt-[6px] flex w-full justify-center">
@@ -110,7 +108,7 @@ export function MarketCardTriad({
                                             <path d="M5 12h14" />
                                             <path d="m12 5 7 7-7 7" />
                                         </svg>
-                                        <span className="text-[#00B471]">{calcReturn(defaultAmount, market.probYes)}</span>
+                                        <span className="text-[#22c55e]">{calcReturn(defaultAmount, market.probYes)}</span>
                                     </div>
                                 </div>
                             </div>
@@ -123,18 +121,18 @@ export function MarketCardTriad({
                                         e.stopPropagation()
                                         onNoClick?.()
                                     }}
-                                    className="touch-manipulation flex px-3 h-[48px] w-full items-center justify-between rounded-[10px] font-bold transition-colors duration-100 ease-in-out bg-[#EE5F67] text-white hover:bg-[#D6555D] active:bg-[#EE5F67] text-sm"
+                                    className="touch-manipulation flex px-3 h-[42px] lg:h-[48px] w-full items-center justify-between rounded-xl font-bold transition-all duration-200 border bg-[#ef4444]/10 border-[#ef4444]/30 text-[#ef4444] hover:bg-[#ef4444]/20 text-sm"
                                 >
                                     <div className="flex items-center justify-center gap-1">
                                         <svg width="18" height="18" viewBox="0 0 12 12" fill="none" xmlns="http://www.w3.org/2000/svg">
-                                            <path d="M6 11C8.75 11 11 8.75 11 6C11 3.25 8.75 1 6 1C3.25 1 1 3.25 1 6C1 8.75 3.25 11 6 11Z" stroke="#fff" strokeLinecap="round" strokeLinejoin="round" />
-                                            <path d="M4.58496 7.41496L7.41496 4.58496" stroke="#fff" strokeWidth="1.03571" strokeLinecap="round" strokeLinejoin="round" />
-                                            <path d="M7.41496 7.41496L4.58496 4.58496" stroke="#fff" strokeWidth="0.776786" strokeLinecap="round" strokeLinejoin="round" />
+                                            <path d="M6 11C8.75 11 11 8.75 11 6C11 3.25 8.75 1 6 1C3.25 1 1 3.25 1 6C1 8.75 3.25 11 6 11Z" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" />
+                                            <path d="M4.58496 7.41496L7.41496 4.58496" stroke="currentColor" strokeWidth="1.03571" strokeLinecap="round" strokeLinejoin="round" />
+                                            <path d="M7.41496 7.41496L4.58496 4.58496" stroke="currentColor" strokeWidth="0.776786" strokeLinecap="round" strokeLinejoin="round" />
                                         </svg>
                                         <span>Não</span>
                                     </div>
-                                    <div className="flex h-[23px] w-[51px] items-center justify-center rounded-[200px] bg-white">
-                                        <span className="text-xs font-semibold text-black">{noMultiplier}</span>
+                                    <div className="flex min-h-[22px] px-2 items-center justify-center rounded-[6px] bg-[#ef4444]">
+                                        <span className="text-[11px] font-bold text-white">{noMultiplier}</span>
                                     </div>
                                 </button>
                                 <div className="mt-[6px] flex w-full justify-center">
@@ -144,7 +142,7 @@ export function MarketCardTriad({
                                             <path d="M5 12h14" />
                                             <path d="m12 5 7 7-7 7" />
                                         </svg>
-                                        <span className="text-[#00B471]">{calcReturn(defaultAmount, market.probNo)}</span>
+                                        <span className="text-[#22c55e]">{calcReturn(defaultAmount, market.probNo)}</span>
                                     </div>
                                 </div>
                             </div>

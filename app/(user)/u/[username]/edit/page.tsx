@@ -1,19 +1,19 @@
 'use client'
 
-import { useState, useRef } from 'react'
+import { useState, useEffect } from 'react'
 import { useParams, useRouter } from 'next/navigation'
 import { Button } from '@/components/ui/button'
 import { useAuth } from '@/contexts/auth-context'
 import { userApi, ApiClientError } from '@/lib/api/client'
 import { toast } from 'sonner'
 import Link from 'next/link'
+import { AvatarUpload } from '@/components/shared/avatar-upload'
 
 export default function EditProfilePage() {
     const params = useParams()
     const router = useRouter()
     const username = params.username as string
     const { user, refreshUser, isAuthenticated } = useAuth()
-    const fileInputRef = useRef<HTMLInputElement>(null)
 
     const [isLoading, setIsLoading] = useState(false)
     const [displayName, setDisplayName] = useState(user?.full_name || '')
@@ -22,8 +22,13 @@ export default function EditProfilePage() {
 
     const isOwner = isAuthenticated && user?.id === username
 
-    if (!isLoading && !isOwner && typeof window !== 'undefined') {
-        router.push(`/u/${username}`)
+    useEffect(() => {
+        if (!isOwner && isAuthenticated !== undefined) {
+            router.push(`/u/${username}`)
+        }
+    }, [isOwner, isAuthenticated, username, router])
+
+    if (!isOwner) {
         return null
     }
 
@@ -43,13 +48,6 @@ export default function EditProfilePage() {
         } finally {
             setIsLoading(false)
         }
-    }
-
-    const handleAvatarClick = () => fileInputRef.current?.click()
-
-    const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-        const file = e.target.files?.[0]
-        if (file) toast.info('Upload de avatar em breve!')
     }
 
     return (
@@ -82,42 +80,11 @@ export default function EditProfilePage() {
                     {/* Avatar Section */}
                     <section className="mb-6 mt-2 flex w-full flex-col">
                         <div className="flex items-center justify-between">
-                            <div className="flex items-center gap-x-4">
-                                {/* Avatar with dashed border */}
-                                <div className="relative mb-4 flex size-[130px] items-center justify-center">
-                                    {/* Dashed border - simulating the profile-border image */}
-                                    <div className="absolute inset-0 rounded-full border-2 border-dashed border-muted-foreground/40" />
-
-                                    {/* Avatar */}
-                                    <div
-                                        className="w-[120px] h-[120px] rounded-full overflow-hidden flex items-center justify-center text-5xl font-bold text-white"
-                                        style={{
-                                            background: 'linear-gradient(135deg, #22c55e 0%, #16a34a 100%)',
-                                        }}
-                                    >
-                                        {(user?.full_name || 'U').charAt(0).toUpperCase()}
-                                    </div>
-                                </div>
-
-                                {/* Hidden file input */}
-                                <input
-                                    ref={fileInputRef}
-                                    accept="image/*"
-                                    className="hidden"
-                                    type="file"
-                                    onChange={handleFileChange}
+                            <div className="flex items-center gap-x-8">
+                                <AvatarUpload
+                                    currentAvatarUrl={user?.avatar_url}
+                                    onSuccess={() => refreshUser()}
                                 />
-
-                                {/* Upload Button */}
-                                <button
-                                    onClick={handleAvatarClick}
-                                    className="gap-x-2 flex items-center justify-center transition duration-200 ease-linear w-fit outline-none py-1 px-3 bg-blue-600 hover:bg-blue-600/80 text-white h-[42px] rounded-[10px] text-sm font-semibold"
-                                >
-                                    <svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
-                                        <path d="M12 4.00016C11.5933 4.00016 11.22 3.76683 11.0333 3.40683L10.5533 2.44016C10.2467 1.8335 9.44668 1.3335 8.76668 1.3335H7.24001C6.55334 1.3335 5.75334 1.8335 5.44668 2.44016L4.96668 3.40683C4.78001 3.76683 4.40668 4.00016 4.00001 4.00016C2.55334 4.00016 1.40668 5.22016 1.50001 6.66016L1.84668 12.1668C1.92668 13.5402 2.66668 14.6668 4.50668 14.6668H11.4933C13.3333 14.6668 14.0667 13.5402 14.1533 12.1668L14.5 6.66016C14.5933 5.22016 13.4467 4.00016 12 4.00016ZM7.00001 4.8335H9.00001C9.27334 4.8335 9.50001 5.06016 9.50001 5.3335C9.50001 5.60683 9.27334 5.8335 9.00001 5.8335H7.00001C6.72668 5.8335 6.50001 5.60683 6.50001 5.3335C6.50001 5.06016 6.72668 4.8335 7.00001 4.8335ZM8.00001 12.0802C6.76001 12.0802 5.74668 11.0735 5.74668 9.82683C5.74668 8.58016 6.75334 7.5735 8.00001 7.5735C9.24668 7.5735 10.2533 8.58016 10.2533 9.82683C10.2533 11.0735 9.24001 12.0802 8.00001 12.0802Z" fill="white" />
-                                    </svg>
-                                    Upload
-                                </button>
                             </div>
 
                             {/* Logo on right - hidden on mobile */}
@@ -195,8 +162,8 @@ export default function EditProfilePage() {
                         onClick={handleSave}
                         disabled={!hasChanges || isLoading}
                         className={`gap-x-2 flex items-center justify-center transition duration-200 ease-linear outline-none py-0.5 px-3 !mt-[30px] h-[44px] w-full rounded-[10px] text-sm font-semibold ${hasChanges && !isLoading
-                                ? 'bg-blue-600 hover:bg-blue-600/80 text-white cursor-pointer'
-                                : 'bg-gray-200 dark:bg-muted text-black/60 dark:text-muted-foreground cursor-not-allowed'
+                            ? 'bg-blue-600 hover:bg-blue-600/80 text-white cursor-pointer'
+                            : 'bg-gray-200 dark:bg-muted text-black/60 dark:text-muted-foreground cursor-not-allowed'
                             }`}
                     >
                         {isLoading ? 'Salvando...' : 'Salvar Mudanças'}

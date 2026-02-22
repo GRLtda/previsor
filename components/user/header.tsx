@@ -174,9 +174,9 @@ export function UserHeader() {
               {!mounted ? (
                 <div className="w-[100px] h-9" />
               ) : isLoggedIn ? (
-                <div className="flex items-center justify-end lg:mr-4">
+                <div className="flex items-center justify-end">
                   {/* Unified Balance & Deposit Pill */}
-                  <div className="flex items-center bg-black/5 dark:bg-white/5 rounded-xl p-1 mr-4 border border-black/5 dark:border-white/5">
+                  <div className="flex items-center bg-black/5 dark:bg-white/5 rounded-xl p-1 border border-black/5 dark:border-white/5">
                     <Link
                       href="/app/carteira"
                       className="flex items-center justify-center rounded-lg px-3 py-1.5 transition-colors hover:bg-black/5 dark:hover:bg-white/10"
@@ -210,9 +210,17 @@ export function UserHeader() {
                         <div className="relative flex w-fit items-center justify-center rounded-full bg-brand/20 p-[2px] transition-colors hover:bg-brand/40">
                           <div className="rounded-full bg-white p-0.5 dark:bg-[#12121a]">
                             <Avatar className="h-[32px] w-[32px]">
-                              <AvatarFallback className="bg-brand/10 text-brand font-bold text-xs uppercase">
-                                {user?.full_name?.[0] || 'U'}
-                              </AvatarFallback>
+                              {user?.avatar_url ? (
+                                <img
+                                  src={user.avatar_url.replace('w=256_h=256_q=80', 'w=64_h=64_q=70')}
+                                  alt={user.full_name || 'U'}
+                                  className="h-full w-full object-cover rounded-full"
+                                />
+                              ) : (
+                                <AvatarFallback className="bg-brand/10 text-brand font-bold text-xs uppercase">
+                                  {user?.full_name?.[0] || 'U'}
+                                </AvatarFallback>
+                              )}
                             </Avatar>
                           </div>
                         </div>
@@ -233,9 +241,17 @@ export function UserHeader() {
                         <div className="relative flex w-fit items-center justify-center rounded-full bg-brand/20 p-[2px]">
                           <div className="rounded-full bg-white p-0.5 dark:bg-[#12121a]">
                             <Avatar className="h-[46px] w-[46px]">
-                              <AvatarFallback className="bg-brand/10 text-brand font-bold text-lg uppercase">
-                                {user?.full_name?.[0] || 'U'}
-                              </AvatarFallback>
+                              {user?.avatar_url ? (
+                                <img
+                                  src={user.avatar_url.replace('w=256_h=256_q=80', 'w=128_h=128_q=70')}
+                                  alt={user.full_name || 'U'}
+                                  className="h-full w-full object-cover rounded-full"
+                                />
+                              ) : (
+                                <AvatarFallback className="bg-brand/10 text-brand font-bold text-lg uppercase">
+                                  {user?.full_name?.[0] || 'U'}
+                                </AvatarFallback>
+                              )}
                             </Avatar>
                           </div>
                         </div>

@@ -1,8 +1,9 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { toast } from "sonner";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import {
@@ -39,8 +40,11 @@ import {
   ChevronLeft,
   ChevronRight,
   Calendar,
+  Camera,
+  Upload,
+  Image as ImageIcon,
 } from "lucide-react";
-import { adminApi } from "@/lib/api/client";
+import { adminApi, ApiClientError } from "@/lib/api/client";
 import type { Event } from "@/lib/types";
 import { ConfirmDialog } from "@/components/shared/confirm-dialog";
 import Link from "next/link";
@@ -63,6 +67,8 @@ export default function AdminEventsPage() {
   const [editEvent, setEditEvent] = useState<Event | null>(null);
   const [deleteEvent, setDeleteEvent] = useState<Event | null>(null);
   const [formLoading, setFormLoading] = useState(false);
+  const [isUploading, setIsUploading] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
   const [formData, setFormData] = useState({
     title: "",
     description: "",
@@ -180,6 +186,83 @@ export default function AdminEventsPage() {
       startDate: "",
       endDate: "",
     });
+  };
+
+  const compressImage = (file: File): Promise<Blob> => {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.readAsDataURL(file);
+      reader.onload = (event) => {
+        const img = new Image();
+        img.src = event.target?.result as string;
+        img.onload = () => {
+          const canvas = document.createElement("canvas");
+          let width = img.width;
+          let height = img.height;
+
+          const maxDim = 1200;
+          if (width > maxDim || height > maxDim) {
+            if (width > height) {
+              height = (height / width) * maxDim;
+              width = maxDim;
+            } else {
+              width = (width / height) * maxDim;
+              height = maxDim;
+            }
+          }
+
+          canvas.width = width;
+          canvas.height = height;
+          const ctx = canvas.getContext("2d");
+          ctx?.drawImage(img, 0, 0, width, height);
+
+          canvas.toBlob(
+            (blob) => {
+              if (blob) resolve(blob);
+              else reject(new Error("Canvas compression failed"));
+            },
+            "image/jpeg",
+            0.8
+          );
+        };
+        img.onerror = reject;
+      };
+      reader.onerror = reject;
+    });
+  };
+
+  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const originalFile = e.target.files?.[0];
+    if (!originalFile) return;
+
+    setIsUploading(true);
+
+    try {
+      let fileToUpload: File | Blob = originalFile;
+
+      if (originalFile.size > 5 * 1024 * 1024) {
+        toast.info("Imagem grande, otimizando para o envio...");
+        fileToUpload = await compressImage(originalFile);
+      }
+
+      const formDataUpload = new FormData();
+      formDataUpload.append("file", fileToUpload, originalFile.name);
+
+      const response = await adminApi.uploadEventImage(formDataUpload);
+      setFormData((prev) => ({ ...prev, imageUrl: response.data.imageUrl }));
+      toast.success("Imagem enviada com sucesso!");
+    } catch (err) {
+      if (err instanceof ApiClientError) {
+        toast.error(err.message);
+      } else {
+        toast.error("Erro ao fazer upload da imagem");
+      }
+    } finally {
+      setIsUploading(false);
+      if (fileInputRef.current) {
+        fileInputRef.current.value = "";
+      }
+    }
   };
 
   const getStatusBadge = (status: string) => {
@@ -427,13 +510,50 @@ export default function AdminEventsPage() {
                 </div>
 
                 <div className="space-y-2">
-                  <Label htmlFor="imageUrl">URL da Imagem</Label>
-                  <Input
-                    id="imageUrl"
-                    value={formData.imageUrl}
-                    onChange={(e) => setFormData({ ...formData, imageUrl: e.target.value })}
-                    placeholder="https://..."
-                  />
+                  <Label>Imagem do Evento</Label>
+                  <div className="flex items-center gap-3">
+                    <div
+                      className="w-10 h-10 rounded border flex items-center justify-center bg-muted overflow-hidden relative group cursor-pointer"
+                      onClick={() => fileInputRef.current?.click()}
+                    >
+                      {formData.imageUrl ? (
+                        <img
+                          src={formData.imageUrl}
+                          alt="Preview"
+                          className="w-full h-full object-cover"
+                        />
+                      ) : (
+                        <ImageIcon className="w-5 h-5 text-muted-foreground" />
+                      )}
+                      {isUploading && (
+                        <div className="absolute inset-0 bg-background/50 flex items-center justify-center">
+                          <Loader2 className="w-4 h-4 animate-spin" />
+                        </div>
+                      )}
+                    </div>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      onClick={() => fileInputRef.current?.click()}
+                      disabled={isUploading}
+                      className="h-10 grow"
+                    >
+                      {isUploading ? "Enviando..." : "Subir arquivo"}
+                    </Button>
+                    <input
+                      type="file"
+                      ref={fileInputRef}
+                      className="hidden"
+                      accept="image/*"
+                      onChange={handleFileChange}
+                    />
+                  </div>
+                  {formData.imageUrl && (
+                    <p className="text-[10px] text-muted-foreground truncate">
+                      {formData.imageUrl.split('/').pop()}
+                    </p>
+                  )}
                 </div>
               </div>
 

@@ -40,12 +40,13 @@ export default function PublicProfilePage() {
 
     const isOwner = isAuthenticated && user?.id === username
 
-    const profileData = {
+    const [profileData, setProfileData] = useState({
         username,
-        displayName: isOwner && user?.full_name ? user.full_name : username.slice(0, 4) + '...' + username.slice(-4),
+        displayName: username.slice(0, 4) + '...' + username.slice(-4),
         walletAddress: username,
-        joinedAt: isOwner && user?.created_at ? user.created_at : new Date().toISOString(),
-    }
+        joinedAt: new Date().toISOString(),
+        avatarUrl: null as string | null,
+    })
 
     const categories = [
         { name: 'Política', count: 0, color: '#FACC15' },
@@ -58,19 +59,28 @@ export default function PublicProfilePage() {
         setIsLoading(true)
         try {
             const response = await userApi.getPublicProfile(username, { limit: 100 })
-            setPositions(response.data.positions || [])
+            const data = response.data
+
+            setPositions(data.positions || [])
             setStats({
-                portfolioValue: response.data.stats.portfolioValue,
-                profitLoss: response.data.stats.profitLoss,
-                volume: response.data.stats.volume,
-                winRate: response.data.stats.winRate,
+                portfolioValue: data.stats.portfolioValue,
+                profitLoss: data.stats.profitLoss,
+                volume: data.stats.volume,
+                winRate: data.stats.winRate,
             })
             setOverviewStats({
-                liveMarkets: response.data.stats.liveMarkets,
+                liveMarkets: data.stats.liveMarkets,
                 rankPosition: 0,
-                marketsTraded: response.data.stats.marketsTraded,
+                marketsTraded: data.stats.marketsTraded,
                 marketsCreated: 0,
-                openPositions: response.data.stats.openPositions,
+                openPositions: data.stats.openPositions,
+            })
+            setProfileData({
+                username,
+                displayName: data.full_name || username.slice(0, 4) + '...' + username.slice(-4),
+                walletAddress: username,
+                joinedAt: data.created_at,
+                avatarUrl: data.avatar_url ?? null,
             })
         } catch (err) {
             console.error('Failed to fetch profile:', err)
@@ -154,15 +164,22 @@ export default function PublicProfilePage() {
                                 <div className="relative flex w-fit items-center">
                                     <div className="size-[130px]" />
                                     <div
-                                        className="absolute inset-0 left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 !rounded-full flex items-center justify-center text-5xl font-bold text-white"
+                                        className="absolute inset-0 left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 !rounded-full flex items-center justify-center text-5xl font-bold text-white overflow-hidden"
                                         style={{
                                             width: 120,
                                             height: 120,
-                                            overflow: 'hidden',
-                                            background: 'linear-gradient(135deg, #22c55e 0%, #16a34a 100%)',
+                                            background: profileData.avatarUrl ? 'transparent' : 'linear-gradient(135deg, #22c55e 0%, #16a34a 100%)',
                                         }}
                                     >
-                                        {profileData.displayName.charAt(0).toUpperCase()}
+                                        {profileData.avatarUrl ? (
+                                            <img
+                                                src={profileData.avatarUrl}
+                                                alt={profileData.displayName}
+                                                className="w-full h-full object-cover"
+                                            />
+                                        ) : (
+                                            profileData.displayName.charAt(0).toUpperCase()
+                                        )}
                                     </div>
                                 </div>
 

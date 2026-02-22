@@ -201,8 +201,12 @@ async function baseFetch<T>(
 
   // Build headers
   const headers: Record<string, string> = {
-    'Content-Type': 'application/json',
     ...((options.headers as Record<string, string>) || {}),
+  }
+
+  const isFormData = options.body instanceof FormData;
+  if (!isFormData) {
+    headers['Content-Type'] = 'application/json';
   }
 
   if (tokens?.access_token) {
@@ -210,17 +214,19 @@ async function baseFetch<T>(
   }
 
   // Make request
-  let bodyString: BodyInit | undefined = undefined;
-  if (options.body !== undefined) {
-    bodyString = JSON.stringify(options.body);
+  let body: BodyInit | undefined = undefined;
+  if (isFormData) {
+    body = options.body as FormData;
+  } else if (options.body !== undefined) {
+    body = JSON.stringify(options.body);
   } else if (options.method && ['POST', 'PUT', 'PATCH'].includes(options.method.toUpperCase())) {
-    bodyString = '{}';
+    body = '{}';
   }
 
   const response = await fetch(url, {
     ...options,
     headers,
-    body: bodyString,
+    body: body,
   })
 
   const data = await response.json()
@@ -338,6 +344,9 @@ export const userApi = {
       success: true
       data: {
         userId: string
+        full_name?: string | null
+        avatar_url?: string | null
+        created_at: string
         stats: {
           portfolioValue: number
           profitLoss: number
@@ -375,6 +384,13 @@ export const userApi = {
       'user',
       '/v1/me/export',
       { method: 'POST' }
+    ),
+
+  updateAvatar: (formData: FormData) =>
+    baseFetch<{ success: true; data: { avatarUrl: string } }>(
+      'user',
+      '/v1/me/avatar',
+      { method: 'POST', body: formData }
     ),
 
   // Events & Markets
@@ -1046,5 +1062,12 @@ export const adminApi = {
       'admin',
       `/events/${eventId}/resolve`,
       { method: 'POST', body: { winnerMarketId } }
+    ),
+
+  uploadEventImage: (formData: FormData) =>
+    baseFetch<{ success: true; data: { imageUrl: string } }>(
+      'admin',
+      '/events/upload',
+      { method: 'POST', body: formData }
     ),
 }

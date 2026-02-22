@@ -20,25 +20,26 @@ import { StatusBadge } from '@/components/shared/status-badge'
 import { ConfirmDialog } from '@/components/shared/confirm-dialog'
 import { toast } from 'sonner'
 import Link from 'next/link'
-import { 
-  User, 
-  Shield, 
-  Key, 
-  Trash2, 
+import {
+  User,
+  Shield,
+  Key,
+  Trash2,
   Download,
   Settings,
   Eye,
   EyeOff,
 } from 'lucide-react'
+import { AvatarUpload } from '@/components/shared/avatar-upload'
 
 export default function ProfilePage() {
   const router = useRouter()
   const { user, logout, refreshUser } = useAuth()
-  
+
   // Edit profile
   const [phone, setPhone] = useState(user?.phone || '')
   const [isSavingProfile, setIsSavingProfile] = useState(false)
-  
+
   // Change password
   const [passwordModalOpen, setPasswordModalOpen] = useState(false)
   const [currentPassword, setCurrentPassword] = useState('')
@@ -46,12 +47,12 @@ export default function ProfilePage() {
   const [confirmPassword, setConfirmPassword] = useState('')
   const [showPasswords, setShowPasswords] = useState(false)
   const [isChangingPassword, setIsChangingPassword] = useState(false)
-  
+
   // Delete account
   const [deleteModalOpen, setDeleteModalOpen] = useState(false)
   const [deletePassword, setDeletePassword] = useState('')
   const [isDeleting, setIsDeleting] = useState(false)
-  
+
   // Export data
   const [isExporting, setIsExporting] = useState(false)
 
@@ -127,6 +128,13 @@ export default function ProfilePage() {
     <div className="container mx-auto px-4 py-8 max-w-3xl">
       <h1 className="text-3xl font-bold mb-8">Meu Perfil</h1>
 
+      <div className="mb-8 flex justify-center">
+        <AvatarUpload
+          currentAvatarUrl={user?.avatar_url}
+          onSuccess={() => refreshUser()}
+        />
+      </div>
+
       {/* Profile Info */}
       <Card className="mb-6">
         <CardHeader>
@@ -158,9 +166,9 @@ export default function ProfilePage() {
             </div>
             <div className="space-y-2">
               <Label>Data de Cadastro</Label>
-              <Input 
-                value={user?.created_at ? new Date(user.created_at).toLocaleDateString('pt-BR') : ''} 
-                disabled 
+              <Input
+                value={user?.created_at ? new Date(user.created_at).toLocaleDateString('pt-BR') : ''}
+                disabled
               />
             </div>
           </div>
@@ -240,8 +248,8 @@ export default function ProfilePage() {
         </CardHeader>
         <CardContent className="space-y-4">
           <div className="flex flex-wrap gap-4">
-            <Button 
-              variant="outline" 
+            <Button
+              variant="outline"
               onClick={handleExportData}
               disabled={isExporting}
             >
@@ -348,8 +356,8 @@ export default function ProfilePage() {
             <Button variant="outline" onClick={() => setDeleteModalOpen(false)}>
               Cancelar
             </Button>
-            <Button 
-              variant="destructive" 
+            <Button
+              variant="destructive"
               onClick={handleDeleteAccount}
               disabled={isDeleting || !deletePassword}
             >

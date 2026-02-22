@@ -3,6 +3,7 @@
 import { useState, useEffect, useCallback } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { toast } from "sonner";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { DataTable, ColumnDef } from "@/components/shared/data-table";
@@ -65,6 +66,7 @@ export default function AdminMarketsPage() {
   const [selectedMarkets, setSelectedMarkets] = useState<string[]>([]);
   const [showCreateDialog, setShowCreateDialog] = useState(false);
   const [resolveMarket, setResolveMarket] = useState<Market | null>(null);
+  const [cancelMarket, setCancelMarket] = useState<Market | null>(null);
   const [selectedOption, setSelectedOption] = useState<string>("");
   const [formLoading, setFormLoading] = useState(false);
   const [formData, setFormData] = useState({
@@ -146,11 +148,29 @@ export default function AdminMarketsPage() {
     try {
       const result = selectedOption === "yes" ? "YES" : "NO";
       await adminApi.resolveMarket(resolveMarket.id, result);
+      toast.success("Mercado resolvido com sucesso!");
       loadMarkets();
       setResolveMarket(null);
       setSelectedOption("");
     } catch (error) {
       console.error("Error:", error);
+      toast.error("Erro ao resolver mercado");
+    } finally {
+      setFormLoading(false);
+    }
+  };
+
+  const handleCancelMarket = async () => {
+    if (!cancelMarket) return;
+    setFormLoading(true);
+    try {
+      await adminApi.cancelMarket(cancelMarket.id);
+      toast.success("Mercado cancelado e valores estornados!");
+      loadMarkets();
+      setCancelMarket(null);
+    } catch (error) {
+      console.error("Error:", error);
+      toast.error("Erro ao cancelar mercado");
     } finally {
       setFormLoading(false);
     }
@@ -235,7 +255,7 @@ export default function AdminMarketsPage() {
       cell: (market: any) => (
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
-            <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground hover:text-foreground">
+            <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground">
               <MoreHorizontal className="h-4 w-4" />
             </Button>
           </DropdownMenuTrigger>
@@ -252,10 +272,15 @@ export default function AdminMarketsPage() {
                 Resolver
               </DropdownMenuItem>
             )}
-            <DropdownMenuItem className="text-destructive focus:text-destructive focus:bg-destructive/10">
-              <XCircle className="mr-2 h-4 w-4" />
-              Cancelar
-            </DropdownMenuItem>
+            {market.status !== "resolved" && market.status !== "cancelled" && (
+              <DropdownMenuItem
+                className="text-destructive focus:text-destructive focus:bg-destructive/10"
+                onClick={() => setCancelMarket(market)}
+              >
+                <XCircle className="mr-2 h-4 w-4" />
+                Cancelar
+              </DropdownMenuItem>
+            )}
           </DropdownMenuContent>
         </DropdownMenu>
       ),
@@ -482,6 +507,17 @@ export default function AdminMarketsPage() {
             </DialogFooter>
           </DialogContent>
         </Dialog>
+
+        <ConfirmDialog
+          open={!!cancelMarket}
+          onOpenChange={() => setCancelMarket(null)}
+          title="Cancelar Mercado"
+          description={`Tem certeza que deseja cancelar o mercado "${cancelMarket?.statement}"? Todos os valores investidos serao devolvidos 100% aos usuarios. Esta acao nao pode ser desfeita.`}
+          confirmText="Confirmar Cancelamento"
+          variant="destructive"
+          onConfirm={handleCancelMarket}
+          isLoading={formLoading}
+        />
       </div>
     </Suspense>
   );

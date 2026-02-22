@@ -163,11 +163,19 @@ export default function AdminEventsPage() {
     if (!deleteEvent) return;
     setFormLoading(true);
     try {
-      // A API admin nao tem endpoint de delete para eventos
-      loadEvents();
-      setDeleteEvent(null);
+      const response = await adminApi.cancelEvent(deleteEvent.id);
+      if (response.success) {
+        toast.success(`Evento cancelado! ${response.data.cancelledMarketsCount} mercados cancelados e R$ ${(response.data.totalRefunded / 100).toFixed(2)} estornados.`);
+        loadEvents();
+        setDeleteEvent(null);
+      }
     } catch (error) {
       console.error("Error:", error);
+      if (error instanceof ApiClientError) {
+        toast.error(error.message);
+      } else {
+        toast.error("Erro ao cancelar evento");
+      }
     } finally {
       setFormLoading(false);
     }
@@ -356,7 +364,7 @@ export default function AdminEventsPage() {
       cell: (event: any) => (
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
-            <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground hover:text-foreground">
+            <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground">
               <MoreHorizontal className="h-4 w-4" />
             </Button>
           </DropdownMenuTrigger>
@@ -623,9 +631,9 @@ export default function AdminEventsPage() {
         <ConfirmDialog
           open={!!deleteEvent}
           onOpenChange={() => setDeleteEvent(null)}
-          title="Excluir Evento"
-          description={`Tem certeza que deseja excluir o evento "${deleteEvent?.title}"? Esta acao nao pode ser desfeita.`}
-          confirmText="Excluir"
+          title="Cancelar Evento"
+          description={`Tem certeza que deseja cancelar o evento "${deleteEvent?.title}"? Todos os mercados associados serao cancelados e os valores investidos serao devolvidos 100% aos usuarios. Esta acao nao pode ser desfeita.`}
+          confirmText="Confirmar Cancelamento"
           variant="destructive"
           onConfirm={handleDelete}
           isLoading={formLoading}

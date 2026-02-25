@@ -6,19 +6,21 @@ import { LoginForm } from './login-form'
 import { RegisterForm } from './register-form'
 import { OtpForm } from './otp-form'
 import { ForgotPasswordForm } from './forgot-password-form'
+import { ResetPasswordForm } from './reset-password-form'
 import { AnimatePresence, motion } from 'framer-motion'
 import { cn } from '@/lib/utils'
 
-type AuthView = 'LOGIN' | 'REGISTER' | 'OTP' | 'FORGOT_PASSWORD'
+type AuthView = 'LOGIN' | 'REGISTER' | 'OTP' | 'FORGOT_PASSWORD' | 'RESET_PASSWORD'
 
 interface AuthModalProps {
     isOpen: boolean
     onOpenChange: (open: boolean) => void
     defaultView?: AuthView
+    resetToken?: string
     children?: React.ReactNode
 }
 
-export function AuthModal({ isOpen, onOpenChange, defaultView = 'LOGIN', children }: AuthModalProps) {
+export function AuthModal({ isOpen, onOpenChange, defaultView = 'LOGIN', resetToken, children }: AuthModalProps) {
     const [view, setView] = useState<AuthView>(defaultView)
     const [email, setEmail] = useState('')
 
@@ -82,6 +84,12 @@ export function AuthModal({ isOpen, onOpenChange, defaultView = 'LOGIN', childre
                             {view === 'FORGOT_PASSWORD' && (
                                 <ForgotPasswordForm
                                     onBackToLogin={() => setView('LOGIN')}
+                                />
+                            )}
+                            {view === 'RESET_PASSWORD' && resetToken && (
+                                <ResetPasswordForm
+                                    token={resetToken}
+                                    onSuccess={() => setView('LOGIN')}
                                 />
                             )}
                         </motion.div>

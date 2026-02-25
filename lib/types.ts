@@ -116,7 +116,7 @@ export interface ActivityItem {
   avgPrice: number
   amount: number
   marketStatement: string
-  marketImageUrl: string | null
+  eventImageUrl: string | null
   createdAt: string
 }
 
@@ -140,8 +140,10 @@ export interface Position {
   marketStatement?: string
   marketStatus?: string
   marketResult?: 'YES' | 'NO' | null
-  eventTitle?: string
-  eventSlug?: string
+  eventTitle?: string;
+  eventSlug?: string;
+  eventCategory?: string;
+  eventImageUrl?: string | null;
 }
 
 // Wallet Types

@@ -230,7 +230,7 @@ export default function EventDetailPage({ params }: PageProps) {
         </div>
 
         {/* Mobile Header with Image */}
-        <div className="relative block h-[200px] w-full lg:hidden -mx-4">
+        <div className="relative block h-[200px] lg:hidden -mx-4 md:-mx-6">
           <div className="absolute top-1 flex w-full items-center justify-between p-2.5 z-10">
             <Link
               href="/eventos"

@@ -35,12 +35,6 @@ export function Logo({ className = '', width, height = 40 }: LogoProps) {
                 >
                     Previzor
                 </span>
-                <span
-                    className="text-[#606E85] dark:text-[#A1A7BB] leading-none mt-[3px]"
-                    style={{ fontSize: height * 0.28 + 'px' }}
-                >
-                    Onde a probabilidade encontra o futuro.
-                </span>
             </div>
         </Link>
     );

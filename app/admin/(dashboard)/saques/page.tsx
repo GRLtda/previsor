@@ -188,7 +188,7 @@ export default function AdminWithdrawalsPage() {
         <Button
           variant="ghost"
           size="sm"
-          className="h-8 text-muted-foreground hover:text-foreground"
+          className="h-8 text-muted-foreground"
           onClick={() => setSelectedWithdrawal(withdrawal)}
         >
           <Eye className="mr-2 h-4 w-4" />

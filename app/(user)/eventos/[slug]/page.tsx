@@ -251,7 +251,7 @@ export default function EventDetailPage({ params }: PageProps) {
         </div>
 
         {/* Mobile Header with Image */}
-        <div className="relative block h-[200px] w-full lg:hidden -mx-4">
+        <div className="relative block h-[200px] lg:hidden -mx-4 md:-mx-6">
           <div className="absolute top-1 flex w-full items-center justify-between p-2.5 z-10">
             <Link
               href="/eventos"
@@ -563,8 +563,8 @@ export default function EventDetailPage({ params }: PageProps) {
       </div >
 
       {/* Prediction Panel - Desktop Sidebar (ALWAYS visible, uses first market as default) */}
-      {
-        event.markets && event.markets.length > 0 && (
+      {event.markets && event.markets.length > 0 && (
+        <div className="hidden lg:block sticky top-[72px] self-start">
           <PredictionPanel
             market={selectedMarket || event.markets[0]}
             side={selectedSide}
@@ -572,8 +572,8 @@ export default function EventDetailPage({ params }: PageProps) {
               handleMarketUpdate(updatedMarket)
             }}
           />
-        )
-      }
+        </div>
+      )}
 
       {/* Mobile Prediction Sheet - Bottom Popup */}
       <MobilePredictionSheet

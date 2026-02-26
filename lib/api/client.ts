@@ -1148,6 +1148,12 @@ export const adminApi = {
       '/events/upload',
       { method: 'POST', body: formData }
     ),
+  cancelEvent: (id: string) =>
+    baseFetch<{ success: true; data: { eventId: string; cancelledMarketsCount: number; totalRefunded: number } }>(
+      'admin',
+      `/events/${id}/cancel`,
+      { method: 'POST' }
+    ),
 
   updateMarket: (id: string, data: {
     statement?: string

@@ -142,7 +142,7 @@ export default function AdminDepositsPage() {
       header: "Ações",
       className: "text-right",
       cell: (deposit: any) => (
-        <Button variant="ghost" size="icon" asChild className="h-8 w-8 text-muted-foreground hover:text-foreground">
+        <Button variant="ghost" size="icon" asChild className="h-8 w-8 text-muted-foreground">
           <Link href={`/admin/depositos/${deposit.id}`}>
             <Eye className="h-4 w-4" />
           </Link>

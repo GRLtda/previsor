@@ -4,13 +4,9 @@ import { useState, useEffect, useCallback, useRef } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
-    Table,
-    TableBody,
-    TableCell,
-    TableHead,
-    TableHeader,
-    TableRow,
-} from "@/components/ui/table";
+    DataTable,
+    ColumnDef,
+} from "@/components/shared/data-table";
 import {
     Dialog,
     DialogContent,
@@ -184,6 +180,68 @@ export default function AdminBannersPage() {
         }
     };
 
+    const columns: ColumnDef<Banner>[] = [
+        {
+            header: "Ordem",
+            className: "w-[80px]",
+            cell: (banner) => (
+                <span className="font-medium text-muted-foreground">
+                    {banner.displayOrder}
+                </span>
+            ),
+        },
+        {
+            header: "Preview",
+            cell: (banner) => (
+                <div className="w-32 h-10 relative overflow-hidden rounded border bg-slate-100 dark:bg-slate-800 flex items-center justify-center">
+                    {banner.imageUrl ? (
+                        <img src={banner.imageUrl} alt={banner.title || 'Banner'} className="w-full h-full object-cover" />
+                    ) : (
+                        <ImageIcon className="h-4 w-4 text-slate-400" />
+                    )}
+                </div>
+            ),
+        },
+        {
+            header: "Título (Admin)",
+            className: "font-medium",
+            cell: (banner) => banner.title || '-'
+        },
+        {
+            header: "Link",
+            cell: (banner) => banner.linkUrl ? (
+                <a href={banner.linkUrl} target="_blank" rel="noopener noreferrer" className="flex items-center text-sm text-blue-500 hover:text-blue-600 hover:underline max-w-[200px] truncate">
+                    <LinkIcon className="h-3 w-3 mr-1 inline shrink-0" />
+                    {banner.linkUrl}
+                </a>
+            ) : (
+                <span className="text-muted-foreground text-sm">-</span>
+            )
+        },
+        {
+            header: "Status",
+            cell: (banner) => (
+                <span className={`inline-flex items-center rounded-full border px-2.5 py-0.5 text-xs font-semibold ${banner.isActive ? 'bg-emerald-50 text-emerald-600 border-emerald-200 dark:bg-emerald-900/20 dark:border-emerald-800' : 'bg-slate-100 text-slate-500 border-slate-200 dark:bg-slate-800 dark:border-slate-700'}`}>
+                    {banner.isActive ? 'Ativo' : 'Inativo'}
+                </span>
+            ),
+        },
+        {
+            header: "Ações",
+            className: "text-right",
+            cell: (banner) => (
+                <div className="flex items-center justify-end gap-2">
+                    <Button variant="ghost" size="icon" onClick={() => handleOpenDialog(banner)}>
+                        <Edit2 className="size-4 text-slate-500" />
+                    </Button>
+                    <Button variant="ghost" size="icon" onClick={() => setDeleteId(banner.id)}>
+                        <Trash2 className="size-4 text-rose-500" />
+                    </Button>
+                </div>
+            ),
+        }
+    ];
+
     return (
         <div className="space-y-6">
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
@@ -211,82 +269,15 @@ export default function AdminBannersPage() {
                 </div>
             </div>
 
-            <Card>
-                <CardContent className="p-0">
-                    <Table>
-                        <TableHeader>
-                            <TableRow>
-                                <TableHead className="w-[80px]">Ordem</TableHead>
-                                <TableHead>Preview</TableHead>
-                                <TableHead>Título (Admin)</TableHead>
-                                <TableHead>Link</TableHead>
-                                <TableHead>Status</TableHead>
-                                <TableHead className="text-right">Ações</TableHead>
-                            </TableRow>
-                        </TableHeader>
-                        <TableBody>
-                            {loading ? (
-                                <TableRow>
-                                    <TableCell colSpan={6} className="text-center py-10">
-                                        <Loader2 className="h-6 w-6 animate-spin mx-auto text-muted-foreground mb-2" />
-                                        <p className="text-sm text-muted-foreground">Carregando Banners...</p>
-                                    </TableCell>
-                                </TableRow>
-                            ) : filteredBanners.length === 0 ? (
-                                <TableRow>
-                                    <TableCell colSpan={6} className="text-center py-10 text-muted-foreground">
-                                        <ImageIcon className="h-10 w-10 mx-auto text-slate-300 dark:text-slate-700 mb-3" />
-                                        Nenhum banner encontrado.
-                                    </TableCell>
-                                </TableRow>
-                            ) : (
-                                filteredBanners.map((banner) => (
-                                    <TableRow key={banner.id}>
-                                        <TableCell className="font-medium text-muted-foreground">
-                                            {banner.displayOrder}
-                                        </TableCell>
-                                        <TableCell>
-                                            <div className="w-32 h-10 relative overflow-hidden rounded border bg-slate-100 dark:bg-slate-800 flex items-center justify-center">
-                                                {banner.imageUrl ? (
-                                                    <img src={banner.imageUrl} alt={banner.title || 'Banner'} className="w-full h-full object-cover" />
-                                                ) : (
-                                                    <ImageIcon className="h-4 w-4 text-slate-400" />
-                                                )}
-                                            </div>
-                                        </TableCell>
-                                        <TableCell className="font-medium">{banner.title || '-'}</TableCell>
-                                        <TableCell>
-                                            {banner.linkUrl ? (
-                                                <a href={banner.linkUrl} target="_blank" rel="noopener noreferrer" className="flex items-center text-sm text-blue-500 hover:text-blue-600 hover:underline max-w-[200px] truncate">
-                                                    <LinkIcon className="h-3 w-3 mr-1 inline shrink-0" />
-                                                    {banner.linkUrl}
-                                                </a>
-                                            ) : (
-                                                <span className="text-muted-foreground text-sm">-</span>
-                                            )}
-                                        </TableCell>
-                                        <TableCell>
-                                            <span className={`inline-flex items-center rounded-full border px-2.5 py-0.5 text-xs font-semibold ${banner.isActive ? 'bg-emerald-50 text-emerald-600 border-emerald-200 dark:bg-emerald-900/20 dark:border-emerald-800' : 'bg-slate-100 text-slate-500 border-slate-200 dark:bg-slate-800 dark:border-slate-700'}`}>
-                                                {banner.isActive ? 'Ativo' : 'Inativo'}
-                                            </span>
-                                        </TableCell>
-                                        <TableCell className="text-right">
-                                            <div className="flex items-center justify-end gap-2">
-                                                <Button variant="ghost" size="icon" onClick={() => handleOpenDialog(banner)}>
-                                                    <Edit2 className="size-4 text-slate-500" />
-                                                </Button>
-                                                <Button variant="ghost" size="icon" onClick={() => setDeleteId(banner.id)}>
-                                                    <Trash2 className="size-4 text-rose-500" />
-                                                </Button>
-                                            </div>
-                                        </TableCell>
-                                    </TableRow>
-                                ))
-                            )}
-                        </TableBody>
-                    </Table>
-                </CardContent>
-            </Card>
+            <div className="w-full">
+                <DataTable
+                    data={filteredBanners}
+                    columns={columns}
+                    keyExtractor={(cat) => cat.id}
+                    isLoading={loading}
+                    emptyMessage="Nenhum banner encontrado."
+                />
+            </div>
 
             {/* Editor Dialog */}
             <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>

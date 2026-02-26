@@ -4,13 +4,9 @@ import { useState, useEffect, useCallback } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
-    Table,
-    TableBody,
-    TableCell,
-    TableHead,
-    TableHeader,
-    TableRow,
-} from "@/components/ui/table";
+    DataTable,
+    ColumnDef,
+} from "@/components/shared/data-table";
 import {
     Dialog,
     DialogContent,
@@ -18,22 +14,14 @@ import {
     DialogTitle,
     DialogFooter,
 } from "@/components/ui/dialog";
-import {
-    Select,
-    SelectContent,
-    SelectItem,
-    SelectTrigger,
-    SelectValue,
-} from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import {
     Search,
     Plus,
     Edit2,
     Trash2,
-    MoreHorizontal
 } from "lucide-react";
 import { adminApi } from "@/lib/api/client";
 import type { Category } from "@/lib/types";
@@ -155,6 +143,58 @@ export default function AdminCategoriesPage() {
         }
     };
 
+    const columns: ColumnDef<Category>[] = [
+        {
+            header: "Ordem",
+            className: "w-[80px]",
+            cell: (cat) => (
+                <span className="font-medium text-muted-foreground">
+                    {cat.displayOrder}
+                </span>
+            ),
+        },
+        {
+            header: "Ícone",
+            cell: (cat) => (
+                <div className="flex size-8 items-center justify-center rounded-full bg-slate-100 dark:bg-slate-800">
+                    <DynamicIcon name={cat.icon || "LayoutGrid"} className="size-4" />
+                </div>
+            ),
+        },
+        {
+            header: "Nome",
+            accessorKey: "name",
+            className: "font-medium",
+        },
+        {
+            header: "Slug",
+            accessorKey: "slug",
+            className: "text-muted-foreground",
+        },
+        {
+            header: "Status",
+            cell: (cat) => (
+                <span className={`inline-flex items-center rounded-full border px-2.5 py-0.5 text-xs font-semibold ${cat.isActive ? 'bg-emerald-50 text-emerald-600 border-emerald-200 dark:bg-emerald-900/20 dark:border-emerald-800' : 'bg-slate-100 text-slate-500 border-slate-200 dark:bg-slate-800 dark:border-slate-700'}`}>
+                    {cat.isActive ? 'Ativo' : 'Inativo'}
+                </span>
+            ),
+        },
+        {
+            header: "Ações",
+            className: "text-right",
+            cell: (cat) => (
+                <div className="flex items-center justify-end gap-2">
+                    <Button variant="ghost" size="icon" onClick={() => handleOpenDialog(cat)}>
+                        <Edit2 className="size-4 text-slate-500" />
+                    </Button>
+                    <Button variant="ghost" size="icon" onClick={() => setDeleteId(cat.id)}>
+                        <Trash2 className="size-4 text-rose-500" />
+                    </Button>
+                </div>
+            ),
+        },
+    ];
+
     return (
         <div className="space-y-6">
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
@@ -182,67 +222,15 @@ export default function AdminCategoriesPage() {
                 </div>
             </div>
 
-            <Card>
-                <CardContent className="p-0">
-                    <Table>
-                        <TableHeader>
-                            <TableRow>
-                                <TableHead className="w-[80px]">Ordem</TableHead>
-                                <TableHead>Ícone</TableHead>
-                                <TableHead>Nome</TableHead>
-                                <TableHead>Slug</TableHead>
-                                <TableHead>Status</TableHead>
-                                <TableHead className="text-right">Ações</TableHead>
-                            </TableRow>
-                        </TableHeader>
-                        <TableBody>
-                            {loading ? (
-                                <TableRow>
-                                    <TableCell colSpan={6} className="text-center py-8">
-                                        Carregando...
-                                    </TableCell>
-                                </TableRow>
-                            ) : filteredCategories.length === 0 ? (
-                                <TableRow>
-                                    <TableCell colSpan={6} className="text-center py-8 text-muted-foreground">
-                                        Nenhuma categoria encontrada.
-                                    </TableCell>
-                                </TableRow>
-                            ) : (
-                                filteredCategories.map((cat) => (
-                                    <TableRow key={cat.id}>
-                                        <TableCell className="font-medium text-muted-foreground">
-                                            {cat.displayOrder}
-                                        </TableCell>
-                                        <TableCell>
-                                            <div className="flex size-8 items-center justify-center rounded-md bg-slate-100 dark:bg-slate-800">
-                                                <DynamicIcon name={cat.icon || "LayoutGrid"} className="size-4" />
-                                            </div>
-                                        </TableCell>
-                                        <TableCell className="font-medium">{cat.name}</TableCell>
-                                        <TableCell className="text-muted-foreground">{cat.slug}</TableCell>
-                                        <TableCell>
-                                            <span className={`inline-flex items-center rounded-full border px-2.5 py-0.5 text-xs font-semibold ${cat.isActive ? 'bg-emerald-50 text-emerald-600 border-emerald-200 dark:bg-emerald-900/20 dark:border-emerald-800' : 'bg-slate-100 text-slate-500 border-slate-200 dark:bg-slate-800 dark:border-slate-700'}`}>
-                                                {cat.isActive ? 'Ativo' : 'Inativo'}
-                                            </span>
-                                        </TableCell>
-                                        <TableCell className="text-right">
-                                            <div className="flex items-center justify-end gap-2">
-                                                <Button variant="ghost" size="icon" onClick={() => handleOpenDialog(cat)}>
-                                                    <Edit2 className="size-4 text-slate-500" />
-                                                </Button>
-                                                <Button variant="ghost" size="icon" onClick={() => setDeleteId(cat.id)}>
-                                                    <Trash2 className="size-4 text-rose-500" />
-                                                </Button>
-                                            </div>
-                                        </TableCell>
-                                    </TableRow>
-                                ))
-                            )}
-                        </TableBody>
-                    </Table>
-                </CardContent>
-            </Card>
+            <div className="w-full">
+                <DataTable
+                    data={filteredCategories}
+                    columns={columns}
+                    keyExtractor={(cat) => cat.id}
+                    isLoading={loading}
+                    emptyMessage="Nenhuma categoria encontrada."
+                />
+            </div>
 
             {/* Editor Dialog */}
             <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>

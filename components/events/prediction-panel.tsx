@@ -62,7 +62,7 @@ export function PredictionPanel({ market, side, onSuccess }: PredictionPanelProp
         } finally {
             setIsLoadingQuote(false)
         }
-    }, [market.id, side, amountCents])
+    }, [market.id, side, amountCents, market.probYes, market.probNo])
 
     useEffect(() => {
         const timer = setTimeout(fetchQuote, 300)
@@ -138,7 +138,8 @@ export function PredictionPanel({ market, side, onSuccess }: PredictionPanelProp
 
     const isYes = side === 'YES'
     const buttonColor = isYes ? 'bg-[#00B471] hover:bg-[#00A366]' : 'bg-[#EE5F67] hover:bg-[#D6555D]'
-    const buttonDisabled = isLoading || amountCents < 100
+    const isMarketOpen = market.status === 'open'
+    const buttonDisabled = isLoading || amountCents < 100 || !isMarketOpen
 
     if (showSuccess) {
         return (
@@ -337,8 +338,9 @@ export function PredictionPanel({ market, side, onSuccess }: PredictionPanelProp
                                         )}
                                     >
                                         {isLoading ? 'Processando...' :
-                                            amountCents > balance ? 'Depositar' :
-                                                `${isYes ? 'Sim' : 'Não'} R$ ${amount || '0'}`}
+                                            !isMarketOpen ? 'Mercado Encerrado' :
+                                                amountCents > balance ? 'Depositar' :
+                                                    `${isYes ? 'Sim' : 'Não'} R$ ${amount || '0'}`}
                                     </button>
                                 )}
                             </div>

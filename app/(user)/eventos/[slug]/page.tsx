@@ -3,7 +3,7 @@
 import { useState, useEffect, use } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { userApi, ApiClientError } from '@/lib/api/client'
-import type { Event, Market } from '@/lib/types'
+import type { Event as DomainEvent, Market } from '@/lib/types'
 import { Skeleton } from '@/components/ui/skeleton'
 import { ChevronLeft, ChevronDown, Star, Link as LinkIcon } from 'lucide-react'
 import { format } from 'date-fns'
@@ -37,7 +37,7 @@ function formatVolume(amount: number): string {
 export default function EventDetailPage({ params }: PageProps) {
   const { slug } = use(params)
   const router = useRouter()
-  const [event, setEvent] = useState<Event | null>(null)
+  const [event, setEvent] = useState<DomainEvent | null>(null)
   const [isLoading, setIsLoading] = useState(true)
   const [selectedMarket, setSelectedMarket] = useState<Market | null>(null)
   const [selectedSide, setSelectedSide] = useState<'YES' | 'NO'>('YES')
@@ -142,6 +142,27 @@ export default function EventDetailPage({ params }: PageProps) {
     navigator.clipboard.writeText(window.location.href)
     toast.success('Link copiado!')
   }
+
+  // Listen for real-time market updates
+  useEffect(() => {
+    const handleGlobalMarketUpdate = (e: any) => {
+      const updatedMarket = e.detail as Market
+
+      // Check if this market belongs to the current event
+      if (event?.markets?.some(m => m.id === updatedMarket.id)) {
+        console.log('[Page] Syncing real-time market update:', updatedMarket.id)
+        handleMarketUpdate(updatedMarket)
+
+        // Also update selectedMarket if it matches
+        if (selectedMarket?.id === updatedMarket.id) {
+          setSelectedMarket(prev => prev ? { ...prev, ...updatedMarket } : null)
+        }
+      }
+    }
+
+    document.addEventListener('market-update', handleGlobalMarketUpdate)
+    return () => document.removeEventListener('market-update', handleGlobalMarketUpdate)
+  }, [event?.id, event?.markets, selectedMarket?.id])
 
   const handleFavoriteToggle = async () => {
     if (!event || isFavoriteLoading) return
@@ -368,14 +389,26 @@ export default function EventDetailPage({ params }: PageProps) {
               {/* The Bet buttons for Mobile (shows prediction panel sheet) */}
               <div className="grid grid-cols-2 gap-3 mb-8 lg:hidden">
                 <button
+                  disabled={event.markets[0].status !== 'open'}
                   onClick={() => handleSelectPrediction(event.markets![0], 'YES')}
-                  className="w-full flex justify-center items-center py-4 rounded-xl bg-[#22c55e]/10 text-[#22c55e] border border-[#22c55e]/20 font-bold text-sm hover:bg-[#22c55e]/20 transition-colors"
+                  className={cn(
+                    "w-full flex justify-center items-center py-4 rounded-xl border font-bold text-sm transition-colors",
+                    event.markets[0].status === 'open'
+                      ? "bg-[#22c55e]/10 text-[#22c55e] border-[#22c55e]/20 hover:bg-[#22c55e]/20"
+                      : "bg-muted text-muted-foreground border-border/40 opacity-50 cursor-not-allowed"
+                  )}
                 >
                   Sim
                 </button>
                 <button
+                  disabled={event.markets[0].status !== 'open'}
                   onClick={() => handleSelectPrediction(event.markets![0], 'NO')}
-                  className="w-full flex justify-center items-center py-4 rounded-xl bg-[#ef4444]/10 text-[#ef4444] border border-[#ef4444]/20 font-bold text-sm hover:bg-[#ef4444]/20 transition-colors"
+                  className={cn(
+                    "w-full flex justify-center items-center py-4 rounded-xl border font-bold text-sm transition-colors",
+                    event.markets[0].status === 'open'
+                      ? "bg-[#ef4444]/10 text-[#ef4444] border-[#ef4444]/20 hover:bg-[#ef4444]/20"
+                      : "bg-muted text-muted-foreground border-border/40 opacity-50 cursor-not-allowed"
+                  )}
                 >
                   Não
                 </button>
@@ -384,12 +417,16 @@ export default function EventDetailPage({ params }: PageProps) {
               {/* The Bet buttons for Desktop (updates selected side on the prediction panel) */}
               <div className="hidden lg:grid grid-cols-2 gap-4 mb-8">
                 <button
+                  disabled={event.markets[0].status !== 'open'}
                   onClick={() => handleSelectPrediction(event.markets![0], 'YES')}
-                  className={`w-full flex justify-center items-center py-4 rounded-xl border transition-all duration-200 font-bold text-[15px]
-                  ${selectedSide === 'YES'
-                      ? 'bg-[#22c55e] border-[#22c55e] text-white shadow-md shadow-[#22c55e]/20'
-                      : 'bg-[#22c55e]/10 border-[#22c55e]/20 text-[#22c55e] hover:bg-[#22c55e]/20'}
-                `}
+                  className={cn(
+                    "w-full flex justify-center items-center py-4 rounded-xl border transition-all duration-200 font-bold text-[15px]",
+                    event.markets[0].status === 'open'
+                      ? (selectedSide === 'YES'
+                        ? 'bg-[#22c55e] border-[#22c55e] text-white shadow-md shadow-[#22c55e]/20'
+                        : 'bg-[#22c55e]/10 border-[#22c55e]/20 text-[#22c55e] hover:bg-[#22c55e]/20')
+                      : "bg-muted text-muted-foreground border-border/40 opacity-50 cursor-not-allowed"
+                  )}
                 >
                   <div className="flex items-center gap-2">
                     <svg width="18" height="18" viewBox="0 0 14 14" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -401,12 +438,16 @@ export default function EventDetailPage({ params }: PageProps) {
                 </button>
 
                 <button
+                  disabled={event.markets[0].status !== 'open'}
                   onClick={() => handleSelectPrediction(event.markets![0], 'NO')}
-                  className={`w-full flex justify-center items-center py-4 rounded-xl border transition-all duration-200 font-bold text-[15px]
-                  ${selectedSide === 'NO'
-                      ? 'bg-[#ef4444] border-[#ef4444] text-white shadow-md shadow-[#ef4444]/20'
-                      : 'bg-[#ef4444]/10 border-[#ef4444]/20 text-[#ef4444] hover:bg-[#ef4444]/20'}
-                `}
+                  className={cn(
+                    "w-full flex justify-center items-center py-4 rounded-xl border transition-all duration-200 font-bold text-[15px]",
+                    event.markets[0].status === 'open'
+                      ? (selectedSide === 'NO'
+                        ? 'bg-[#ef4444] border-[#ef4444] text-white shadow-md shadow-[#ef4444]/20'
+                        : 'bg-[#ef4444]/10 border-[#ef4444]/20 text-[#ef4444] hover:bg-[#ef4444]/20')
+                      : "bg-muted text-muted-foreground border-border/40 opacity-50 cursor-not-allowed"
+                  )}
                 >
                   <div className="flex items-center gap-2">
                     <svg width="18" height="18" viewBox="0 0 14 14" fill="none" xmlns="http://www.w3.org/2000/svg">

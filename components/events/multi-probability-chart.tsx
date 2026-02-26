@@ -206,6 +206,34 @@ export function MultiProbabilityChart({
         return () => { cancelled = true }
     }, [markets, period])
 
+    // Listen for real-time updates for any of the markets in this chart
+    useEffect(() => {
+        const handleUpdate = (e: any) => {
+            const update = e.detail
+            if (markets.some(m => m.id === update.marketId)) {
+                setData((prev) => {
+                    if (prev.length === 0) return prev
+
+                    const lastPoint = prev[prev.length - 1]
+                    const newPoint: CombinedPoint = {
+                        ...lastPoint,
+                        timestamp: update.timestamp || new Date().toISOString(),
+                        [update.marketId]: update.probYes
+                    }
+
+                    // Avoid duplicate timestamps
+                    if (lastPoint.timestamp === newPoint.timestamp) {
+                        return prev.map((p, i) => i === prev.length - 1 ? newPoint : p)
+                    }
+                    return [...prev, newPoint]
+                })
+            }
+        }
+
+        document.addEventListener('market-update', handleUpdate)
+        return () => document.removeEventListener('market-update', handleUpdate)
+    }, [markets])
+
     // Calculate dynamic Y domain avoiding 0-100 if lines are tight
     const yDomain = useMemo(() => {
         if (data.length === 0) return [0, 100]

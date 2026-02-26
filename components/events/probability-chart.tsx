@@ -14,6 +14,7 @@ import { userApi } from '@/lib/api/client'
 import { cn } from '@/lib/utils'
 import { format, parseISO } from 'date-fns'
 import { ptBR } from 'date-fns/locale'
+import { useMarketRealTime } from '@/hooks/use-wallet-ws'
 
 interface HistoryPoint {
     timestamp: string
@@ -159,6 +160,24 @@ export function ProbabilityChart({
         fetchHistory()
         return () => { cancelled = true }
     }, [marketId, period, currentProbYes])
+
+    // Listen for real-time updates to this market
+    useMarketRealTime(marketId, (update) => {
+        // Append new point to the chart
+        const newPoint: HistoryPoint = {
+            timestamp: update.timestamp || new Date().toISOString(),
+            probYes: update.probYes,
+            probNo: update.probNo,
+        }
+
+        setData((prev) => {
+            // Avoid duplicates if same timestamp
+            if (prev.length > 0 && prev[prev.length - 1].timestamp === newPoint.timestamp) {
+                return prev
+            }
+            return [...prev, newPoint]
+        })
+    })
 
     const change = useMemo(() => calcChange(data), [data])
 

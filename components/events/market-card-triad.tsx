@@ -36,6 +36,7 @@ export function MarketCardTriad({
     const noPercent = 100 - yesPercent
     const yesMultiplier = calcMultiplier(market.probYes)
     const noMultiplier = calcMultiplier(market.probNo)
+    const isMarketOpen = market.status === 'open'
 
     return (
         <div className="h-full rounded-xl border border-border/40 bg-card/50 transition-all duration-300 ease-in-out p-4 lg:p-5">
@@ -87,12 +88,18 @@ export function MarketCardTriad({
                             {/* Yes Button */}
                             <div className="flex w-full flex-col items-center justify-center">
                                 <button
+                                    disabled={!isMarketOpen}
                                     onClick={(e) => {
                                         e.preventDefault()
                                         e.stopPropagation()
                                         onYesClick?.()
                                     }}
-                                    className="touch-manipulation flex px-3 h-[42px] lg:h-[48px] w-full items-center justify-between rounded-xl font-bold transition-all duration-200 border bg-[#22c55e]/10 border-[#22c55e]/30 text-[#22c55e] hover:bg-[#22c55e]/20 text-sm"
+                                    className={cn(
+                                        "touch-manipulation flex px-3 h-[42px] lg:h-[48px] w-full items-center justify-between rounded-xl font-bold transition-all duration-200 border text-sm",
+                                        isMarketOpen
+                                            ? "bg-[#22c55e]/10 border-[#22c55e]/30 text-[#22c55e] hover:bg-[#22c55e]/20"
+                                            : "bg-muted text-muted-foreground border-border/40 opacity-50 cursor-not-allowed"
+                                    )}
                                 >
                                     <div className="flex items-center justify-center gap-1">
                                         <svg width="18" height="18" viewBox="0 0 12 12" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -120,12 +127,18 @@ export function MarketCardTriad({
                             {/* No Button */}
                             <div className="flex w-full flex-col items-center justify-center">
                                 <button
+                                    disabled={!isMarketOpen}
                                     onClick={(e) => {
                                         e.preventDefault()
                                         e.stopPropagation()
                                         onNoClick?.()
                                     }}
-                                    className="touch-manipulation flex px-3 h-[42px] lg:h-[48px] w-full items-center justify-between rounded-xl font-bold transition-all duration-200 border bg-[#ef4444]/10 border-[#ef4444]/30 text-[#ef4444] hover:bg-[#ef4444]/20 text-sm"
+                                    className={cn(
+                                        "touch-manipulation flex px-3 h-[42px] lg:h-[48px] w-full items-center justify-between rounded-xl font-bold transition-all duration-200 border text-sm",
+                                        isMarketOpen
+                                            ? "bg-[#ef4444]/10 border-[#ef4444]/30 text-[#ef4444] hover:bg-[#ef4444]/20"
+                                            : "bg-muted text-muted-foreground border-border/40 opacity-50 cursor-not-allowed"
+                                    )}
                                 >
                                     <div className="flex items-center justify-center gap-1">
                                         <svg width="18" height="18" viewBox="0 0 12 12" fill="none" xmlns="http://www.w3.org/2000/svg">

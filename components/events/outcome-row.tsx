@@ -20,6 +20,7 @@ function calcMultiplier(prob: number): string {
 export function OutcomeRow({ market, onYesClick, onNoClick }: OutcomeRowProps) {
     const yesMultiplier = calcMultiplier(market.probYes)
     const noMultiplier = calcMultiplier(market.probNo)
+    const isMarketOpen = market.status === 'open'
 
     return (
         <div className="relative h-8 w-full cursor-pointer rounded-md transition-all duration-300 ease-in-out">
@@ -47,12 +48,18 @@ export function OutcomeRow({ market, onYesClick, onNoClick }: OutcomeRowProps) {
                     <div className="flex items-center gap-x-1.5">
                         {/* Yes Button */}
                         <button
+                            disabled={!isMarketOpen}
                             onClick={(e) => {
                                 e.preventDefault()
                                 e.stopPropagation()
                                 onYesClick?.()
                             }}
-                            className="gap-x-2 flex items-center justify-center outline-none py-1 rounded-lg h-[30px] transition-all duration-300 px-1.5 ease-in-out w-full whitespace-nowrap max-w-[93px] lg:max-w-[96px] min-w-[93px] lg:min-w-[96px] font-semibold text-xs bg-green-500/10 text-green-500 hover:bg-green-500 hover:text-white"
+                            className={cn(
+                                "gap-x-2 flex items-center justify-center outline-none py-1 rounded-lg h-[30px] transition-all duration-300 px-1.5 ease-in-out w-full whitespace-nowrap max-w-[93px] lg:max-w-[96px] min-w-[93px] lg:min-w-[96px] font-semibold text-xs transition-colors",
+                                isMarketOpen
+                                    ? "bg-green-500/10 text-green-500 hover:bg-green-500 hover:text-white"
+                                    : "bg-muted text-muted-foreground opacity-50 cursor-not-allowed"
+                            )}
                         >
                             {/* Checkmark Icon */}
                             <svg width="14" height="14" viewBox="0 0 14 14" fill="none" xmlns="http://www.w3.org/2000/svg" className="min-w-3.5">
@@ -64,12 +71,18 @@ export function OutcomeRow({ market, onYesClick, onNoClick }: OutcomeRowProps) {
 
                         {/* No Button */}
                         <button
+                            disabled={!isMarketOpen}
                             onClick={(e) => {
                                 e.preventDefault()
                                 e.stopPropagation()
                                 onNoClick?.()
                             }}
-                            className="gap-x-2 flex items-center justify-center outline-none py-1 rounded-lg h-[30px] transition-all duration-300 px-1.5 ease-in-out w-full whitespace-nowrap max-w-[93px] lg:max-w-[96px] min-w-[93px] lg:min-w-[96px] font-semibold text-xs text-red-500 hover:bg-red-500 hover:text-white bg-red-500/10"
+                            className={cn(
+                                "gap-x-2 flex items-center justify-center outline-none py-1 rounded-lg h-[30px] transition-all duration-300 px-1.5 ease-in-out w-full whitespace-nowrap max-w-[93px] lg:max-w-[96px] min-w-[93px] lg:min-w-[96px] font-semibold text-xs transition-colors",
+                                isMarketOpen
+                                    ? "bg-red-500/10 text-red-500 hover:bg-red-500 hover:text-white"
+                                    : "bg-muted text-muted-foreground opacity-50 cursor-not-allowed"
+                            )}
                         >
                             {/* X Icon */}
                             <svg width="14" height="14" viewBox="0 0 14 14" fill="none" xmlns="http://www.w3.org/2000/svg">

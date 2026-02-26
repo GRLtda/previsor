@@ -10,6 +10,8 @@ interface WalletWsOptions {
     token: string | null
     /** Called when a new balance is received */
     onBalanceUpdate: (balance: number) => void
+    /** Called when any market is updated (optional) */
+    onMarketUpdate?: (data: any) => void
     /** Whether the connection should be active */
     enabled: boolean
 }
@@ -19,7 +21,7 @@ interface WalletWsOptions {
  * Connects to ws://API_BASE/v1/ws?token=<jwt> and listens for BALANCE_UPDATE messages.
  * Auto-reconnects with exponential backoff on disconnect.
  */
-export function useWalletWs({ token, onBalanceUpdate, enabled }: WalletWsOptions) {
+export function useWalletWs({ token, onBalanceUpdate, onMarketUpdate, enabled }: WalletWsOptions) {
     const wsRef = useRef<WebSocket | null>(null)
     const reconnectTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null)
     const reconnectDelayRef = useRef(1000)
@@ -32,6 +34,9 @@ export function useWalletWs({ token, onBalanceUpdate, enabled }: WalletWsOptions
     // Stable reference for the callback
     const onBalanceUpdateRef = useRef(onBalanceUpdate)
     onBalanceUpdateRef.current = onBalanceUpdate
+
+    const onMarketUpdateRef = useRef(onMarketUpdate)
+    onMarketUpdateRef.current = onMarketUpdate
 
     const cleanup = useCallback(() => {
         if (reconnectTimeoutRef.current) {
@@ -75,6 +80,16 @@ export function useWalletWs({ token, onBalanceUpdate, enabled }: WalletWsOptions
                     if (msg.type === 'BALANCE_UPDATE' && typeof msg.data?.balance === 'number') {
                         console.log('[WS] Received balance update:', msg.data.balance)
                         onBalanceUpdateRef.current(msg.data.balance)
+                    } else if (msg.type === 'MARKET_UPDATE' && msg.data?.marketId) {
+                        console.log('[WS] Received market update:', msg.data.marketId)
+                        // Dispatch a custom event so any component can listen for updates to specific markets
+                        const event = new CustomEvent('market-update', { detail: msg.data })
+                        document.dispatchEvent(event)
+
+                        // Also call callback if provided
+                        if (onMarketUpdateRef.current) {
+                            onMarketUpdateRef.current(msg.data)
+                        }
                     }
                 } catch {
                     // Ignore malformed messages
@@ -120,4 +135,23 @@ export function useWalletWs({ token, onBalanceUpdate, enabled }: WalletWsOptions
 
         return cleanup
     }, [enabled, token, connect, cleanup])
+}
+
+/**
+ * Hook to listen for real-time updates for a specific market
+ */
+export function useMarketRealTime(marketId: string | undefined, onUpdate: (data: any) => void) {
+    useEffect(() => {
+        if (!marketId) return
+
+        const handleUpdate = (event: Event) => {
+            const customEvent = event as CustomEvent
+            if (customEvent.detail.marketId === marketId) {
+                onUpdate(customEvent.detail)
+            }
+        }
+
+        document.addEventListener('market-update', handleUpdate)
+        return () => document.removeEventListener('market-update', handleUpdate)
+    }, [marketId, onUpdate])
 }

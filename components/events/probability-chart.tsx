@@ -14,7 +14,7 @@ import { userApi } from '@/lib/api/client'
 import { cn } from '@/lib/utils'
 import { format, parseISO } from 'date-fns'
 import { ptBR } from 'date-fns/locale'
-import { useMarketRealTime } from '@/hooks/use-wallet-ws'
+import { useMarketRealTime } from '@/hooks/use-market-ws'
 
 interface HistoryPoint {
     timestamp: string

@@ -10,6 +10,7 @@ import { format } from 'date-fns'
 import { ptBR } from 'date-fns/locale'
 import { toast } from 'sonner'
 import Link from 'next/link'
+import { cn } from '@/lib/utils'
 import { MarketCardTriad } from '@/components/events/market-card-triad'
 import { CountdownTimer } from '@/components/events/countdown-timer'
 import { PredictionPanel } from '@/components/events/prediction-panel'
@@ -34,7 +35,10 @@ function formatVolume(amount: number): string {
   return `R$${value.toFixed(2)}`
 }
 
+import { useMarketWs } from '@/hooks/use-market-ws'
+
 export default function EventDetailPage({ params }: PageProps) {
+  useMarketWs({ enabled: true })
   const { slug } = use(params)
   const router = useRouter()
   const [event, setEvent] = useState<DomainEvent | null>(null)

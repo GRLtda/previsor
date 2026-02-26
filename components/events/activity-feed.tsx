@@ -4,6 +4,7 @@ import { useState, useEffect, useCallback } from 'react'
 import { userApi } from '@/lib/api/client'
 import type { ActivityItem } from '@/lib/types'
 import { Loader2 } from 'lucide-react'
+import { useActivityRealTime } from '@/hooks/use-market-ws'
 
 interface ActivityFeedProps {
     eventId: string
@@ -58,6 +59,16 @@ export function ActivityFeed({ eventId }: ActivityFeedProps) {
         loadActivity(0).finally(() => setLoading(false))
     }, [loadActivity])
 
+    useActivityRealTime((newActivity) => {
+        if (newActivity.eventId === eventId) {
+            setItems(prev => {
+                if (prev.some(item => item.id === newActivity.id)) return prev
+                return [newActivity, ...prev]
+            })
+            setTotal(prev => prev + 1)
+        }
+    })
+
     const handleLoadMore = async () => {
         const newOffset = offset + LIMIT
         setOffset(newOffset)
@@ -106,12 +117,13 @@ export function ActivityFeed({ eventId }: ActivityFeedProps) {
                                 )}
                             </div>
 
-                            {/* Info */}
                             <div className="flex flex-col">
                                 <p className="flex flex-col items-start gap-x-1 text-[13px] font-medium dark:text-white lg:items-start lg:text-sm">
                                     <span className="flex items-center gap-1 flex-wrap">
                                         <span className="font-semibold">{item.user.firstName}</span>
-                                        <span className="text-[#606E85] dark:text-[#A1A7BB]">comprou</span>
+                                        <span className="text-[#606E85] dark:text-[#A1A7BB]">
+                                            {item.shares < 0 ? 'vendeu' : 'comprou'}
+                                        </span>
                                         <span className={item.side === 'YES' ? 'text-[#22c55e] font-bold' : 'text-[#ef4444] font-bold'}>
                                             {item.side === 'YES' ? 'Sim' : 'Não'}
                                         </span>
@@ -126,7 +138,7 @@ export function ActivityFeed({ eventId }: ActivityFeedProps) {
                                     </span>
                                 </p>
                                 <div className="mt-0.5 flex items-center gap-x-1 text-[12px] font-medium text-[#606E85] dark:text-[#A1A7BB]">
-                                    <span>{item.shares.toFixed(2)} Contratos</span>
+                                    <span>{Math.abs(item.shares).toFixed(2)} Contratos</span>
                                     <span className="mx-0.5">·</span>
                                     <span>{formatCurrency(item.amount)}</span>
                                 </div>

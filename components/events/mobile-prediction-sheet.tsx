@@ -39,9 +39,8 @@ export function MobilePredictionSheet({ market, side, open, onClose, onSuccess }
     const balance = user?.wallet?.balance || 0
     const balanceFormatted = (balance / 100).toFixed(2)
 
-    // Reset amount and quote when market/side changes
+    // Reset quote when market/side changes so it recalculates, but keep the amount
     useEffect(() => {
-        setAmount('')
         setQuote(null)
     }, [market?.id, side])
 
@@ -64,7 +63,8 @@ export function MobilePredictionSheet({ market, side, open, onClose, onSuccess }
     }, [market, side, amountCents])
 
     useEffect(() => {
-        const timer = setTimeout(fetchQuote, 300)
+        // Increase debounce to 2000ms to avoid calculating too much while user types
+        const timer = setTimeout(fetchQuote, 2000)
         return () => clearTimeout(timer)
     }, [fetchQuote])
 

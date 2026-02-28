@@ -40,9 +40,8 @@ export function PredictionPanel({ market, side, onSuccess }: PredictionPanelProp
     const [showSuccess, setShowSuccess] = useState(false)
     const [showDepositModal, setShowDepositModal] = useState(false)
 
-    // Reset amount and quote when market/side changes
+    // Reset quote when market/side changes so it recalculates, but keep the amount
     useEffect(() => {
-        setAmount('')
         setQuote(null)
     }, [market.id, side])
 
@@ -65,7 +64,8 @@ export function PredictionPanel({ market, side, onSuccess }: PredictionPanelProp
     }, [market.id, side, amountCents, market.probYes, market.probNo])
 
     useEffect(() => {
-        const timer = setTimeout(fetchQuote, 300)
+        // Increase debounce to 2000ms to avoid calculating too much while user types
+        const timer = setTimeout(fetchQuote, 2000)
         return () => clearTimeout(timer)
     }, [fetchQuote])
 

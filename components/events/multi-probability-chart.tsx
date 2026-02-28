@@ -53,8 +53,8 @@ const CHART_COLORS = [
     '#22c55e', // green
 ]
 
-const GRID_COLOR = 'rgba(255, 255, 255, 0.08)'
-const AXIS_COLOR = 'rgba(255, 255, 255, 0.4)'
+const GRID_COLOR = 'currentColor'
+const AXIS_COLOR = 'currentColor'
 
 // Format X-axis date labels based on period
 function formatXDate(timestamp: string, period: Period): string {
@@ -92,8 +92,8 @@ function ChartTooltip({ active, payload, label, markets }: any) {
     const sortedPayload = [...payload].sort((a, b) => b.value - a.value)
 
     return (
-        <div className="rounded-lg border border-white/10 bg-[#12121a]/95 px-4 py-3 shadow-xl backdrop-blur-md">
-            <p className="mb-2 text-[13px] font-medium text-white/90">{formattedDate}</p>
+        <div className="rounded-lg border border-border/40 bg-background/95 px-4 py-3 shadow-xl backdrop-blur-md">
+            <p className="mb-2 text-[13px] font-medium text-muted-foreground">{formattedDate}</p>
             <div className="flex flex-col gap-1.5">
                 {sortedPayload.map((entry: any, index: number) => {
                     const market = markets.find((m: Market) => m.id === entry.dataKey)
@@ -128,6 +128,14 @@ export function MultiProbabilityChart({
     const [period, setPeriod] = useState<Period>('all')
     const [data, setData] = useState<CombinedPoint[]>([])
     const [loading, setLoading] = useState(true)
+    const [isMobile, setIsMobile] = useState(false)
+
+    useEffect(() => {
+        const checkMobile = () => setIsMobile(window.innerWidth < 1024)
+        checkMobile()
+        window.addEventListener('resize', checkMobile)
+        return () => window.removeEventListener('resize', checkMobile)
+    }, [])
 
     // Fetch data for all markets when period changes
     useEffect(() => {
@@ -279,12 +287,12 @@ export function MultiProbabilityChart({
                     {markets.map((m, i) => {
                         const color = CHART_COLORS[i % CHART_COLORS.length]
                         return (
-                            <div key={m.id} className="flex items-center gap-1.5 text-[13px] sm:text-sm font-semibold text-white">
+                            <div key={m.id} className="flex items-center gap-1.5 text-[13px] sm:text-sm font-semibold text-foreground">
                                 <span
                                     className="size-2.5 rounded-full"
                                     style={{ backgroundColor: color }}
                                 />
-                                <span className="text-[#A1A7BB] font-medium mr-1">{m.statement}:</span>
+                                <span className="text-muted-foreground font-medium mr-1">{m.statement}:</span>
                                 <span>{m.probYes.toFixed(1)}%</span>
                             </div>
                         )
@@ -324,7 +332,7 @@ export function MultiProbabilityChart({
                 <ResponsiveContainer width="100%" height="100%">
                     <AreaChart
                         data={data}
-                        margin={{ top: 10, right: 35, left: 0, bottom: 5 }}
+                        margin={{ top: 10, right: isMobile ? 0 : 35, left: 0, bottom: 5 }}
                     >
                         {/* Horizontal dotted grid lines */}
                         {gridLines.map(val => (
@@ -332,39 +340,46 @@ export function MultiProbabilityChart({
                                 key={val}
                                 y={val}
                                 stroke={GRID_COLOR}
+                                strokeOpacity={0.15}
                                 strokeDasharray="3 3"
+                                className="text-foreground"
                             />
                         ))}
 
                         <XAxis
                             dataKey="timestamp"
                             tickFormatter={(t) => formatXDate(t, period)}
-                            tick={{ fill: AXIS_COLOR, fontSize: 11, fontWeight: 500 }}
+                            tick={{ fill: AXIS_COLOR, fontSize: 11, fontWeight: 500, opacity: 0.6 }}
                             axisLine={false}
                             tickLine={false}
                             tickMargin={12}
                             minTickGap={50}
+                            className="text-foreground"
                         />
 
                         <YAxis
+                            hide={isMobile}
                             domain={yDomain as [number, number]}
                             orientation="right"
-                            tick={{ fill: AXIS_COLOR, fontSize: 11, fontWeight: 500 }}
+                            tick={{ fill: AXIS_COLOR, fontSize: 11, fontWeight: 500, opacity: 0.6 }}
                             tickFormatter={(v) => `${v}%`}
                             axisLine={false}
                             tickLine={false}
                             tickMargin={8}
                             ticks={gridLines}
+                            className="text-foreground"
                         />
 
                         <Tooltip
                             content={<ChartTooltip markets={markets} />}
                             cursor={{
-                                stroke: 'rgba(255,255,255,0.15)',
+                                stroke: 'currentColor',
+                                strokeOpacity: 0.15,
                                 strokeWidth: 1,
                                 strokeDasharray: '3 3',
                             }}
                             isAnimationActive={false}
+                            wrapperClassName="text-foreground"
                         />
 
                         {/* Line Series */}
@@ -378,7 +393,7 @@ export function MultiProbabilityChart({
                                     stroke={color}
                                     strokeWidth={3}
                                     fill="transparent"
-                                    activeDot={{ r: 5, stroke: '#12121a', strokeWidth: 2, fill: color }}
+                                    activeDot={{ r: 5, stroke: 'hsl(var(--background))', strokeWidth: 2, fill: color }}
                                     isAnimationActive={true}
                                     animationDuration={500}
                                 />

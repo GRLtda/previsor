@@ -147,7 +147,14 @@ export default function AdminMarketDetailsPage() {
                                 {market.resolveRules && (
                                     <div className="mt-4 p-3 bg-muted rounded-md border text-sm">
                                         <h4 className="font-semibold mb-1">Regras de Resolução</h4>
-                                        <p className="text-muted-foreground whitespace-pre-wrap">{market.resolveRules}</p>
+                                        <div className="text-muted-foreground">
+                                            {market.resolveRules.split(/\/n\/|\n/).map((line, i) => (
+                                                <span key={i}>
+                                                    {line}
+                                                    <br />
+                                                </span>
+                                            ))}
+                                        </div>
                                     </div>
                                 )}
                             </div>

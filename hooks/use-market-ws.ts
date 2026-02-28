@@ -21,11 +21,13 @@ export function useMarketWs({ enabled }: MarketWsOptions) {
     const reconnectDelayRef = useRef(1000)
     const pingIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null)
     const enabledRef = useRef(enabled)
+    const intentionalCloseRef = useRef(false)
 
     // Keep enabled ref in sync
     enabledRef.current = enabled
 
     const cleanup = useCallback(() => {
+        intentionalCloseRef.current = true
         if (reconnectTimeoutRef.current) {
             clearTimeout(reconnectTimeoutRef.current)
             reconnectTimeoutRef.current = null
@@ -44,6 +46,7 @@ export function useMarketWs({ enabled }: MarketWsOptions) {
         if (!enabledRef.current) return
 
         cleanup()
+        intentionalCloseRef.current = false
 
         try {
             const ws = new WebSocket(`${WS_BASE}/v1/ws/market`)
@@ -73,19 +76,24 @@ export function useMarketWs({ enabled }: MarketWsOptions) {
                         // Dispatch a custom event for new activities
                         const customEvent = new CustomEvent('activity-update', { detail: msg.data })
                         document.dispatchEvent(customEvent)
+                    } else if (msg.type === 'COMMENT_UPDATE' && msg.data?.id) {
+                        // Dispatch a custom event for new comments
+                        const customEvent = new CustomEvent('comment-update', { detail: msg.data })
+                        document.dispatchEvent(customEvent)
                     }
                 } catch {
                     // Ignore malformed messages
                 }
             }
 
-            ws.onclose = (event) => {
+            ws.onclose = () => {
                 if (pingIntervalRef.current) {
                     clearInterval(pingIntervalRef.current)
                     pingIntervalRef.current = null
                 }
 
-                if (!enabledRef.current) {
+                // Don't reconnect if cleanup was called intentionally or hook is disabled
+                if (intentionalCloseRef.current || !enabledRef.current) {
                     return
                 }
 
@@ -94,7 +102,7 @@ export function useMarketWs({ enabled }: MarketWsOptions) {
                 reconnectDelayRef.current = Math.min(delay * 2, 30000)
 
                 reconnectTimeoutRef.current = setTimeout(() => {
-                    if (enabledRef.current) {
+                    if (enabledRef.current && !intentionalCloseRef.current) {
                         connect()
                     }
                 }, delay)
@@ -150,5 +158,20 @@ export function useActivityRealTime(onUpdate: (data: any) => void) {
 
         document.addEventListener('activity-update', handleUpdate)
         return () => document.removeEventListener('activity-update', handleUpdate)
+    }, [onUpdate])
+}
+
+/**
+ * Hook to listen for real-time comment updates globally
+ */
+export function useCommentRealTime(onUpdate: (data: any) => void) {
+    useEffect(() => {
+        const handleUpdate = (event: Event) => {
+            const customEvent = event as CustomEvent
+            onUpdate(customEvent.detail)
+        }
+
+        document.addEventListener('comment-update', handleUpdate)
+        return () => document.removeEventListener('comment-update', handleUpdate)
     }, [onUpdate])
 }

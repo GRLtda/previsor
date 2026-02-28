@@ -575,6 +575,42 @@ export const userApi = {
       'user',
       '/v1/public/banners'
     ),
+
+  // Comments / Discussion
+  getComments: (eventId: string, params?: { limit?: number; offset?: number; sortBy?: 'recent' | 'popular' | 'oldest' }) =>
+    baseFetch<{ success: true; data: { comments: import('@/lib/types').Comment[]; total: number; limit: number; offset: number } }>(
+      'user',
+      `/v1/events/${eventId}/comments`,
+      { params }
+    ),
+
+  createComment: (eventId: string, content: string, parentId?: string) =>
+    baseFetch<{ success: true; data: { comment: import('@/lib/types').Comment } }>(
+      'user',
+      `/v1/events/${eventId}/comments`,
+      { method: 'POST', body: { content, parentId } }
+    ),
+
+  voteComment: (commentId: string, voteType: 'like' | 'dislike') =>
+    baseFetch<{ success: true; data: { likesCount: number; dislikesCount: number; userVote: 'like' | 'dislike' | null } }>(
+      'user',
+      `/v1/comments/${commentId}/vote`,
+      { method: 'POST', body: { voteType } }
+    ),
+
+  getReplies: (commentId: string, params?: { limit?: number; offset?: number }) =>
+    baseFetch<{ success: true; data: { replies: import('@/lib/types').Comment[]; total: number; limit: number; offset: number } }>(
+      'user',
+      `/v1/comments/${commentId}/replies`,
+      { params }
+    ),
+
+  deleteComment: (commentId: string) =>
+    baseFetch<{ success: true }>(
+      'user',
+      `/v1/comments/${commentId}`,
+      { method: 'DELETE' }
+    ),
 }
 
 // Admin API client

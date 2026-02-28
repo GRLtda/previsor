@@ -120,6 +120,28 @@ export interface ActivityItem {
   createdAt: string
 }
 
+export interface CommentUser {
+  id: string
+  firstName: string
+  avatarUrl: string | null
+}
+
+export interface Comment {
+  id: string
+  eventId: string
+  userId: string
+  parentId: string | null
+  content: string
+  likesCount: number
+  dislikesCount: number
+  repliesCount: number
+  createdAt: string
+  updatedAt: string
+  user: CommentUser
+  userVote: 'like' | 'dislike' | null
+  replies?: Comment[]
+}
+
 export interface Position {
   id: string
   marketId: string

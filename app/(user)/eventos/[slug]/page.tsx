@@ -19,6 +19,7 @@ import { ProbabilityChart } from '@/components/events/probability-chart'
 import { MultiProbabilityChart } from '@/components/events/multi-probability-chart'
 import { PlaceholderIcon } from '@/components/ui/placeholder-icon'
 import { ActivityFeed } from '@/components/events/activity-feed'
+import { DiscussionChat } from '@/components/events/discussion-chat'
 
 interface PageProps {
   params: Promise<{ slug: string }>
@@ -45,10 +46,12 @@ export default function EventDetailPage({ params }: PageProps) {
   const [isLoading, setIsLoading] = useState(true)
   const [selectedMarket, setSelectedMarket] = useState<Market | null>(null)
   const [selectedSide, setSelectedSide] = useState<'YES' | 'NO'>('YES')
+  const [mobileSheetOpen, setMobileSheetOpen] = useState(false)
   const [showFullRules, setShowFullRules] = useState(false)
   const [isFavorite, setIsFavorite] = useState(false)
   const [isFavoriteLoading, setIsFavoriteLoading] = useState(false)
   const [imageError, setImageError] = useState(false)
+  const [activeTab, setActiveTab] = useState<'activity' | 'chat'>('chat')
 
   const searchParams = useSearchParams()
 
@@ -74,6 +77,7 @@ export default function EventDetailPage({ params }: PageProps) {
           setSelectedMarket(defaultMarket)
           if (paramSide === 'YES' || paramSide === 'NO') {
             setSelectedSide(paramSide)
+            setMobileSheetOpen(true) // Open sheet only if explicitly linked to a side/market
           } else {
             setSelectedSide('YES')
           }
@@ -140,6 +144,7 @@ export default function EventDetailPage({ params }: PageProps) {
   const handleSelectPrediction = (market: Market, side: 'YES' | 'NO') => {
     setSelectedMarket(market)
     setSelectedSide(side)
+    setMobileSheetOpen(true)
   }
 
   const copyLink = () => {
@@ -254,37 +259,25 @@ export default function EventDetailPage({ params }: PageProps) {
           </div>
         </div>
 
-        {/* Mobile Header with Image */}
-        <div className="relative block h-[200px] lg:hidden -mx-4 md:-mx-6">
-          <div className="absolute top-1 flex w-full items-center justify-between p-2.5 z-10">
-            <Link
-              href="/eventos"
-              className="flex size-9 items-center justify-center rounded-full bg-white shadow-sm shadow-black/25"
-            >
-              <ChevronLeft className="size-5" />
-            </Link>
-          </div>
-          <div className="w-full h-full bg-muted flex items-center justify-center">
-            {event.imageUrl && !imageError ? (
-              <img
-                alt={event.title}
-                className="w-full h-full object-cover object-top"
-                src={event.imageUrl}
-                onError={() => setImageError(true)}
-              />
-            ) : (
-              <PlaceholderIcon size={120} />
-            )}
-          </div>
+        {/* Mobile Header (Back Button Only) */}
+        <div className="lg:hidden mt-4 flex items-center mb-2">
+          <Link
+            href="/eventos"
+            className="flex h-8 items-center justify-center rounded-lg bg-black/5 hover:bg-black/[8%] dark:bg-white/5 hover:dark:bg-white/[8%] px-3 transition-all duration-200"
+          >
+            <div className="flex items-center gap-x-1.5">
+              <ChevronLeft className="size-4" strokeWidth={2} />
+              <span className="text-xs font-medium dark:text-[#A1A7BB]">Voltar</span>
+            </div>
+          </Link>
         </div>
-
         {/* Badges Row */}
         <div className="hidden flex-wrap items-center gap-2 sm:gap-x-2 lg:flex mt-4">
           {/* Official Badge */}
           <div className="flex items-center gap-1 h-6 rounded bg-blue-500/10 text-blue-500 dark:text-white pr-2 pl-1">
             <svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
               <rect x="4" y="4" width="8" height="9" fill="white" />
-              <path d="M14.1163 6.42625C13.8806 6.18 13.6369 5.92625 13.545 5.70312C13.46 5.49875 13.455 5.16 13.45 4.83187C13.4406 4.22187 13.4306 3.53062 12.95 3.05C12.4694 2.56937 11.7781 2.55937 11.1681 2.55C10.84 2.545 10.5013 2.54 10.2969 2.455C10.0744 2.36312 9.82 2.11937 9.57375 1.88375C9.1425 1.46937 8.6525 1 8 1C7.3475 1 6.85812 1.46937 6.42625 1.88375C6.18 2.11937 5.92625 2.36312 5.70312 2.455C5.5 2.54 5.16 2.545 4.83187 2.55C4.22187 2.55937 3.53062 2.56937 3.05 3.05C2.56937 3.53062 2.5625 4.22187 2.55 4.83187C2.545 5.16 2.54 5.49875 2.455 5.70312C2.36312 5.92562 2.11937 6.18 1.88375 6.42625C1.46937 6.8575 1 7.3475 1 8C1 8.6525 1.46937 9.14187 1.88375 9.57375C2.11937 9.82 2.36312 10.0737 2.455 10.2969C2.54 10.5013 2.545 10.84 2.55 11.1681C2.55937 11.7781 2.56937 12.4694 3.05 12.95C3.53062 13.4306 4.22187 13.4406 4.83187 13.45C5.16 13.455 5.49875 13.46 5.70312 13.545C5.92562 13.6369 6.18 13.8806 6.42625 14.1163C6.8575 14.5306 7.3475 15 8 15C8.6525 15 9.14187 14.5306 9.57375 14.1163C9.82 13.8806 10.0737 13.6369 10.2969 13.545C10.5013 13.46 10.84 13.455 11.1681 13.45C11.7781 13.4406 12.4694 13.4306 12.95 12.95C13.4306 12.4694 13.4406 11.7781 13.45 11.1681C13.455 10.84 13.46 10.5013 13.545 10.2969C13.6369 10.0744 13.8806 9.82 14.1163 9.57375C14.5306 9.1425 15 8.6525 15 8C15 7.3475 14.5306 6.85812 14.1163 6.42625ZM10.8538 6.85375L7.35375 10.3538C7.30731 10.4002 7.25217 10.4371 7.19147 10.4623C7.13077 10.4874 7.06571 10.5004 7 10.5004C6.93429 10.5004 6.86923 10.4874 6.80853 10.4623C6.74783 10.4371 6.69269 10.4002 6.64625 10.3538L5.14625 8.85375C5.09979 8.8073 5.06294 8.75214 5.0378 8.69145C5.01266 8.63075 4.99972 8.5657 4.99972 8.5C4.99972 8.4343 5.01266 8.36925 5.0378 8.30855C5.06294 8.24786 5.09979 8.1927 5.14625 8.14625C5.24007 8.05243 5.36732 7.99972 5.5 7.99972C5.5657 7.99972 5.63075 8.01266 5.69145 8.0378C5.75214 8.06294 5.8073 8.09979 5.85375 8.14625L7 9.29313L10.1462 6.14625C10.1927 6.09979 10.2479 6.06294 10.3086 6.0378C10.3692 6.01266 10.4343 5.99972 10.5 5.99972C10.5657 5.99972 10.6308 6.01266 10.6914 6.0378C10.7521 6.06294 10.8073 6.09979 10.8538 6.14625C10.9002 6.1927 10.9371 6.24786 10.9622 6.30855C10.9873 6.36925 11.0003 6.4343 11.0003 6.5C11.0003 6.5657 10.9873 6.63075 10.9622 6.69145C10.9371 6.75214 10.9002 6.8073 10.8538 6.85375Z" fill="#0052FF" />
+              <path d="M14.1163 6.42625C13.8806 6.18 13.6369 5.92625 13.545 5.70312C13.46 5.49875 13.455 5.16 13.45 4.83187C13.4406 4.22187 13.4306 3.53062 12.95 3.05C12.4694 2.56937 11.7781 2.55937 11.1681 2.55C10.84 2.545 10.5013 2.54 10.2969 2.455C10.0744 2.36312 9.82 2.11937 9.57375 1.88375C9.1425 1.46937 1 7.3475 1 8C1 8.6525 1.46937 9.14187 1.88375 9.57375C2.11937 9.82 2.36312 10.0737 2.455 10.2969C2.54 10.5013 2.545 10.84 2.55 11.1681C2.55937 11.7781 2.56937 12.4694 3.05 12.95C3.53062 13.4306 4.22187 13.4406 4.83187 13.45C5.16 13.455 5.49875 13.46 5.70312 13.545C5.92562 13.6369 6.18 13.8806 6.42625 14.1163C6.8575 14.5306 7.3475 15 8 15C8.6525 15 9.14187 14.5306 9.57375 14.1163C9.82 13.8806 10.0737 13.6369 10.2969 13.545C10.5013 13.46 10.84 13.455 11.1681 13.45C11.7781 13.4406 12.4694 13.4306 12.95 12.95C13.4306 12.4694 13.4406 11.7781 13.45 11.1681C13.455 10.84 13.46 10.5013 13.545 10.2969C13.6369 10.0744 13.8806 9.82 14.1163 9.57375C14.5306 9.1425 15 8.6525 15 8C15 7.3475 14.5306 6.85812 14.1163 6.42625ZM10.8538 6.85375L7.35375 10.3538C7.30731 10.4002 7.25217 10.4371 7.19147 10.4623C7.13077 10.4874 7.06571 10.5004 7 10.5004C6.93429 10.5004 6.86923 10.4874 6.80853 10.4623C6.74783 10.4371 6.69269 10.4002 6.64625 10.3538L5.14625 8.85375C5.09979 8.8073 5.06294 8.75214 5.0378 8.69145C5.01266 8.63075 4.99972 8.5657 4.99972 8.5C4.99972 8.4343 5.01266 8.36925 5.0378 8.30855C5.06294 8.24786 5.09979 8.1927 5.14625 8.14625C5.24007 8.05243 5.36732 7.99972 5.5 7.99972C5.5657 7.99972 5.63075 8.01266 5.69145 8.0378C5.75214 8.06294 5.8073 8.09979 5.85375 8.14625L7 9.29313L10.1462 6.14625C10.1927 6.09979 10.2479 6.06294 10.3086 6.0378C10.3692 6.01266 10.4343 5.99972 10.5 5.99972C10.5657 5.99972 10.6308 6.01266 10.6914 6.0378C10.7521 6.06294 10.8073 6.09979 10.8538 6.14625C10.9002 6.1927 10.9371 6.24786 10.9622 6.30855C10.9873 6.36925 11.0003 6.4343 11.0003 6.5C11.0003 6.5657 10.9873 6.63075 10.9622 6.69145C10.9371 6.75214 10.9002 6.8073 10.8538 6.85375Z" fill="#0052FF" />
             </svg>
             <span className="text-xs font-medium">Oficial</span>
           </div>
@@ -330,14 +323,27 @@ export default function EventDetailPage({ params }: PageProps) {
           </div>
         </div>
 
-        {/* Mobile Title */}
-        <div className="lg:hidden mt-4">
-          <h1 className="text-center font-bold text-2xl dark:text-white">
+        {/* Mobile Title (Clean Top Section) */}
+        <div className="lg:hidden mt-4 mb-2 flex flex-col items-center">
+          {/* Event Image / Icon */}
+          <div className="size-16 sm:size-20 rounded-2xl overflow-hidden bg-muted flex items-center justify-center mb-3">
+            {event.imageUrl && !imageError ? (
+              <img
+                alt={event.title}
+                src={event.imageUrl}
+                className="size-full object-cover"
+                onError={() => setImageError(true)}
+              />
+            ) : (
+              <PlaceholderIcon size={64} />
+            )}
+          </div>
+          <h1 className="text-center font-bold text-xl sm:text-2xl dark:text-white px-2 mb-2 leading-tight">
             {event.title}
           </h1>
-          <div className="mt-3 flex flex-col items-center justify-center gap-3">
-            <span className="rounded-lg bg-black/5 dark:bg-white/5 px-3 py-[5px] text-sm font-medium dark:text-[#A1A7BB]">
-              1. Escolha sua previsão
+          <div className="flex flex-col items-center justify-center gap-2">
+            <span className="rounded-lg bg-black/5 dark:bg-white/5 px-3 py-1 text-xs sm:text-sm font-medium dark:text-[#A1A7BB]">
+              Escolha sua previsão
             </span>
           </div>
         </div>
@@ -537,7 +543,12 @@ export default function EventDetailPage({ params }: PageProps) {
         <div className="mb-6 mt-[30px] w-full rounded-xl">
           <p className="text-lg font-bold dark:text-white">Regras e Detalhes do Mercado</p>
           <p className={`mt-2 text-[14px] font-medium text-[#606E85] dark:text-[#A1A7BB] ${!showFullRules ? 'line-clamp-2' : ''}`}>
-            {event.resolveRules}
+            {event.resolveRules?.split(/\/n\/|\n/).map((line, i) => (
+              <span key={i}>
+                {line}
+                <br />
+              </span>
+            ))}
           </p>
           <button
             onClick={() => setShowFullRules(!showFullRules)}
@@ -548,19 +559,46 @@ export default function EventDetailPage({ params }: PageProps) {
           </button>
         </div>
 
-        {/* Activity Section */}
+        {/* Activity / Chat Section */}
         <div className="mt-7 w-full lg:mt-0 lg:block mb-10">
           <div className="relative mx-auto w-full pb-10 lg:pb-0">
             <div className="relative flex items-baseline mx-auto mb-0 w-full gap-x-4 lg:mt-10 lg:px-0">
-              <button className="relative outline-0 py-3 dark:text-white flex pb-5 px-0 items-center justify-center font-bold h-7 text-xl whitespace-nowrap w-fit">
+              <button
+                onClick={() => setActiveTab('chat')}
+                className={`relative outline-0 py-3 flex pb-5 px-0 items-center justify-center font-bold h-7 text-xl whitespace-nowrap w-fit transition-colors ${activeTab === 'chat'
+                  ? 'dark:text-white text-foreground'
+                  : 'text-[#606E85] dark:text-[#A1A7BB] hover:text-foreground dark:hover:text-white'
+                  }`}
+              >
+                <span className="relative flex items-center">
+                  <span className="flex items-center">Chat</span>
+                  {activeTab === 'chat' && (
+                    <span className="absolute -bottom-1 left-0 right-0 h-[2px] bg-foreground dark:bg-white rounded-full" />
+                  )}
+                </span>
+              </button>
+              <button
+                onClick={() => setActiveTab('activity')}
+                className={`relative outline-0 py-3 flex pb-5 px-0 items-center justify-center font-bold h-7 text-xl whitespace-nowrap w-fit transition-colors ${activeTab === 'activity'
+                  ? 'dark:text-white text-foreground'
+                  : 'text-[#606E85] dark:text-[#A1A7BB] hover:text-foreground dark:hover:text-white'
+                  }`}
+              >
                 <span className="relative flex items-center">
                   <span className="flex items-center">Atividade</span>
+                  {activeTab === 'activity' && (
+                    <span className="absolute -bottom-1 left-0 right-0 h-[2px] bg-foreground dark:bg-white rounded-full" />
+                  )}
                 </span>
               </button>
             </div>
 
             <div className="mt-2 w-full lg:pb-20">
-              <ActivityFeed eventId={event.id} />
+              {activeTab === 'activity' ? (
+                <ActivityFeed eventId={event.id} />
+              ) : (
+                <DiscussionChat eventId={event.id} />
+              )}
             </div>
           </div>
         </div>
@@ -583,8 +621,8 @@ export default function EventDetailPage({ params }: PageProps) {
       <MobilePredictionSheet
         market={selectedMarket}
         side={selectedSide}
-        open={!!selectedMarket}
-        onClose={() => setSelectedMarket(null)}
+        open={mobileSheetOpen && !!selectedMarket}
+        onClose={() => setMobileSheetOpen(false)}
         onSuccess={(updatedMarket) => {
           handleMarketUpdate(updatedMarket)
         }}

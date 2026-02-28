@@ -42,8 +42,9 @@ const PERIODS: { value: Period; label: string }[] = [
 
 const CHART_GREEN = '#22c55e'
 const CHART_GREEN_DIM = 'rgba(34, 197, 94, 0.08)'
-const GRID_COLOR = 'rgba(255, 255, 255, 0.08)'
-const AXIS_COLOR = 'rgba(255, 255, 255, 0.4)'
+// Use CSS currentColor for theme-aware svg lines
+const GRID_COLOR = 'currentColor'
+const AXIS_COLOR = 'currentColor'
 
 // Calculate the change from the first data point to the last
 function calcChange(data: HistoryPoint[]): { value: number; positive: boolean } {
@@ -81,10 +82,10 @@ function ChartTooltip({ active, payload, period }: any) {
     const formattedDate = format(date, "dd 'de' MMM, HH:mm", { locale: ptBR })
 
     return (
-        <div className="rounded-lg border border-white/10 bg-zinc-900/95 px-3 py-2 shadow-xl backdrop-blur-sm">
-            <p className="text-xs text-zinc-400">{formattedDate}</p>
-            <p className="mt-0.5 text-sm font-semibold text-white">
-                Sim: <span className="text-green-400">{data.probYes.toFixed(1)}%</span>
+        <div className="rounded-lg border border-border/40 bg-background/95 px-3 py-2 shadow-xl backdrop-blur-sm">
+            <p className="text-xs text-muted-foreground">{formattedDate}</p>
+            <p className="mt-0.5 text-sm font-semibold text-foreground">
+                Sim: <span className="text-[#22c55e]">{data.probYes.toFixed(1)}%</span>
             </p>
         </div>
     )
@@ -112,6 +113,14 @@ export function ProbabilityChart({
     const [data, setData] = useState<HistoryPoint[]>([])
     const [loading, setLoading] = useState(true)
     const [error, setError] = useState(false)
+    const [isMobile, setIsMobile] = useState(false)
+
+    useEffect(() => {
+        const checkMobile = () => setIsMobile(window.innerWidth < 1024)
+        checkMobile()
+        window.addEventListener('resize', checkMobile)
+        return () => window.removeEventListener('resize', checkMobile)
+    }, [])
 
     // Fetch data when period changes
     useEffect(() => {
@@ -284,7 +293,7 @@ export function ProbabilityChart({
                 <ResponsiveContainer width="100%" height="100%">
                     <AreaChart
                         data={data}
-                        margin={{ top: 10, right: 45, left: 0, bottom: 5 }}
+                        margin={{ top: 10, right: isMobile ? 0 : 45, left: 0, bottom: 5 }}
                     >
                         <defs>
                             <linearGradient id={`chartGrad-${marketId}`} x1="0" y1="0" x2="0" y2="1">
@@ -299,38 +308,45 @@ export function ProbabilityChart({
                                 key={val}
                                 y={val}
                                 stroke={GRID_COLOR}
+                                strokeOpacity={0.15}
                                 strokeDasharray="3 3"
+                                className="text-foreground"
                             />
                         ))}
 
                         <XAxis
                             dataKey="timestamp"
                             tickFormatter={(t) => formatXDate(t, period)}
-                            tick={{ fill: AXIS_COLOR, fontSize: 11 }}
+                            tick={{ fill: AXIS_COLOR, fontSize: 11, opacity: 0.6 }}
                             axisLine={false}
                             tickLine={false}
                             tickMargin={8}
                             minTickGap={40}
+                            className="text-foreground"
                         />
 
                         <YAxis
+                            hide={isMobile}
                             domain={yDomain as [number, number]}
                             orientation="right"
-                            tick={{ fill: AXIS_COLOR, fontSize: 11 }}
+                            tick={{ fill: AXIS_COLOR, fontSize: 11, opacity: 0.6 }}
                             tickFormatter={(v) => `${v}%`}
                             axisLine={false}
                             tickLine={false}
                             tickMargin={8}
                             ticks={gridLines}
+                            className="text-foreground"
                         />
 
                         <Tooltip
                             content={<ChartTooltip period={period} />}
                             cursor={{
-                                stroke: 'rgba(255,255,255,0.2)',
+                                stroke: 'currentColor',
+                                strokeOpacity: 0.15,
                                 strokeWidth: 1,
                                 strokeDasharray: '4 4',
                             }}
+                            wrapperClassName="text-foreground"
                         />
 
                         <Area

@@ -105,9 +105,9 @@ export function MarketCardTriad({
 
                     {/* Yes/No Buttons */}
                     <div className="w-full flex items-center justify-center mt-3">
-                        <div className="flex items-center justify-end gap-x-2.5 max-sm:w-full lg:w-full lg:justify-center">
+                        <div className="flex w-full items-start justify-center gap-x-3 sm:gap-x-4">
                             {/* Yes Button */}
-                            <div className="flex w-full flex-col items-center justify-center">
+                            <div className="flex flex-1 flex-col items-center justify-center">
                                 <button
                                     disabled={!isMarketOpen}
                                     onClick={(e) => {
@@ -134,7 +134,7 @@ export function MarketCardTriad({
                                     </div>
                                 </button>
                                 <div className="mt-[6px] flex w-full justify-center">
-                                    <div className="flex items-center gap-x-1 text-sm font-semibold dark:text-white">
+                                    <div className="flex items-center gap-1.5 text-[12px] sm:text-xs lg:text-sm font-semibold dark:text-white whitespace-nowrap">
                                         <span>R${defaultAmount}</span>
                                         <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                                             <path d="M5 12h14" />
@@ -146,7 +146,7 @@ export function MarketCardTriad({
                             </div>
 
                             {/* No Button */}
-                            <div className="flex w-full flex-col items-center justify-center">
+                            <div className="flex flex-1 flex-col items-center justify-center">
                                 <button
                                     disabled={!isMarketOpen}
                                     onClick={(e) => {
@@ -174,7 +174,7 @@ export function MarketCardTriad({
                                     </div>
                                 </button>
                                 <div className="mt-[6px] flex w-full justify-center">
-                                    <div className="flex items-center gap-x-1 text-sm font-semibold dark:text-white">
+                                    <div className="flex items-center gap-1.5 text-[12px] sm:text-xs lg:text-sm font-semibold dark:text-white whitespace-nowrap">
                                         <span>R${defaultAmount}</span>
                                         <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                                             <path d="M5 12h14" />

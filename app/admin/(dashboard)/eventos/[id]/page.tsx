@@ -534,7 +534,7 @@ export default function AdminEventDetailsPage() {
                                                     </div>
                                                     <div className="space-y-2">
                                                         <Label>Regras de Resolução</Label>
-                                                        <Textarea rows={2} value={editMarketData.resolveRules} onChange={e => setEditMarketData({ ...editMarketData, resolveRules: e.target.value })} />
+                                                        <Textarea rows={2} value={editMarketData.resolveRules} onChange={e => setEditMarketData({ ...editMarketData, resolveRules: e.target.value })} className="whitespace-pre-wrap" />
                                                     </div>
                                                     <div className="space-y-2">
                                                         <Label>Imagem do Mercado</Label>
@@ -644,7 +644,7 @@ export default function AdminEventDetailsPage() {
                                             </div>
                                             <div className="space-y-2">
                                                 <Label htmlFor="resolveRules">Regras de Resolução</Label>
-                                                <Textarea id="resolveRules" required value={editEventData.resolveRules} onChange={e => setEditEventData({ ...editEventData, resolveRules: e.target.value })} />
+                                                <Textarea id="resolveRules" required value={editEventData.resolveRules} onChange={e => setEditEventData({ ...editEventData, resolveRules: e.target.value })} className="whitespace-pre-wrap" />
                                             </div>
                                         </div>
                                         <DialogFooter>

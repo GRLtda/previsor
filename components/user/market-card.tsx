@@ -1,5 +1,6 @@
 'use client'
 
+import { useState, useEffect } from 'react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
@@ -9,6 +10,7 @@ import { format } from 'date-fns'
 import { ptBR } from 'date-fns/locale'
 import { StatusBadge } from '@/components/shared/status-badge'
 import { marketEngine } from '@/lib/market-engine'
+import { useMarketRealTime } from '@/hooks/use-market-ws'
 
 interface MarketCardProps {
   market: Market
@@ -16,7 +18,27 @@ interface MarketCardProps {
   showEvent?: boolean
 }
 
-export function MarketCard({ market, onOpenPosition, showEvent = false }: MarketCardProps) {
+export function MarketCard({ market: initialMarket, onOpenPosition, showEvent = false }: MarketCardProps) {
+  const [market, setMarket] = useState(initialMarket)
+
+  useEffect(() => {
+    setMarket(initialMarket)
+  }, [initialMarket])
+
+  useMarketRealTime(market.id, (data) => {
+    if (data.marketId === market.id) {
+      setMarket(prev => ({
+        ...prev,
+        probYes: data.probYes ?? prev.probYes,
+        probNo: data.probNo ?? prev.probNo,
+        status: data.status ?? prev.status,
+        qYes: data.qYes ?? prev.qYes,
+        qNo: data.qNo ?? prev.qNo,
+        liquidityB: data.liquidityB ?? prev.liquidityB,
+      }))
+    }
+  })
+
   const isOpen = market.status === 'open'
   const isSettled = market.status === 'settled'
 

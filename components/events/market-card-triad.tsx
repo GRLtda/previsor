@@ -1,8 +1,9 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import type { Market } from '@/lib/types'
 import { cn } from '@/lib/utils'
+import { useMarketRealTime } from '@/hooks/use-market-ws'
 
 interface MarketCardTriadProps {
     market: Market
@@ -27,11 +28,31 @@ function calcReturn(amount: number, prob: number): string {
 }
 
 export function MarketCardTriad({
-    market,
+    market: initialMarket,
     onYesClick,
     onNoClick,
     defaultAmount = 50
 }: MarketCardTriadProps) {
+    const [market, setMarket] = useState(initialMarket)
+
+    useEffect(() => {
+        setMarket(initialMarket)
+    }, [initialMarket])
+
+    useMarketRealTime(market.id, (data) => {
+        if (data.marketId === market.id) {
+            setMarket(prev => ({
+                ...prev,
+                probYes: data.probYes ?? prev.probYes,
+                probNo: data.probNo ?? prev.probNo,
+                status: data.status ?? prev.status,
+                qYes: data.qYes ?? prev.qYes,
+                qNo: data.qNo ?? prev.qNo,
+                liquidityB: data.liquidityB ?? prev.liquidityB,
+            }))
+        }
+    })
+
     const yesPercent = Math.round(market.probYes)
     const noPercent = 100 - yesPercent
     const yesMultiplier = calcMultiplier(market.probYes)

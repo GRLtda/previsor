@@ -288,7 +288,7 @@ export function UserHeader() {
                         <div className="flex flex-col px-1 pt-1.5 pb-1.5">
                           {/* Perfil */}
                           <DropdownMenuItem
-                            onClick={() => router.push(`/u/${user?.id}`)}
+                            onClick={() => router.push(`/profile/${user?.id}`)}
                             className="flex h-12 w-full items-center gap-2 rounded-lg px-4 text-sm font-medium text-black dark:text-white cursor-pointer hover:bg-black/5 dark:hover:bg-white/10"
                           >
                             <svg width="20" height="20" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg" className="size-5">

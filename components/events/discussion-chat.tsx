@@ -166,7 +166,7 @@ function CommentItem({
         <div className="border-b border-black/5 dark:border-white/5 py-4">
             <div className="flex gap-3">
                 {/* Avatar */}
-                <Link href={`/u/${comment.userId}`} className="flex size-[36px] min-w-[36px] items-center justify-center rounded-full bg-black/10 dark:bg-white/10 overflow-hidden hover:ring-2 hover:ring-blue-500/50 transition-all">
+                <Link href={`/profile/${comment.userId}`} className="flex size-[36px] min-w-[36px] items-center justify-center rounded-full bg-black/10 dark:bg-white/10 overflow-hidden hover:ring-2 hover:ring-blue-500/50 transition-all">
                     {comment.user.avatarUrl ? (
                         <img src={comment.user.avatarUrl} alt={comment.user.firstName} className="size-full object-cover" />
                     ) : (
@@ -178,7 +178,7 @@ function CommentItem({
                     {/* Header */}
                     <div className="flex items-center justify-between">
                         <div className="flex items-center gap-2">
-                            <Link href={`/u/${comment.userId}`} className="text-[13px] font-semibold dark:text-white hover:text-blue-500 dark:hover:text-blue-400 transition-colors">{comment.user.firstName}</Link>
+                            <Link href={`/profile/${comment.userId}`} className="text-[13px] font-semibold dark:text-white hover:text-blue-500 dark:hover:text-blue-400 transition-colors">{comment.user.firstName}</Link>
                             <span className="text-[11px] text-[#606E85] dark:text-[#A1A7BB]">{timeAgo(comment.createdAt)}</span>
                         </div>
                         {isOwner && (

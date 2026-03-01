@@ -1,16 +1,16 @@
 'use client'
 
-import { useState, useEffect, useCallback, useMemo, useRef } from 'react'
-import { useParams } from 'next/navigation'
+import { useState, useEffect, useCallback, useMemo } from 'react'
 import { useAuth } from '@/contexts/auth-context'
 import { userApi } from '@/lib/api/client'
 import { Skeleton } from '@/components/ui/skeleton'
 import Link from 'next/link'
 import { cn } from '@/lib/utils'
 import { Logo } from '@/components/ui/logo'
-import { Copy, Edit3, LogOut, Settings, ArrowUpRight, Instagram } from 'lucide-react'
+import { Copy, Edit3, ArrowUpRight, Instagram } from 'lucide-react'
 import { ProfilePositions } from '@/components/profile/profile-positions'
 import type { Position } from '@/lib/types'
+
 const Odometer = ({ value }: { value: number }) => {
     const formatted = (value / 100).toFixed(2).split('.')
     const integerPart = formatted[0]
@@ -30,10 +30,12 @@ const Odometer = ({ value }: { value: number }) => {
     )
 }
 
-export default function PublicProfilePage() {
-    const params = useParams()
-    const username = params.username as string
-    const { user, isAuthenticated, logout } = useAuth()
+interface PublicProfileProps {
+    identifier: string; // This can be either a user ID or a nickname
+}
+
+export function PublicProfile({ identifier }: PublicProfileProps) {
+    const { user, isAuthenticated } = useAuth()
 
     const [isLoading, setIsLoading] = useState(true)
     const [positions, setPositions] = useState<Position[]>([])
@@ -53,6 +55,7 @@ export default function PublicProfilePage() {
         }
         return positions
     }, [positions, viewMode, selectedCategory])
+
     const [stats, setStats] = useState({
         portfolioValue: 0,
         profitLoss: 0,
@@ -63,12 +66,16 @@ export default function PublicProfilePage() {
         openPositions: 0
     })
 
-    const isOwner = isAuthenticated && user?.id === username
+    const isOwner = Boolean(isAuthenticated && user && (
+        user.id === identifier ||
+        (user.nickname && identifier === `@${user.nickname}`)
+    ))
 
     const [profileData, setProfileData] = useState({
-        username,
-        displayName: username.slice(0, 4) + '...' + username.slice(-4),
-        walletAddress: username,
+        userId: identifier,
+        nickname: null as string | null,
+        displayName: identifier.slice(0, 4) + '...' + identifier.slice(-4),
+        walletAddress: identifier,
         joinedAt: new Date().toISOString(),
         avatarUrl: null as string | null,
         bio: null as string | null,
@@ -79,13 +86,15 @@ export default function PublicProfilePage() {
     const fetchProfileData = useCallback(async () => {
         setIsLoading(true)
         try {
-            const response = await userApi.getPublicProfile(username, { limit: 100 })
+            const response = await userApi.getPublicProfile(identifier, { limit: 100 })
             const data = response.data
 
             setProfileData({
-                username,
-                displayName: data.full_name || username.slice(0, 4) + '...' + username.slice(-4),
-                walletAddress: username,
+                userId: data.userId || identifier,
+                nickname: data.nickname ?? null,
+                // If it has nickname display it, fallback to full_name or short ID
+                displayName: data.nickname ? `@${data.nickname}` : (data.full_name || (data.userId || identifier).slice(0, 4) + '...' + (data.userId || identifier).slice(-4)),
+                walletAddress: data.userId || identifier,
                 joinedAt: data.created_at,
                 avatarUrl: data.avatar_url ?? null,
                 bio: data.bio ?? null,
@@ -107,7 +116,7 @@ export default function PublicProfilePage() {
         } finally {
             setIsLoading(false)
         }
-    }, [username])
+    }, [identifier])
 
     useEffect(() => {
         fetchProfileData()
@@ -307,7 +316,7 @@ export default function PublicProfilePage() {
                                     />
                                 ) : (
                                     <span className="text-5xl font-bold text-white">
-                                        {profileData.displayName.charAt(0).toUpperCase()}
+                                        {profileData.displayName.charAt(1) === '@' ? profileData.displayName.charAt(1).toUpperCase() : profileData.displayName.charAt(0).toUpperCase()}
                                     </span>
                                 )}
                             </div>
@@ -325,9 +334,9 @@ export default function PublicProfilePage() {
                     <div className="mb-6 flex flex-col items-center lg:items-start w-full">
                         <div className="flex items-center gap-2 mb-2">
                             <h1 className="text-2xl font-bold text-black dark:text-white">
-                                {truncateAddress(profileData.displayName)}
+                                {profileData.nickname ? `@${profileData.nickname}` : truncateAddress(profileData.displayName)}
                             </h1>
-                            {username === '7a73f723-8c13-44db-914d-f772af04e9cb' && (
+                            {profileData.userId === '7a73f723-8c13-44db-914d-f772af04e9cb' && (
                                 <span className="inline-flex items-center gap-1 rounded-md bg-blue-500/15 px-2 py-0.5 text-[11px] font-semibold text-blue-500 dark:text-blue-400">
                                     <svg className="size-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
                                         <polyline points="16 18 22 12 16 6" />
@@ -347,7 +356,7 @@ export default function PublicProfilePage() {
                             </button>
                             {isOwner && (
                                 <Link
-                                    href={`/u/${username}/edit`}
+                                    href={`/profile/edit`}
                                     className="flex h-7 items-center justify-center gap-1.5 rounded-full bg-black/5 px-3 text-[13px] font-medium text-muted-foreground transition-all hover:bg-black/10 dark:bg-white/5 dark:hover:bg-white/10"
                                 >
                                     <Edit3 className="size-3.5" />

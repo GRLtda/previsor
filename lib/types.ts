@@ -37,6 +37,7 @@ export interface AuthTokens {
 export interface User {
   id: string
   email: string
+  nickname: string | null
   phone: string
   full_name: string | null
   bio: string | null

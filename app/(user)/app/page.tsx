@@ -173,7 +173,7 @@ export default function AppDashboardPage() {
             </CardTitle>
             <CardDescription>Suas ultimas posicoes abertas</CardDescription>
           </div>
-          <Link href={`/u/${user?.id}`}>
+          <Link href={`/profile/${user?.id}`}>
             <Button variant="ghost" size="sm">
               Ver Todas
               <ArrowRight className="h-4 w-4 ml-1" />

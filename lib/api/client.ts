@@ -331,7 +331,7 @@ export const userApi = {
       '/v1/me'
     ),
 
-  updateMe: (data: { full_name?: string; phone?: string; bio?: string | null; twitter_username?: string | null; instagram_username?: string | null; preferences?: { notifications?: boolean; theme?: string } }) =>
+  updateMe: (data: { full_name?: string; nickname?: string | null; phone?: string; bio?: string | null; twitter_username?: string | null; instagram_username?: string | null; preferences?: { notifications?: boolean; theme?: string } }) =>
     baseFetch<{ success: true; data: { updated: boolean } }>(
       'user',
       '/v1/me',
@@ -344,6 +344,7 @@ export const userApi = {
       success: true
       data: {
         userId: string
+        nickname?: string | null
         full_name?: string | null
         bio?: string | null
         twitter_username?: string | null

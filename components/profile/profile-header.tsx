@@ -129,7 +129,7 @@ export function ProfileHeader({
 
                             {/* Edit Button (only for owner) */}
                             {isOwner && (
-                                <Link href={`/u/${username}/edit`}>
+                                <Link href="/profile/edit">
                                     <Button variant="outline" size="sm" className="gap-2">
                                         <Edit className="h-4 w-4" />
                                         Editar

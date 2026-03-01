@@ -129,39 +129,85 @@ export default function PublicProfilePage() {
                 ctx.drawImage(img, 0, 0, size, size)
                 const imageData = ctx.getImageData(0, 0, size, size).data
 
-                // Sample colors from regions
-                const colors: [number, number, number][] = []
-                const step = 4 * 8 // every 8th pixel
-                for (let i = 0; i < imageData.length; i += step) {
-                    const r = imageData[i], g = imageData[i + 1], b = imageData[i + 2]
-                    // Skip very dark or very light pixels
-                    const brightness = (r + g + b) / 3
-                    if (brightness > 30 && brightness < 225) {
-                        colors.push([r, g, b])
-                    }
-                }
-
-                if (colors.length < 3) return
-
-                // Simple k-means-like: pick 3 spread colors
-                const sorted = colors.sort((a, b) => (a[0] * 2 + a[1] * 3 + a[2]) - (b[0] * 2 + b[1] * 3 + b[2]))
-                const c1 = sorted[Math.floor(sorted.length * 0.15)]
-                const c2 = sorted[Math.floor(sorted.length * 0.5)]
-                const c3 = sorted[Math.floor(sorted.length * 0.85)]
-
-                // Boost saturation slightly for vibrancy
-                const boost = ([r, g, b]: [number, number, number]): string => {
+                const rgbToHsl = (r: number, g: number, b: number): [number, number, number] => {
+                    r /= 255; g /= 255; b /= 255
                     const max = Math.max(r, g, b), min = Math.min(r, g, b)
-                    const mid = (max + min) / 2
-                    const factor = 1.3
-                    const nr = Math.min(255, Math.round(mid + (r - mid) * factor))
-                    const ng = Math.min(255, Math.round(mid + (g - mid) * factor))
-                    const nb = Math.min(255, Math.round(mid + (b - mid) * factor))
-                    return `rgb(${nr}, ${ng}, ${nb})`
+                    const l = (max + min) / 2
+                    if (max === min) return [0, 0, l]
+                    const d = max - min
+                    const s = l > 0.5 ? d / (2 - max - min) : d / (max + min)
+                    let h = 0
+                    if (max === r) h = ((g - b) / d + (g < b ? 6 : 0)) / 6
+                    else if (max === g) h = ((b - r) / d + 2) / 6
+                    else h = ((r - g) / d + 4) / 6
+                    return [h * 360, s, l]
                 }
 
-                setDominantColors([boost(c1), boost(c2), boost(c3)])
-            } catch (e) {
+                const hslToRgb = (h: number, s: number, l: number): string => {
+                    h /= 360
+                    const hue2rgb = (p: number, q: number, t: number) => {
+                        if (t < 0) t += 1; if (t > 1) t -= 1
+                        if (t < 1 / 6) return p + (q - p) * 6 * t
+                        if (t < 1 / 2) return q
+                        if (t < 2 / 3) return p + (q - p) * (2 / 3 - t) * 6
+                        return p
+                    }
+                    if (s === 0) {
+                        const v = Math.round(l * 255)
+                        return `rgb(${v}, ${v}, ${v})`
+                    }
+                    const q = l < 0.5 ? l * (1 + s) : l + s - l * s
+                    const p = 2 * l - q
+                    const r = Math.round(hue2rgb(p, q, h + 1 / 3) * 255)
+                    const g = Math.round(hue2rgb(p, q, h) * 255)
+                    const b = Math.round(hue2rgb(p, q, h - 1 / 3) * 255)
+                    return `rgb(${r}, ${g}, ${b})`
+                }
+
+                const pixels: { h: number; s: number; l: number }[] = []
+                for (let i = 0; i < imageData.length; i += 4 * 4) {
+                    const r = imageData[i], g = imageData[i + 1], b = imageData[i + 2]
+                    const [h, s, l] = rgbToHsl(r, g, b)
+                    if (l > 0.08 && l < 0.92) pixels.push({ h, s, l })
+                }
+
+                if (pixels.length < 3) return
+
+                const saturated = pixels.filter(p => p.s > 0.15).sort((a, b) => b.s - a.s)
+                let finalColors: string[]
+
+                if (saturated.length >= 3) {
+                    const buckets: typeof pixels[] = Array.from({ length: 6 }, () => [])
+                    saturated.forEach(p => buckets[Math.floor(p.h / 60) % 6].push(p))
+
+                    const ranked = buckets.filter(b => b.length > 0).sort((a, b) => b.length - a.length)
+                    const picked: string[] = []
+                    for (const bucket of ranked) {
+                        if (picked.length >= 3) break
+                        const best = bucket[0]
+                        picked.push(hslToRgb(best.h, Math.min(1, best.s * 1.4), Math.max(0.35, Math.min(0.65, best.l))))
+                    }
+                    while (picked.length < 3) {
+                        const base = saturated[0]
+                        const shift = picked.length === 1 ? 120 : 240
+                        picked.push(hslToRgb((base.h + shift) % 360, Math.min(1, base.s * 1.3), Math.max(0.35, Math.min(0.65, base.l))))
+                    }
+                    finalColors = picked
+                } else {
+                    const sorted = pixels.sort((a, b) => b.l - a.l)
+                    const base = sorted[Math.floor(sorted.length * 0.3)]
+                    const baseH = base.h || 220
+                    const baseS = Math.max(0.4, base.s * 2)
+                    const baseL = Math.max(0.4, Math.min(0.6, base.l))
+                    finalColors = [
+                        hslToRgb(baseH, baseS, baseL),
+                        hslToRgb((baseH + 120) % 360, baseS * 0.8, baseL),
+                        hslToRgb((baseH + 240) % 360, baseS * 0.6, baseL + 0.1),
+                    ]
+                }
+
+                setDominantColors(finalColors)
+            } catch {
                 // CORS or canvas error, keep defaults
             }
         }
@@ -224,7 +270,7 @@ export default function PublicProfilePage() {
         <div className="relative flex size-full justify-center px-3 pb-16 pt-[20px] overflow-hidden">
             {/* Dynamic background glow from avatar colors */}
             <div
-                className="pointer-events-none absolute inset-0 opacity-[0.07] dark:opacity-[0.12] transition-opacity duration-1000"
+                className="pointer-events-none absolute inset-0 opacity-[0.03] dark:opacity-[0.10] transition-opacity duration-1000"
                 style={{
                     background: `
                         radial-gradient(ellipse 600px 500px at 15% 10%, ${dominantColors[0]}, transparent 70%),
@@ -277,9 +323,20 @@ export default function PublicProfilePage() {
 
                     {/* Username & Wallet */}
                     <div className="mb-6 flex flex-col items-center lg:items-start w-full">
-                        <h1 className="text-2xl font-bold text-black dark:text-white mb-2">
-                            {truncateAddress(profileData.displayName)}
-                        </h1>
+                        <div className="flex items-center gap-2 mb-2">
+                            <h1 className="text-2xl font-bold text-black dark:text-white">
+                                {truncateAddress(profileData.displayName)}
+                            </h1>
+                            {username === '7a73f723-8c13-44db-914d-f772af04e9cb' && (
+                                <span className="inline-flex items-center gap-1 rounded-md bg-blue-500/15 px-2 py-0.5 text-[11px] font-semibold text-blue-500 dark:text-blue-400">
+                                    <svg className="size-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                                        <polyline points="16 18 22 12 16 6" />
+                                        <polyline points="8 6 2 12 8 18" />
+                                    </svg>
+                                    Dev
+                                </span>
+                            )}
+                        </div>
                         <div className="flex items-center gap-2">
                             <button
                                 onClick={handleCopyAddress}
@@ -335,24 +392,6 @@ export default function PublicProfilePage() {
                         </div>
                     )}
 
-                    {/* Bottom Actions (Only for owner) */}
-                    {isOwner && (
-                        <div className="flex w-full items-center justify-between mt-auto">
-                            <Link
-                                href="/perfil"
-                                className="flex size-9 items-center justify-center rounded-full bg-black/5 text-muted-foreground transition-colors hover:bg-black/10 dark:bg-white/5 dark:hover:bg-white/10"
-                            >
-                                <Settings className="size-4" />
-                            </Link>
-                            <button
-                                onClick={logout}
-                                className="flex h-9 items-center justify-center gap-2 rounded-full border border-border px-4 text-sm font-medium text-muted-foreground transition-colors hover:bg-muted/50"
-                            >
-                                <LogOut className="size-4" />
-                                Desconectar
-                            </button>
-                        </div>
-                    )}
                 </aside>
 
                 {/* Right Content */}

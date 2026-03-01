@@ -51,7 +51,7 @@ export function AuthModal({ isOpen, onOpenChange, defaultView = 'LOGIN', resetTo
             <DialogContent className="sm:max-w-[420px] w-full h-[100dvh] sm:h-auto p-0 gap-0 bg-background border-none sm:border border-border shadow-2xl duration-200 flex flex-col rounded-none sm:rounded-2xl top-0 left-0 translate-x-0 translate-y-0 max-w-full sm:top-[50%] sm:left-[50%] sm:-translate-x-1/2 sm:-translate-y-1/2" showCloseButton={true}>
                 <DialogTitle className="sr-only">Autenticação</DialogTitle>
 
-                <div className="flex-1 overflow-y-auto p-6 sm:p-10 flex flex-col justify-center sm:block pt-12 sm:pt-10">
+                <div className="flex-1 overflow-y-auto p-5 sm:p-6 sm:pb-8 flex flex-col justify-center sm:block pt-12 sm:pt-8">
                     <AnimatePresence mode="wait">
                         <motion.div
                             key={view}

@@ -14,8 +14,6 @@ type TransactionItem = {
   description: string
 }
 import { useAuth } from '@/contexts/auth-context'
-import { Label } from '@/components/ui/label'
-import { Input } from '@/components/ui/input'
 import {
   Select,
   SelectContent,
@@ -23,15 +21,9 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogHeader,
-  DialogTitle,
-} from '@/components/ui/dialog'
 import { Skeleton } from '@/components/ui/skeleton'
 import { DepositModal } from '@/components/wallet/deposit-modal'
+import { WithdrawModal } from '@/components/wallet/withdraw-modal'
 import { toast } from 'sonner'
 import { AlertCircle, Search, Share, Eye, EyeOff, History, ArrowUpRight, ArrowDownLeft, ExternalLink } from 'lucide-react'
 import { Logo } from '@/components/ui/logo'
@@ -53,10 +45,6 @@ function WalletPageContent() {
 
   const [depositModalOpen, setDepositModalOpen] = useState(false)
   const [withdrawModalOpen, setWithdrawModalOpen] = useState(false)
-  const [withdrawAmount, setWithdrawAmount] = useState('')
-  const [pixKeyType, setPixKeyType] = useState('')
-  const [pixKeyValue, setPixKeyValue] = useState('')
-  const [isCreatingWithdraw, setIsCreatingWithdraw] = useState(false)
 
   // Pagination states
   const [currentPageActivities, setCurrentPageActivities] = useState(1)
@@ -132,36 +120,6 @@ function WalletPageContent() {
       setIsLoading(false)
     }
   }, [isOtpVerified, fetchData])
-
-  const handleCreateWithdraw = async () => {
-    const amountCents = Math.round(Number.parseFloat(withdrawAmount) * 100)
-    if (amountCents < 1000) {
-      toast.error('Valor mínimo: R$ 10,00')
-      return
-    }
-    if (!pixKeyType || !pixKeyValue) {
-      toast.error('Preencha a sua chave PIX')
-      return
-    }
-
-    setIsCreatingWithdraw(true)
-    try {
-      await userApi.createWithdrawal(amountCents, pixKeyType, pixKeyValue)
-      toast.success('Saque solicitado com sucesso!')
-      setWithdrawModalOpen(false)
-      setWithdrawAmount('')
-      setPixKeyType('')
-      setPixKeyValue('')
-      fetchData()
-      refreshUser()
-    } catch (err) {
-      if (err instanceof ApiClientError) {
-        toast.error(err.message)
-      }
-    } finally {
-      setIsCreatingWithdraw(false)
-    }
-  }
 
   const handleClosePosition = async (positionId: string) => {
     try {
@@ -529,86 +487,16 @@ function WalletPageContent() {
         }}
       />
 
-      <Dialog open={withdrawModalOpen} onOpenChange={setWithdrawModalOpen}>
-        <DialogContent className="sm:max-w-md">
-          <DialogHeader>
-            <DialogTitle>Sacar via PIX</DialogTitle>
-            <DialogDescription>Informe o valor e a chave PIX para receber</DialogDescription>
-          </DialogHeader>
-
-          <div className="space-y-4 py-4">
-            <div className="space-y-2">
-              <Label>Valor (R$)</Label>
-              <Input
-                type="number"
-                placeholder="0.00"
-                value={withdrawAmount}
-                onChange={(e) => setWithdrawAmount(e.target.value)}
-                min="10"
-                step="0.01"
-              />
-              <p className="text-xs text-muted-foreground">
-                Mínimo: R$ 10,00 | Disponível: {wallet?.balance_formatted}
-              </p>
-            </div>
-
-            <div className="space-y-2">
-              <Label>Tipo de Chave PIX</Label>
-              <Select value={pixKeyType} onValueChange={setPixKeyType}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Selecione o tipo" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="cpf">CPF</SelectItem>
-                  <SelectItem value="cnpj">CNPJ</SelectItem>
-                  <SelectItem value="email">Email</SelectItem>
-                  <SelectItem value="phone">Telefone</SelectItem>
-                  <SelectItem value="random">Chave Aleatória</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-
-            <div className="space-y-2">
-              <Label>Chave PIX</Label>
-              <Input
-                placeholder={
-                  pixKeyType === 'cpf' ? '00000000000' :
-                    pixKeyType === 'cnpj' ? '00000000000000' :
-                      pixKeyType === 'email' ? 'seu@email.com' :
-                        pixKeyType === 'phone' ? '+5511999999999' : 'Chave aleatória'
-                }
-                value={pixKeyValue}
-                onChange={(e) => setPixKeyValue(e.target.value)}
-              />
-            </div>
-
-            {Number.parseFloat(withdrawAmount) >= 10 && (
-              <div className="bg-black/5 dark:bg-white/5 rounded-lg p-4 space-y-2">
-                <div className="flex justify-between text-sm">
-                  <span>Valor do saque:</span>
-                  <span>R$ {Number.parseFloat(withdrawAmount).toFixed(2)}</span>
-                </div>
-                <div className="flex justify-between text-sm text-[#606E85] dark:text-[#A1A7BB]">
-                  <span>Taxa (2%):</span>
-                  <span>-R$ {(Number.parseFloat(withdrawAmount) * 0.02).toFixed(2)}</span>
-                </div>
-                <div className="flex justify-between font-semibold border-t border-black/10 dark:border-white/10 pt-2">
-                  <span>Você receberá:</span>
-                  <span className="text-emerald-500">R$ {(Number.parseFloat(withdrawAmount) * 0.98).toFixed(2)}</span>
-                </div>
-              </div>
-            )}
-
-            <button
-              onClick={handleCreateWithdraw}
-              disabled={isCreatingWithdraw || Number.parseFloat(withdrawAmount) < 10 || !pixKeyType || !pixKeyValue}
-              className="w-full h-[46px] rounded-lg bg-emerald-500 text-white font-semibold hover:bg-emerald-600 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-            >
-              {isCreatingWithdraw ? 'Processando...' : 'Solicitar Saque'}
-            </button>
-          </div>
-        </DialogContent>
-      </Dialog>
+      <WithdrawModal
+        isOpen={withdrawModalOpen}
+        onOpenChange={(open) => {
+          setWithdrawModalOpen(open)
+          if (!open) {
+            fetchData()
+            refreshUser()
+          }
+        }}
+      />
     </div>
   )
 }

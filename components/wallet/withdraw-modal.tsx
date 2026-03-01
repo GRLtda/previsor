@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import { cn } from '@/lib/utils'
-import { Loader2 } from 'lucide-react'
+import { Loader2, Flame } from 'lucide-react'
 import { userApi, ApiClientError } from '@/lib/api/client'
 import { useAuth } from '@/contexts/auth-context'
 import { Dialog, DialogContent, DialogTitle } from '@/components/ui/dialog'
@@ -51,17 +51,34 @@ export function WithdrawModal({ isOpen, onOpenChange }: WithdrawModalProps) {
 
     const addAmount = (value: number) => {
         const current = parseFloat(amount.replace(',', '.') || '0')
-        setAmount((current + value).toString())
+        const nextValue = current + value
+
+        if (nextValue > 1000000) {
+            setAmount('1000000')
+            return
+        }
+
+        setAmount(nextValue.toString())
     }
 
     const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         const rawValue = e.target.value.replace(/[^0-9.,]/g, '').replace(',', '.')
+        const numericValue = parseFloat(rawValue || '0')
+
+        if (numericValue > 1000000) {
+            setAmount('1000000')
+            return
+        }
+
         setAmount(rawValue)
     }
 
     const handleCreateWithdraw = async () => {
         if (amountNumber < 10) {
             setError('Valor mínimo: R$ 10,00')
+            return
+        }
+        if (amountNumber > 1000000) {
             return
         }
         if (!pixKeyType || !pixKeyValue) {
@@ -140,7 +157,7 @@ export function WithdrawModal({ isOpen, onOpenChange }: WithdrawModalProps) {
                         )}
 
                         {/* Header with Title and Balance */}
-                        <div className="flex flex-col flex-1 items-center mb-8">
+                        <div className="flex flex-col flex-1 items-center mb-2">
                             <h3 className="text-[18px] font-bold text-black dark:text-white mb-0.5">Valor do Saque</h3>
                             <span className="text-[13px] text-[#606E85] dark:text-[#A1A7BB] font-medium">
                                 Saldo Atual: R$ {(currentBalance / 100).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
@@ -148,7 +165,7 @@ export function WithdrawModal({ isOpen, onOpenChange }: WithdrawModalProps) {
                         </div>
 
                         {/* Amount Input */}
-                        <div className="flex w-full flex-col items-center bg-transparent mb-6">
+                        <div className="flex w-full flex-col items-center bg-transparent mb-8">
                             <div className="relative flex w-full items-center justify-center bg-transparent p-1 font-semibold">
                                 <input
                                     className="w-full max-w-full text-center bg-transparent font-bold placeholder:text-black/80 dark:placeholder:text-white/80 dark:text-white text-black outline-none"
@@ -167,23 +184,37 @@ export function WithdrawModal({ isOpen, onOpenChange }: WithdrawModalProps) {
                         </div>
 
                         {/* Error Display */}
-                        <div className="h-6 flex items-center justify-center mb-4">
-                            {error && (
+                        {error && (
+                            <div className="flex items-center justify-center mb-4 animate-in fade-in zoom-in-95 duration-200">
                                 <span className="text-sm font-semibold text-[#FF3B30]">{error}</span>
-                            )}
-                        </div>
+                            </div>
+                        )}
 
                         {/* Quick Amount Buttons */}
                         <div className="w-full items-center gap-x-1 flex mb-8">
                             <div className="w-full items-center justify-between gap-x-2 flex">
                                 {[20, 50, 100, 200, 500].map((val) => (
-                                    <button
-                                        key={val}
-                                        onClick={() => addAmount(val)}
-                                        className="flex w-full h-[36px] items-center transition-all duration-100 justify-center rounded-[10px] border border-black/10 dark:border-white/10 text-[13px] font-bold dark:text-white text-black hover:bg-black/5 dark:hover:bg-white/5 bg-transparent"
-                                    >
-                                        +R${val}
-                                    </button>
+                                    <div key={val} className="relative flex-1">
+                                        {val === 50 && (
+                                            <div className="absolute -top-3.5 left-1/2 -translate-x-1/2 z-10">
+                                                <span className="bg-[#FF3B30] text-white text-[10px] font-black px-2.5 py-0.5 rounded-full shadow-md flex items-center gap-1 border border-white/20 dark:border-black/20 whitespace-nowrap">
+                                                    <Flame className="size-3.5 fill-white" />
+                                                    QUENTE
+                                                </span>
+                                            </div>
+                                        )}
+                                        <button
+                                            onClick={() => addAmount(val)}
+                                            className={cn(
+                                                "flex w-full h-[40px] items-center transition-all duration-200 justify-center rounded-[12px] border text-[13px] font-bold bg-transparent",
+                                                val === 50
+                                                    ? "border-[#FF3B30] text-[#FF3B30] bg-[#FF3B30]/5 hover:bg-[#FF3B30]/10"
+                                                    : "border-black/10 dark:border-white/10 dark:text-white text-black hover:bg-black/5 dark:hover:bg-white/5"
+                                            )}
+                                        >
+                                            +R${val}
+                                        </button>
+                                    </div>
                                 ))}
                             </div>
                         </div>

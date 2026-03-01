@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import { cn } from '@/lib/utils'
-import { Copy, Check, Loader2 } from 'lucide-react'
+import { Copy, Check, Loader2, Flame } from 'lucide-react'
 import { userApi, ApiClientError } from '@/lib/api/client'
 import { useAuth } from '@/contexts/auth-context'
 import type { Deposit, Banner } from '@/lib/types'
@@ -61,17 +61,35 @@ export function DepositModal({ isOpen, onOpenChange }: DepositModalProps) {
 
     const addAmount = (value: number) => {
         const current = parseFloat(amount.replace(',', '.') || '0')
-        setAmount((current + value).toString())
+        const nextValue = current + value
+
+        if (nextValue > 1000000) {
+            setAmount('1000000')
+            return
+        }
+
+        setAmount(nextValue.toString())
     }
 
     const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         const rawValue = e.target.value.replace(/[^0-9.,]/g, '').replace(',', '.')
+        const numericValue = parseFloat(rawValue || '0')
+
+        if (numericValue > 1000000) {
+            setAmount('1000000')
+            return
+        }
+
         setAmount(rawValue)
     }
 
     const handleAmountSubmit = async () => {
         if (amountNumber < 11) {
             setError('Valor mínimo: R$ 11,00')
+            return
+        }
+
+        if (amountNumber > 1000000) {
             return
         }
 
@@ -133,7 +151,7 @@ export function DepositModal({ isOpen, onOpenChange }: DepositModalProps) {
             if (!open) handleClose()
         }}>
             <DialogContent
-                className="flex flex-col h-fit max-h-[90vh] w-[95%] sm:w-11/12 max-w-[430px] overflow-hidden rounded-[24px] bg-white dark:bg-[#151515] p-0 shadow-xl border border-black/10 dark:border-white/5 outline-none duration-200 gap-0"
+                className="flex flex-col h-fit max-h-[90vh] w-[95%] sm:w-11/12 max-w-[400px] overflow-hidden rounded-[24px] bg-white dark:bg-[#151515] p-0 shadow-xl border border-black/10 dark:border-white/5 outline-none duration-200 gap-0"
                 showCloseButton={false}
             >
                 <DialogTitle className="sr-only">Depositar</DialogTitle>
@@ -165,7 +183,7 @@ export function DepositModal({ isOpen, onOpenChange }: DepositModalProps) {
                             )}
 
                             {/* Header with Title and Balance */}
-                            <div className="flex flex-col flex-1 items-center mb-8">
+                            <div className="flex flex-col flex-1 items-center m-2">
                                 <h3 className="text-[18px] font-bold text-black dark:text-white mb-0.5">Valor do Depósito</h3>
                                 <span className="text-[13px] text-[#606E85] dark:text-[#A1A7BB] font-medium">
                                     Saldo Atual: R$ {(currentBalance / 100).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
@@ -173,7 +191,7 @@ export function DepositModal({ isOpen, onOpenChange }: DepositModalProps) {
                             </div>
 
                             {/* Amount Input */}
-                            <div className="flex w-full flex-col items-center bg-transparent mb-6">
+                            <div className="flex w-full flex-col items-center bg-transparent mb-2">
                                 <div className="relative flex w-full items-center justify-center bg-transparent p-1 font-semibold">
                                     <input
                                         className="w-full max-w-full text-center bg-transparent font-bold placeholder:text-black/80 dark:placeholder:text-white/80 dark:text-white text-black outline-none"
@@ -191,24 +209,56 @@ export function DepositModal({ isOpen, onOpenChange }: DepositModalProps) {
                                 </div>
                             </div>
 
-                            {/* Error Display */}
-                            <div className="h-6 flex items-center justify-center mb-6">
-                                {error && (
-                                    <span className="text-sm font-semibold text-[#FF3B30]">{error}</span>
-                                )}
+                            {/* Amount to Receive Display (Summary Box) */}
+                            <div className="w-full bg-black/5 dark:bg-white/5 rounded-[16px] p-4 mb-6 space-y-2.5">
+                                <div className="flex justify-between text-[13px] font-semibold text-black/60 dark:text-white/60">
+                                    <span>Valor do depósito:</span>
+                                    <span>R$ {amountNumber.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+                                </div>
+                                <div className="flex justify-between text-[13px] font-semibold text-black/40 dark:text-white/40">
+                                    <span>Taxa (2%):</span>
+                                    <span>-R$ {(amountNumber * 0.02).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+                                </div>
+                                <div className="flex justify-between text-[14px] font-bold border-t border-black/10 dark:border-white/10 pt-3 mt-1 text-black dark:text-white">
+                                    <span>Você recebe:</span>
+                                    <span className="text-[#00B471]">
+                                        R$ {(amountNumber * 0.98).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                                    </span>
+                                </div>
                             </div>
+
+                            {/* Error Display */}
+                            {error && (
+                                <div className="flex items-center justify-center mb-6 animate-in fade-in zoom-in-95 duration-200">
+                                    <span className="text-[12px] font-semibold text-[#FF3B30] text-center">{error}</span>
+                                </div>
+                            )}
 
                             {/* Quick Amount Buttons */}
                             <div className="w-full items-center gap-x-1 flex mb-8">
                                 <div className="w-full items-center justify-between gap-x-2 flex">
                                     {[20, 50, 100, 200, 500].map((val) => (
-                                        <button
-                                            key={val}
-                                            onClick={() => addAmount(val)}
-                                            className="flex w-full h-[36px] items-center transition-all duration-100 justify-center rounded-[10px] border border-black/10 dark:border-white/10 text-[13px] font-bold dark:text-white text-black hover:bg-black/5 dark:hover:bg-white/5 bg-transparent"
-                                        >
-                                            +R${val}
-                                        </button>
+                                        <div key={val} className="relative flex-1">
+                                            {val === 50 && (
+                                                <div className="absolute -top-3.5 left-1/2 -translate-x-1/2 z-10">
+                                                    <span className="bg-[#FF3B30] text-white text-[10px] font-black px-2.5 py-0.5 rounded-full shadow-md flex items-center gap-0.5 border border-white/20 dark:border-black/20 whitespace-nowrap">
+                                                        <Flame className="size-3 fill-white" />
+                                                        QUENTE
+                                                    </span>
+                                                </div>
+                                            )}
+                                            <button
+                                                onClick={() => addAmount(val)}
+                                                className={cn(
+                                                    "flex w-full h-[40px] items-center transition-all duration-200 justify-center rounded-[12px] border text-[13px] font-bold bg-transparent",
+                                                    val === 50
+                                                        ? "border-[#FF3B30] text-[#FF3B30] bg-[#FF3B30]/5 hover:bg-[#FF3B30]/10"
+                                                        : "border-black/10 dark:border-white/10 dark:text-white text-black hover:bg-black/5 dark:hover:bg-white/5"
+                                                )}
+                                            >
+                                                +R${val}
+                                            </button>
+                                        </div>
                                     ))}
                                 </div>
                             </div>

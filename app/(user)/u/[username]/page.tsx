@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, useMemo } from 'react'
 import { useParams } from 'next/navigation'
 import { useAuth } from '@/contexts/auth-context'
 import { userApi } from '@/lib/api/client'
@@ -8,7 +8,27 @@ import { Skeleton } from '@/components/ui/skeleton'
 import Link from 'next/link'
 import { cn } from '@/lib/utils'
 import { Logo } from '@/components/ui/logo'
-import { Copy, Edit3, LogOut, Settings, Award, Droplets, RefreshCw, X, ChevronUp } from 'lucide-react'
+import { Copy, Edit3, LogOut, Settings, ArrowUpRight } from 'lucide-react'
+import { ProfilePositions } from '@/components/profile/profile-positions'
+import type { Position } from '@/lib/types'
+const Odometer = ({ value }: { value: number }) => {
+    const formatted = (value / 100).toFixed(2).split('.')
+    const integerPart = formatted[0]
+    const decimalPart = formatted[1]
+
+    return (
+        <span className="inline-flex items-baseline">
+            R$
+            <span>
+                {integerPart.split('').map((digit, i) => (
+                    <span key={i} className="inline-block">{digit}</span>
+                ))}
+            </span>
+            <span>.</span>
+            <span className="inline-block">{decimalPart}</span>
+        </span>
+    )
+}
 
 export default function PublicProfilePage() {
     const params = useParams()
@@ -16,8 +36,31 @@ export default function PublicProfilePage() {
     const { user, isAuthenticated, logout } = useAuth()
 
     const [isLoading, setIsLoading] = useState(true)
-    const [activeTab, setActiveTab] = useState('missions')
+    const [positions, setPositions] = useState<Position[]>([])
     const [copied, setCopied] = useState(false)
+    const [viewMode, setViewMode] = useState<'portfolio' | 'favorites'>('portfolio')
+    const [selectedCategory, setSelectedCategory] = useState<string | null>(null)
+    const [activeActivityTab, setActiveActivityTab] = useState<'positions' | 'activity'>('positions')
+
+    const filteredPositions = useMemo(() => {
+        if (viewMode === 'favorites' && selectedCategory) {
+            return positions.filter(p =>
+                p.eventCategory?.toLowerCase() === selectedCategory ||
+                (selectedCategory === 'esportes' && p.eventCategory?.toLowerCase() === 'esporte') ||
+                (selectedCategory === 'politica' && (p.eventCategory?.toLowerCase() === 'política' || p.eventCategory?.toLowerCase() === 'politica'))
+            )
+        }
+        return positions
+    }, [positions, viewMode, selectedCategory])
+    const [stats, setStats] = useState({
+        portfolioValue: 0,
+        profitLoss: 0,
+        volume: 0,
+        winRate: 0,
+        winCount: 0,
+        lossCount: 0,
+        openPositions: 0
+    })
 
     const isOwner = isAuthenticated && user?.id === username
 
@@ -42,6 +85,16 @@ export default function PublicProfilePage() {
                 joinedAt: data.created_at,
                 avatarUrl: data.avatar_url ?? null,
             })
+            setPositions(data.positions || [])
+            setStats({
+                portfolioValue: data.stats?.portfolioValue || 0,
+                profitLoss: data.stats?.profitLoss || 0,
+                volume: data.stats?.volume || 0,
+                winRate: data.stats?.winRate || 0,
+                winCount: (data.stats as any)?.winCount || 0,
+                lossCount: (data.stats as any)?.lossCount || 0,
+                openPositions: data.stats?.openPositions || 0,
+            })
         } catch (err) {
             console.error('Failed to fetch profile:', err)
         } finally {
@@ -63,10 +116,36 @@ export default function PublicProfilePage() {
         }
     }
 
+    const formatCurrency = (value: number) => {
+        return new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(value / 100)
+    }
+
     const truncateAddress = (address: string) => {
         if (address.length <= 10) return address
         return `${address.slice(0, 4)}...${address.slice(-4)}`
     }
+
+    const categoriesList = useMemo(() => {
+        const baseCategories = [
+            { id: 'esportes', name: 'Esportes', icon: '/assets/svg/profile/football.svg', color: '#00B774' },
+            { id: 'social', name: 'Social', icon: '/assets/svg/profile/social.svg', color: '#E922FF' },
+            { id: 'cripto', name: 'Cripto', icon: '/assets/svg/profile/btc.svg', color: '#FA9316' },
+            { id: 'politica', name: 'Política', icon: '/assets/svg/profile/politics.svg', color: '#0052FF' },
+            { id: 'jogos', name: 'Jogos', icon: '/assets/svg/profile/gaming.svg', color: '#8A8C99' },
+            { id: 'mercados_rapid', name: 'Mercados Rápid.', icon: '/assets/svg/profile/fast.svg', color: '#8A8C99' },
+        ];
+
+        return baseCategories.map((cat) => ({
+            ...cat,
+            count: positions.filter(p =>
+                (p.status === 'active' || p.marketStatus === 'open') && (
+                    p.eventCategory?.toLowerCase() === cat.id ||
+                    (cat.id === 'esportes' && p.eventCategory?.toLowerCase() === 'esporte') ||
+                    (cat.id === 'politica' && (p.eventCategory?.toLowerCase() === 'política' || p.eventCategory?.toLowerCase() === 'politica'))
+                )
+            ).length
+        }));
+    }, [positions]);
 
     if (isLoading) {
         return (
@@ -86,9 +165,9 @@ export default function PublicProfilePage() {
                 <aside className="flex w-full flex-col items-center lg:w-[320px] lg:items-start shrink-0">
                     {/* Avatar */}
                     <div className="relative mb-6 flex size-[140px] items-center justify-center rounded-full overflow-hidden"
-                         style={{
-                             background: profileData.avatarUrl ? 'transparent' : 'linear-gradient(135deg, #f59e0b 0%, #d97706 100%)',
-                         }}
+                        style={{
+                            background: profileData.avatarUrl ? 'transparent' : 'linear-gradient(135deg, #f59e0b 0%, #d97706 100%)',
+                        }}
                     >
                         {profileData.avatarUrl ? (
                             <img
@@ -97,9 +176,9 @@ export default function PublicProfilePage() {
                                 className="w-full h-full object-cover"
                             />
                         ) : (
-                             <span className="text-5xl font-bold text-white">
+                            <span className="text-5xl font-bold text-white">
                                 {profileData.displayName.charAt(0).toUpperCase()}
-                             </span>
+                            </span>
                         )}
                     </div>
 
@@ -128,34 +207,7 @@ export default function PublicProfilePage() {
                         </div>
                     </div>
 
-                    {/* Level Progress */}
-                    <div className="mb-6 flex w-full flex-col gap-2">
-                        <div className="flex w-full items-center justify-between text-sm font-bold text-black dark:text-white">
-                            <span>LVL 1</span>
-                            <span>0%</span>
-                        </div>
-                        <div className="h-1.5 w-full overflow-hidden rounded-full bg-black/10 dark:bg-white/10">
-                            <div className="h-full w-0 bg-brand rounded-full transition-all duration-500" />
-                        </div>
-                        <div className="flex w-full justify-end text-xs font-medium text-muted-foreground">
-                            0 / 100 XP
-                        </div>
-                    </div>
 
-                    {/* Bio */}
-                    <p className="mb-6 w-full text-center text-sm font-medium text-muted-foreground lg:text-left">
-                        Sou um predictor na Triad Markets.
-                    </p>
-
-                    {/* Connect Buttons */}
-                    <div className="mb-10 flex w-full gap-3">
-                        <button className="flex h-9 flex-1 items-center justify-center gap-2 rounded-lg border border-border bg-transparent text-sm font-medium text-black transition-colors hover:bg-muted/50 dark:text-white">
-                            Connect <X className="size-4" />
-                        </button>
-                        <button className="flex h-9 flex-1 items-center justify-center gap-2 rounded-lg border border-border bg-transparent text-sm font-medium text-black transition-colors hover:bg-muted/50 dark:text-white">
-                            Connect <svg viewBox="0 0 24 24" className="size-4 fill-current"><path d="M12 0c-6.627 0-12 5.373-12 12s5.373 12 12 12 12-5.373 12-12-5.373-12-12-12zm-2.008 17.508c-2.348 0-4.25-1.902-4.25-4.25s1.902-4.25 4.25-4.25 4.25 1.902 4.25 4.25-1.902 4.25-4.25 4.25zm5.727-2.316c-1.424 0-2.583-1.159-2.583-2.583s1.159-2.583 2.583-2.583 2.583 1.159 2.583 2.583-1.159 2.583-2.583 2.583z"/></svg>
-                        </button>
-                    </div>
 
                     {/* Bottom Actions (Only for owner) */}
                     {isOwner && (
@@ -179,174 +231,199 @@ export default function PublicProfilePage() {
 
                 {/* Right Content */}
                 <main className="flex w-full flex-col gap-5 lg:pl-5">
-                    {/* Top Cards Grid */}
-                    <div className="grid w-full grid-cols-1 gap-5 lg:grid-cols-2">
-                        {/* TRIAD Score Card */}
-                        <div className="relative flex min-h-[140px] w-full flex-col overflow-hidden rounded-[20px] border border-border bg-card p-6">
-                            <div className="pointer-events-none absolute -right-[15%] -top-[30%] h-[200px] w-[200px] rounded-full bg-[radial-gradient(circle_at_center,rgba(245,158,11,0.15)_0%,transparent_70%)] blur-2xl dark:bg-[radial-gradient(circle_at_center,rgba(245,158,11,0.1)_0%,transparent_70%)]" />
-                            
-                            <div className="flex w-full items-start justify-between">
-                                <div className="flex flex-col">
-                                    <span className="text-sm font-medium text-muted-foreground mb-3">TRIAD Score</span>
-                                    <div className="flex items-baseline gap-2 mb-4">
-                                        <span className="text-4xl font-bold tracking-tight text-black dark:text-white">100</span>
-                                        <span className="text-sm font-medium text-muted-foreground">/1000</span>
-                                        <span className="ml-2 rounded-md bg-amber-500/10 px-2 py-1 text-xs font-semibold text-amber-600">
-                                            Low Score
+                    {/* Portfolio Card (Flat Style) */}
+                    <section className="relative z-10 w-full animate-fade-down overflow-hidden rounded-[24px] border border-black/10 bg-black/5 dark:border-white/10 dark:bg-white/5 p-6 min-h-[220px]">
+                        <header className="relative z-10 flex w-full min-h-[165px] justify-between text-black dark:text-white flex-col lg:flex-row max-sm:min-h-[209px]">
+                            <div className="flex flex-col gap-3 lg:px-0">
+                                {viewMode === 'portfolio' ? (
+                                    <div className="flex flex-col gap-3">
+                                        <span className="mb-3 flex items-center gap-x-1 text-sm font-normal text-muted-foreground">Valor do Portfólio</span>
+                                        <span className="relative bottom-1 text-4xl font-semibold text-black dark:text-[#f0f0f0]">
+                                            <Odometer value={stats.portfolioValue} />
+                                        </span>
+                                        <span className={cn("flex items-center gap-1 text-xs font-medium", stats.profitLoss >= 0 ? "text-[#00B471]" : "text-red-500")}>
+                                            {stats.profitLoss >= 0 ? <ArrowUpRight className="size-3" /> : <div className="size-3 rotate-180"><ArrowUpRight className="size-full" /></div>}
+                                            {stats.profitLoss > 0 ? '+' : ''}{formatCurrency(stats.profitLoss)}
                                         </span>
                                     </div>
-                                    
-                                    {/* Score Progress Segments */}
-                                    <div className="flex gap-1.5 w-full max-w-[200px]">
-                                        <div className="h-1.5 flex-1 rounded-full bg-amber-500" />
-                                        <div className="h-1.5 flex-1 rounded-full bg-black/10 dark:bg-white/10" />
-                                        <div className="h-1.5 flex-1 rounded-full bg-black/10 dark:bg-white/10" />
-                                        <div className="h-1.5 flex-1 rounded-full bg-black/10 dark:bg-white/10" />
-                                        <div className="h-1.5 flex-1 rounded-full bg-black/10 dark:bg-white/10" />
-                                        <div className="h-1.5 flex-1 rounded-full bg-black/10 dark:bg-white/10" />
+                                ) : (
+                                    <div className="favorite-categories relative flex w-full flex-col lg:max-w-[430px]">
+                                        <div className="flex items-center mb-4">
+                                            <h2 className="text-sm font-normal text-muted-foreground">Categorias Favoritas</h2>
+                                        </div>
+                                        <div className="flex flex-col lg:flex-row lg:items-center lg:gap-6">
+                                            <div className="flex lg:justify-center shrink-0">
+                                                <div className="relative size-[110px]">
+                                                    <svg viewBox="0 0 36 36" className="size-full -rotate-90">
+                                                        <circle cx="18" cy="18" r="15.9155" fill="none" className="stroke-black/5 dark:stroke-white/5" strokeWidth="3" />
+                                                        <circle cx="18" cy="18" r="15.9155" fill="none" stroke="#00B774" strokeWidth="3" strokeDasharray="30 100" />
+                                                        <circle cx="18" cy="18" r="15.9155" fill="none" stroke="#E922FF" strokeWidth="3" strokeDasharray="20 100" strokeDashoffset="-30" />
+                                                        <circle cx="18" cy="18" r="15.9155" fill="none" stroke="#FA9316" strokeWidth="3" strokeDasharray="15 100" strokeDashoffset="-50" />
+                                                        <circle cx="18" cy="18" r="15.9155" fill="none" stroke="#0052FF" strokeWidth="3" strokeDasharray="35 100" strokeDashoffset="-65" />
+                                                    </svg>
+                                                </div>
+                                            </div>
+                                            <div className="grid grid-cols-2 gap-x-4 gap-y-2 mt-4 lg:mt-0">
+                                                {categoriesList.map((cat) => (
+                                                    <div
+                                                        key={cat.id}
+                                                        className={cn(
+                                                            "flex h-7 items-center gap-2 whitespace-nowrap rounded-full px-3 transition-all",
+                                                            cat.count > 0 ? "bg-black/5 dark:bg-white/5 border border-black/10 dark:border-white/10 opacity-100" : "bg-transparent border border-black/5 dark:border-white/5 opacity-50"
+                                                        )}
+                                                    >
+                                                        <div className="size-3 rounded-full" style={{ backgroundColor: cat.color }} />
+                                                        <span className="text-[11px] font-medium text-black dark:text-white">{cat.count} {cat.name}</span>
+                                                    </div>
+                                                ))}
+                                            </div>
+                                        </div>
                                     </div>
-                                </div>
-                                
-                                {/* Hexagon Badge */}
-                                <div className="relative flex size-[70px] shrink-0 items-center justify-center">
-                                    <div className="absolute inset-0 rounded-2xl bg-amber-900 rotate-45 transform" />
-                                    <div className="absolute inset-[3px] rounded-[14px] bg-gradient-to-br from-amber-700 to-amber-900 rotate-45 transform" />
-                                    <Award className="relative z-10 size-8 text-amber-100" />
-                                </div>
+                                )}
                             </div>
-                        </div>
 
-                        {/* Recompensa & Info */}
-                        <div className="flex w-full gap-5">
-                            {/* Recompensa Atual */}
-                            <div className="flex flex-1 flex-col justify-between rounded-[20px] border border-border bg-card p-5">
-                                <div className="flex items-center gap-3">
-                                    <div className="flex size-10 shrink-0 items-center justify-center rounded-full bg-emerald-50 dark:bg-emerald-900/20">
-                                        <svg viewBox="0 0 24 24" className="size-5 text-emerald-600 fill-current"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1.41 16.09V20h-2.67v-1.93c-1.71-.36-3.16-1.46-3.27-3.4h2.25c.1 1.05.85 1.49 2.01 1.49 1.43 0 2.22-.72 2.22-1.76 0-1.11-.9-1.54-2.58-2.07C9.37 11.69 8 10.9 8 8.84c0-1.77 1.35-2.91 3.32-3.32V4h2.67v1.54c1.46.28 2.65 1.13 2.91 2.89h-2.22c-.15-.81-.84-1.28-1.99-1.28-1.07 0-1.91.56-1.91 1.54 0 1.07.86 1.46 2.58 2.03 2.15.7 3.52 1.63 3.52 3.66.01 1.96-1.44 3.09-3.47 3.51z"/></svg>
-                                    </div>
-                                    <div className="flex flex-col">
-                                        <span className="text-xs font-medium text-muted-foreground">Recompensa Atual</span>
-                                        <span className="text-lg font-bold text-black dark:text-white">R$0.00</span>
-                                    </div>
-                                </div>
-                                <button className="mt-4 h-9 w-full rounded-lg bg-black/5 text-sm font-semibold text-muted-foreground transition-colors hover:bg-black/10 dark:bg-white/5 dark:text-white dark:hover:bg-white/10">
-                                    Resgatar
+                            <div className="relative flex h-fit gap-x-2.5 max-lg:mr-0 max-lg:mt-4 max-lg:self-end">
+                                <button className="flex size-[38px] items-center justify-center rounded-full bg-black/5 dark:bg-white/5 transition-colors hover:bg-black/10 hover:dark:bg-white/10 text-muted-foreground">
+                                    <svg className="size-4" width="10" height="10" viewBox="0 0 10 10" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M9.16659 5.00016C9.16659 7.30016 7.29992 9.16683 4.99992 9.16683C2.69992 9.16683 1.29575 6.85016 1.29575 6.85016M1.29575 6.85016H3.17909M1.29575 6.85016V8.9335M0.833252 5.00016C0.833252 2.70016 2.68325 0.833496 4.99992 0.833496C7.77909 0.833496 9.16659 3.15016 9.16659 3.15016M9.16659 3.15016V1.06683M9.16659 3.15016H7.31658" stroke="currentColor" strokeWidth="0.6" strokeLinecap="round" strokeLinejoin="round"></path></svg>
                                 </button>
+                                <div className="hidden lg:flex">
+                                    <div className="relative flex h-[38px] items-center rounded-full bg-black/5 dark:bg-white/5 p-1">
+                                        <span
+                                            className={cn(
+                                                "absolute h-[30px] rounded-full bg-white dark:bg-[#1c1c24] shadow-sm transition-all duration-300 ease-out w-[110px]",
+                                                viewMode === 'portfolio' ? "left-1" : "left-[114px]"
+                                            )}
+                                        />
+                                        <button
+                                            onClick={() => setViewMode('portfolio')}
+                                            className={cn(
+                                                "relative z-10 flex h-[30px] w-[110px] items-center justify-center gap-x-2 rounded-full text-xs font-medium transition-colors",
+                                                viewMode === 'portfolio' ? "text-black dark:text-white" : "text-muted-foreground"
+                                            )}
+                                        >
+                                            <svg width="14" height="14" viewBox="0 0 14 14" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M4.05206 11.3501C4.51532 10.8529 5.2215 10.8925 5.62826 11.4348L6.19885 12.1975C6.65645 12.802 7.39653 12.802 7.85413 12.1975L8.42473 11.4348C8.83148 10.8925 9.53766 10.8529 10.0009 11.3501C11.0065 12.4235 11.8257 12.0676 11.8257 10.5648V4.1979C11.8313 1.92118 11.3003 1.35059 9.1648 1.35059H4.89383C2.75834 1.35059 2.22729 1.92118 2.22729 4.1979V10.5592C2.22729 12.0676 3.05211 12.4178 4.05206 11.3501Z" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round"></path><path d="M4.76953 4.17529H9.28908" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round"></path><path d="M5.33447 6.43506H8.72413" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round"></path></svg>
+                                            Portfólio
+                                        </button>
+                                        <button
+                                            onClick={() => setViewMode('favorites')}
+                                            className={cn(
+                                                "relative z-10 flex h-[30px] w-[110px] items-center justify-center gap-x-2 rounded-full text-xs font-medium transition-colors",
+                                                viewMode === 'favorites' ? "text-black dark:text-white" : "text-muted-foreground"
+                                            )}
+                                        >
+                                            <svg width="14" height="14" viewBox="0 0 14 14" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M7.00008 12.3959C9.98012 12.3959 12.3959 9.98012 12.3959 7.00008C12.3959 4.02005 9.98012 1.60425 7.00008 1.60425C4.02005 1.60425 1.60425 4.02005 1.60425 7.00008C1.60425 9.98012 4.02005 12.3959 7.00008 12.3959Z" stroke="currentColor" strokeWidth="0.875" strokeLinecap="round" strokeLinejoin="round"></path><path d="M7.00002 1.60425C5.8122 1.60415 4.65753 1.99601 3.71512 2.71905C2.7727 3.44209 2.0952 4.45589 1.7877 5.60323C1.4802 6.75056 1.55989 7.9673 2.01439 9.06473C2.4689 10.1622 3.27283 11.0789 4.30149 11.6729C5.33016 12.2669 6.52606 12.5048 7.70373 12.3498C8.8814 12.1948 9.97501 11.6555 10.8149 10.8156C11.6549 9.97568 12.1942 8.88209 12.3493 7.70443C12.5043 6.52677 12.2664 5.33085 11.6725 4.30216L7.00002 7.00008V1.60425Z" stroke="currentColor" strokeWidth="0.875" strokeLinecap="round" strokeLinejoin="round"></path><path d="M7.00002 1.60425C6.05284 1.60417 5.12232 1.85343 4.302 2.32697C3.48168 2.8005 2.80047 3.48163 2.32683 4.30189C1.85318 5.12214 1.60381 6.05263 1.60376 6.99981C1.60371 7.947 1.853 8.87751 2.32656 9.69781C2.80012 10.5181 3.48127 11.1993 4.30154 11.6729C5.12181 12.1465 6.0523 12.3959 6.99949 12.3959C7.94667 12.3959 8.87717 12.1466 9.69746 11.673C10.5178 11.1995 11.1989 10.5183 11.6725 9.698L7.00002 7.00008V1.60425Z" stroke="currentColor" strokeWidth="0.875" strokeLinecap="round" strokeLinejoin="round"></path></svg>
+                                            Favoritos
+                                        </button>
+                                    </div>
+                                </div>
                             </div>
+                        </header>
 
-                            {/* O que é Info */}
-                            <div className="flex flex-1 flex-col rounded-[20px] border border-border bg-card p-5">
-                                <span className="mb-2 text-sm font-medium text-muted-foreground">O que é TRIAD Score?</span>
-                                <p className="text-xs text-muted-foreground/80 leading-relaxed">
-                                    A pontuação TRIAD reflete sua participação em previsões e missões. 
-                                    Maior atividade resulta em maiores recompensas mensais.
-                                </p>
+                        {viewMode === 'portfolio' && (
+                            <div className="relative mt-5 z-10 flex w-full gap-x-5 lg:gap-x-[30px]">
+                                <div className="flex w-full flex-wrap gap-x-5 lg:gap-x-[30px]">
+                                    <div className="flex w-fit flex-col gap-[2px]">
+                                        <span className="whitespace-nowrap text-xs font-normal text-muted-foreground">O volume total</span>
+                                        <span className="whitespace-nowrap font-medium text-lg text-black dark:text-white">
+                                            {formatCurrency(stats.volume)}
+                                        </span>
+                                    </div>
+                                    <div className="flex w-fit flex-col gap-[2px]">
+                                        <span className="whitespace-nowrap text-xs font-normal text-muted-foreground">Taxa de ganho</span>
+                                        <span className="whitespace-nowrap font-medium text-lg text-black dark:text-white">
+                                            <div className="flex items-center gap-2">
+                                                <span>{stats.winRate.toFixed(0)}%</span>
+                                                <div className="flex h-5 w-fit items-center justify-center rounded-md bg-black/10 dark:bg-white/10 px-1.5 text-xs font-medium text-muted-foreground">
+                                                    {stats.winCount}W - {stats.lossCount}L
+                                                </div>
+                                            </div>
+                                        </span>
+                                    </div>
+                                    <div className="flex w-fit flex-col gap-[2px]">
+                                        <span className="whitespace-nowrap text-xs font-normal text-muted-foreground">Posições abertas</span>
+                                        <span className="whitespace-nowrap font-medium text-lg text-black dark:text-white">{stats.openPositions}</span>
+                                    </div>
+                                </div>
                             </div>
+                        )}
+
+                        <div className="absolute bottom-5 left-1/2 flex -translate-x-1/2 items-center gap-2 lg:hidden">
+                            <button onClick={() => setViewMode('portfolio')} className={cn("size-2.5 rounded-full transition-all duration-300", viewMode === 'portfolio' ? "bg-black dark:bg-white" : "bg-black/20 dark:bg-white/20")} />
+                            <button onClick={() => setViewMode('favorites')} className={cn("size-2.5 rounded-full transition-all duration-300", viewMode === 'favorites' ? "bg-black dark:bg-white" : "bg-black/20 dark:bg-white/20")} />
                         </div>
-                    </div>
+                    </section>
 
-                    {/* Tabs */}
-                    <div className="mt-2 w-full">
-                        <div className="flex w-full items-center gap-1">
+                    {/* Categories Carousel */}
+                    <section className="flex w-full items-center gap-3 overflow-x-auto pb-2 scrollbar-hide">
+                        {categoriesList.map((cat) => (
                             <button
-                                onClick={() => setActiveTab('missions')}
+                                key={cat.id}
+                                onClick={() => {
+                                    if (viewMode !== 'favorites') setViewMode('favorites')
+                                    setSelectedCategory(selectedCategory === cat.id ? null : cat.id)
+                                }}
                                 className={cn(
-                                    "flex h-9 items-center justify-center rounded-full px-5 text-sm font-semibold transition-all",
-                                    activeTab === 'missions' 
-                                        ? "bg-white text-black dark:bg-white dark:text-black" 
-                                        : "bg-transparent text-muted-foreground hover:bg-muted/50"
+                                    "flex shrink-0 w-[126px] h-[50px] relative overflow-hidden flex-row items-center gap-3 rounded-xl border p-1.5 transition-all outline-none text-left",
+                                    cat.count > 0 ? "opacity-100 bg-black/5 dark:bg-white/5 border-black/10 dark:border-white/10" : "opacity-40 bg-transparent border-black/5 dark:border-white/5",
+                                    viewMode === 'favorites' && selectedCategory === cat.id ? "ring-2 ring-black/20 dark:ring-white/20" : ""
                                 )}
                             >
-                                Missões
+                                <div className="flex size-[38px] items-center justify-center rounded-lg shrink-0" style={{ backgroundColor: cat.color }}>
+                                    <img className="size-[20px]" alt="" src={cat.icon} />
+                                </div>
+                                <div className="flex flex-col leading-tight overflow-hidden">
+                                    <span className="text-[10px] font-normal text-muted-foreground transition-colors truncate">{cat.name}</span>
+                                    <span className="text-sm font-semibold text-black dark:text-[#f0f0f0]">{cat.count}</span>
+                                </div>
+                            </button>
+                        ))}
+                    </section>
+
+                    {/* Activity Section */}
+                    <div className="w-full">
+                        <div className="flex w-full items-center gap-1.5 border-b border-black/10 dark:border-white/10 overflow-x-auto scrollbar-hide mb-4">
+                            <button
+                                onClick={() => setActiveActivityTab('positions')}
+                                className={cn(
+                                    "relative flex items-center justify-center px-4 py-3 text-sm font-medium transition-colors whitespace-nowrap",
+                                    activeActivityTab === 'positions'
+                                        ? "text-black dark:text-white"
+                                        : "text-[#8A8C99] hover:text-black dark:hover:text-white"
+                                )}
+                            >
+                                Posições
+                                {activeActivityTab === 'positions' && (
+                                    <div className="absolute bottom-[-1px] left-0 h-[2px] w-full bg-black dark:bg-white" />
+                                )}
                             </button>
                             <button
-                                onClick={() => setActiveTab('activity')}
+                                onClick={() => setActiveActivityTab('activity')}
                                 className={cn(
-                                    "flex h-9 items-center justify-center rounded-full px-5 text-sm font-semibold transition-all",
-                                    activeTab === 'activity' 
-                                        ? "bg-white text-black dark:bg-white dark:text-black" 
-                                        : "bg-transparent text-muted-foreground hover:bg-muted/50"
+                                    "relative flex items-center justify-center px-4 py-3 text-sm font-medium transition-colors whitespace-nowrap",
+                                    activeActivityTab === 'activity'
+                                        ? "text-black dark:text-white"
+                                        : "text-[#8A8C99] hover:text-black dark:hover:text-white"
                                 )}
                             >
-                                Atividade
+                                Atividades Recentes
+                                {activeActivityTab === 'activity' && (
+                                    <div className="absolute bottom-[-1px] left-0 h-[2px] w-full bg-black dark:bg-white" />
+                                )}
                             </button>
                             <div className="ml-auto hidden max-w-[103px] object-contain opacity-80 lg:block text-muted-foreground font-semibold">
                                 <Logo width={100} height={32} />
                             </div>
                         </div>
 
-                        {/* Tab Content */}
-                        <div className="mt-6 w-full">
-                            {activeTab === 'missions' && (
-                                <div className="flex w-full flex-col gap-3">
-                                    {/* Mission Group Header */}
-                                    <div className="flex w-full items-center justify-between rounded-t-xl py-3 cursor-pointer">
-                                        <div className="flex items-center gap-3">
-                                            <div className="flex size-9 items-center justify-center rounded-full border border-border bg-card">
-                                                <RefreshCw className="size-4 text-muted-foreground" />
-                                            </div>
-                                            <div className="flex flex-col">
-                                                <span className="text-sm font-bold text-black dark:text-white">Repeatable Missions</span>
-                                                <span className="text-xs text-muted-foreground">Complete missions daily to earn XP</span>
-                                            </div>
-                                        </div>
-                                        <button className="flex size-8 items-center justify-center rounded-full bg-black/5 dark:bg-white/5">
-                                            <ChevronUp className="size-4 text-muted-foreground" />
-                                        </button>
-                                    </div>
-
-                                    {/* Missions List Row */}
-                                    <div className="grid w-full grid-cols-1 gap-4 lg:grid-cols-2">
-                                        {/* Predict Markets */}
-                                        <div className="flex w-full flex-col justify-between overflow-hidden rounded-[20px] border border-border bg-card p-5 min-h-[160px]">
-                                            <div className="flex flex-col gap-4">
-                                                <div className="flex items-center gap-3">
-                                                    <div className="flex size-10 items-center justify-center rounded-full bg-brand/10">
-                                                        <Award className="size-5 text-brand" />
-                                                    </div>
-                                                    <span className="text-base font-bold text-black dark:text-white">Predict Markets</span>
-                                                </div>
-                                                <span className="text-sm font-medium text-muted-foreground">1 Ponto por $1</span>
-                                            </div>
-                                            <div className="flex w-full items-center justify-between mt-6">
-                                                <div className="flex items-center gap-2 text-xs font-medium text-muted-foreground">
-                                                    <RefreshCw className="size-3.5" /> Repeatable
-                                                </div>
-                                                <div className="flex items-center gap-1.5 rounded-full bg-black/5 px-2.5 py-1 text-xs font-bold text-black dark:bg-white/10 dark:text-white">
-                                                    <span className="opacity-60">XP</span> 1
-                                                </div>
-                                            </div>
-                                        </div>
-
-                                        {/* Add Order Book Liquidity */}
-                                        <div className="flex w-full flex-col justify-between overflow-hidden rounded-[20px] border border-border bg-card p-5 min-h-[160px]">
-                                            <div className="flex flex-col gap-4">
-                                                <div className="flex items-center gap-3">
-                                                    <div className="flex size-10 items-center justify-center rounded-full bg-emerald-50 dark:bg-emerald-900/20">
-                                                        <Droplets className="size-5 text-emerald-500" />
-                                                    </div>
-                                                    <span className="text-base font-bold text-black dark:text-white">Add Order Book Liquidity</span>
-                                                </div>
-                                                <span className="text-sm font-medium text-muted-foreground">1 Ponto por $1</span>
-                                            </div>
-                                            <div className="flex w-full items-center justify-between mt-6">
-                                                <div className="flex items-center gap-2 text-xs font-medium text-muted-foreground">
-                                                    <RefreshCw className="size-3.5" /> Repeatable
-                                                </div>
-                                                <div className="flex items-center gap-1.5 rounded-full bg-emerald-500/10 px-2.5 py-1 text-xs font-bold text-emerald-600">
-                                                    <span className="flex size-3.5 items-center justify-center rounded-full bg-emerald-500 text-[8px] text-white">$</span>
-                                                    10
-                                                </div>
-                                            </div>
-                                        </div>
-                                    </div>
-                                </div>
-                            )}
-                            {activeTab === 'activity' && (
-                                <div className="flex w-full flex-col items-center justify-center py-12 text-muted-foreground">
-                                    <span className="text-sm">Nenhuma atividade recente.</span>
-                                </div>
-                            )}
+                        {/* Pass public positions down to ProfilePositions */}
+                        <div className="mt-4 w-full">
+                            <ProfilePositions
+                                positions={activeActivityTab === 'positions' ? filteredPositions.filter(p => p.status === 'active') : filteredPositions.filter(p => p.status === 'settled')}
+                                isLoading={isLoading}
+                                isOwner={isOwner && activeActivityTab === 'positions'}
+                                onPositionClosed={fetchProfileData}
+                                hideStatusFilter={true}
+                            />
                         </div>
                     </div>
                 </main>

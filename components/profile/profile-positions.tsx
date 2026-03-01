@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { cn } from '@/lib/utils'
 import Link from 'next/link'
 import type { Position } from '@/lib/types'
@@ -22,16 +22,25 @@ interface ProfilePositionsProps {
     isLoading?: boolean
     isOwner?: boolean
     onPositionClosed?: () => void
+    hideStatusFilter?: boolean
 }
 
 export function ProfilePositions({
     positions,
     isLoading = false,
     isOwner = false,
-    onPositionClosed
+    onPositionClosed,
+    hideStatusFilter = false
 }: ProfilePositionsProps) {
     const [search, setSearch] = useState('')
     const [statusFilter, setStatusFilter] = useState('all')
+
+    const [currentPage, setCurrentPage] = useState(1)
+    const ITEMS_PER_PAGE = 10
+
+    useEffect(() => {
+        setCurrentPage(1)
+    }, [search, statusFilter, positions])
     const [closingPositionId, setClosingPositionId] = useState<string | null>(null)
     const [isClosing, setIsClosing] = useState(false)
     const [confirmDialogOpen, setConfirmDialogOpen] = useState(false)
@@ -46,6 +55,12 @@ export function ProfilePositions({
         }
         return true
     })
+
+    const totalPages = Math.ceil(filteredPositions.length / ITEMS_PER_PAGE)
+    const paginatedPositions = filteredPositions.slice(
+        (currentPage - 1) * ITEMS_PER_PAGE,
+        currentPage * ITEMS_PER_PAGE
+    )
 
     const formatCurrency = (value: number) => {
         return `R$ ${(value / 100).toFixed(2).replace('.', ',')}`
@@ -165,13 +180,15 @@ export function ProfilePositions({
                 </div>
 
                 {/* Status Dropdown */}
-                <CustomSelect
-                    options={statusOptions}
-                    value={statusFilter}
-                    onChange={setStatusFilter}
-                    prefix="Status"
-                    className="max-w-[175px] lg:min-w-[175px]"
-                />
+                {!hideStatusFilter && (
+                    <CustomSelect
+                        options={statusOptions}
+                        value={statusFilter}
+                        onChange={setStatusFilter}
+                        prefix="Status"
+                        className="max-w-[175px] lg:min-w-[175px]"
+                    />
+                )}
 
                 {/* Type */}
                 <div className="relative flex size-full h-10 max-w-[175px] items-center gap-2 whitespace-nowrap rounded-lg border border-black/10 bg-white px-3 py-2 text-[13px] font-medium dark:border-none dark:bg-white/5 dark:text-white">
@@ -229,7 +246,7 @@ export function ProfilePositions({
                                 </td>
                             </tr>
                         ) : (
-                            filteredPositions.map((pos) => {
+                            paginatedPositions.map((pos) => {
                                 const calc = calculateProfitLoss(pos)
                                 const isActive = pos.status === 'active'
 
@@ -429,6 +446,29 @@ export function ProfilePositions({
                     </DialogFooter>
                 </DialogContent>
             </Dialog>
+
+            {/* Pagination Controls */}
+            {totalPages > 1 && (
+                <div className="flex justify-center items-center gap-4 mt-6">
+                    <button
+                        onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
+                        disabled={currentPage === 1}
+                        className="flex h-9 items-center justify-center rounded-md border border-black/10 px-3 text-sm font-medium transition-colors hover:bg-black/5 disabled:opacity-50 dark:border-white/10 dark:hover:bg-white/5 text-black dark:text-white"
+                    >
+                        Anterior
+                    </button>
+                    <span className="text-sm text-muted-foreground">
+                        Página {currentPage} de {totalPages}
+                    </span>
+                    <button
+                        onClick={() => setCurrentPage(prev => Math.min(totalPages, prev + 1))}
+                        disabled={currentPage === totalPages}
+                        className="flex h-9 items-center justify-center rounded-md border border-black/10 px-3 text-sm font-medium transition-colors hover:bg-black/5 disabled:opacity-50 dark:border-white/10 dark:hover:bg-white/5 text-black dark:text-white"
+                    >
+                        Próxima
+                    </button>
+                </div>
+            )}
         </section>
     )
 }

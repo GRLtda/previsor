@@ -406,11 +406,11 @@ export function PublicProfile({ identifier }: PublicProfileProps) {
                 {/* Right Content */}
                 <main className="flex w-full flex-col gap-5 lg:pl-5">
                     {/* Portfolio Card (Flat Style) */}
-                    <section className="relative z-10 w-full animate-fade-down overflow-hidden rounded-[24px] border border-black/10 bg-black/5 dark:border-white/10 dark:bg-white/5 p-6 min-h-[220px]">
-                        <header className="relative z-10 flex w-full min-h-[125px] justify-between text-black dark:text-white flex-col lg:flex-row max-sm:min-h-[209px]">
-                            <div className="flex flex-col gap-3 lg:px-0">
+                    <section className="relative z-10 w-full animate-fade-down overflow-hidden rounded-[24px] border border-black/10 bg-black/5 dark:border-white/10 dark:bg-white/5 p-6 min-h-[265px] transition-all duration-300">
+                        <header className="relative z-10 flex w-full min-h-[125px] justify-between text-black dark:text-white flex-col lg:flex-row max-sm:min-h-0">
+                            <div className="flex flex-1 flex-col gap-3 lg:px-0 min-w-0">
                                 {viewMode === 'portfolio' ? (
-                                    <div className="flex flex-col gap-3">
+                                    <div className="flex flex-col gap-3 animate-in fade-in duration-500">
                                         <span className="mb-3 flex items-center gap-x-1 text-sm font-normal text-muted-foreground">Valor do Portfólio</span>
                                         <span className="relative bottom-1 text-4xl font-semibold text-black dark:text-[#f0f0f0]">
                                             <Odometer value={stats.portfolioValue} />
@@ -421,7 +421,7 @@ export function PublicProfile({ identifier }: PublicProfileProps) {
                                         </span>
                                     </div>
                                 ) : (
-                                    <div className="favorite-categories relative flex w-full flex-col lg:max-w-[430px]">
+                                    <div className="favorite-categories relative flex w-full flex-col lg:max-w-[460px] animate-in fade-in duration-500">
                                         <div className="flex items-center mb-4">
                                             <h2 className="text-sm font-normal text-muted-foreground">Categorias Favoritas</h2>
                                         </div>
@@ -456,12 +456,12 @@ export function PublicProfile({ identifier }: PublicProfileProps) {
                                 )}
                             </div>
 
-                            <div className="relative flex h-fit gap-x-2.5 max-lg:mr-0 max-lg:mt-4 max-lg:self-end">
+                            <div className="relative flex h-fit gap-x-2.5 max-lg:mr-0 max-lg:mt-4 max-lg:self-end shrink-0">
                                 <button className="flex size-[38px] items-center justify-center rounded-full bg-black/5 dark:bg-white/5 transition-colors hover:bg-black/10 hover:dark:bg-white/10 text-muted-foreground">
                                     <svg className="size-4" width="10" height="10" viewBox="0 0 10 10" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M9.16659 5.00016C9.16659 7.30016 7.29992 9.16683 4.99992 9.16683C2.69992 9.16683 1.29575 6.85016 1.29575 6.85016M1.29575 6.85016H3.17909M1.29575 6.85016V8.9335M0.833252 5.00016C0.833252 2.70016 2.68325 0.833496 4.99992 0.833496C7.77909 0.833496 9.16659 3.15016 9.16659 3.15016M9.16659 3.15016V1.06683M9.16659 3.15016H7.31658" stroke="currentColor" strokeWidth="0.6" strokeLinecap="round" strokeLinejoin="round"></path></svg>
                                 </button>
-                                <div className="hidden lg:flex">
-                                    <div className="relative flex h-[38px] items-center rounded-full bg-black/5 dark:bg-white/5 p-1">
+                                <div className="flex">
+                                    <div className="relative flex h-[38px] items-center rounded-full bg-black/5 dark:bg-white/5 p-1 border border-black/5 dark:border-white/5">
                                         <span
                                             className={cn(
                                                 "absolute h-[30px] rounded-full bg-white dark:bg-[#1c1c24] shadow-sm transition-all duration-300 ease-out w-[110px]",
@@ -521,10 +521,6 @@ export function PublicProfile({ identifier }: PublicProfileProps) {
                             </div>
                         )}
 
-                        <div className="absolute bottom-5 left-1/2 flex -translate-x-1/2 items-center gap-2 lg:hidden">
-                            <button onClick={() => setViewMode('portfolio')} className={cn("size-2.5 rounded-full transition-all duration-300", viewMode === 'portfolio' ? "bg-black dark:bg-white" : "bg-black/20 dark:bg-white/20")} />
-                            <button onClick={() => setViewMode('favorites')} className={cn("size-2.5 rounded-full transition-all duration-300", viewMode === 'favorites' ? "bg-black dark:bg-white" : "bg-black/20 dark:bg-white/20")} />
-                        </div>
                     </section>
 
                     {/* Categories Carousel */}
@@ -537,10 +533,16 @@ export function PublicProfile({ identifier }: PublicProfileProps) {
                                     setSelectedCategory(selectedCategory === cat.id ? null : cat.id)
                                 }}
                                 className={cn(
-                                    "flex shrink-0 w-[126px] h-[50px] relative overflow-hidden flex-row items-center gap-3 rounded-xl border p-1.5 transition-all outline-none text-left",
-                                    cat.count > 0 ? "opacity-100 bg-black/5 dark:bg-white/5 border-black/10 dark:border-white/10" : "opacity-40 bg-transparent border-black/5 dark:border-white/5",
-                                    viewMode === 'favorites' && selectedCategory === cat.id ? "ring-2 ring-black/20 dark:ring-white/20" : ""
+                                    "flex shrink-0 w-[126px] h-[50px] relative overflow-hidden flex-row items-center gap-3 rounded-xl border p-1.5 transition-all duration-300 outline-none text-left active:scale-[0.98]",
+                                    cat.count > 0 ? "opacity-100 bg-black/5 dark:bg-white/5 border-black/10 dark:border-white/10 hover:border-black/20 dark:hover:border-white/20 hover:scale-[1.02]" : "opacity-40 bg-transparent border-black/5 dark:border-white/5",
+                                    viewMode === 'favorites' && selectedCategory === cat.id ? "ring-0" : ""
                                 )}
+                                style={viewMode === 'favorites' && selectedCategory === cat.id ? {
+                                    borderColor: cat.color,
+                                    borderWidth: '1.5px',
+                                    backgroundColor: `${cat.color}10`,
+                                    boxShadow: `0 0 12px ${cat.color}20`
+                                } : {}}
                             >
                                 <div className="flex size-[38px] items-center justify-center rounded-lg shrink-0" style={{ backgroundColor: cat.color }}>
                                     <img className="size-[20px]" alt="" src={cat.icon} />

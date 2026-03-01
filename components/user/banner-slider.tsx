@@ -71,7 +71,7 @@ export function BannerSlider() {
             <div className="overflow-hidden rounded-2xl" ref={emblaRef}>
                 <div className="flex touch-pan-y">
                     {banners.map((banner) => (
-                        <div key={banner.id} className="relative min-w-0 flex-[0_0_100%] aspect-[21/9] md:aspect-[4/1] lg:aspect-[5/1] overflow-hidden">
+                        <div key={banner.id} className="relative min-w-0 flex-[0_0_100%] aspect-[21/9] overflow-hidden">
                             {banner.linkUrl ? (
                                 <Link href={banner.linkUrl} target="_blank" rel="noopener noreferrer" className="w-full h-full block">
                                     <img src={banner.imageUrl} alt={banner.title || 'Banner'} className="w-full h-full object-cover rounded-2xl" />

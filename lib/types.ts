@@ -442,6 +442,7 @@ export interface Category {
 
 export interface Banner {
   id: string
+  placement: string
   title: string | null
   imageUrl: string
   linkUrl: string | null

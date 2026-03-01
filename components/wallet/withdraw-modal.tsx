@@ -8,6 +8,7 @@ import { useAuth } from '@/contexts/auth-context'
 import { Dialog, DialogContent, DialogTitle } from '@/components/ui/dialog'
 import { toast } from 'sonner'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
+import type { Banner } from '@/lib/types'
 
 interface WithdrawModalProps {
     isOpen: boolean
@@ -22,10 +23,19 @@ export function WithdrawModal({ isOpen, onOpenChange }: WithdrawModalProps) {
     const [isLoading, setIsLoading] = useState(false)
     const [error, setError] = useState<string | null>(null)
     const [mounted, setMounted] = useState(false)
+    const [banner, setBanner] = useState<Banner | null>(null)
 
     useEffect(() => {
         setMounted(true)
-    }, [])
+        if (isOpen) {
+            userApi.getBanners({ placement: 'modal_withdraw' })
+                .then(res => {
+                    const activeBanner = res.data.banners.find(b => b.isActive)
+                    setBanner(activeBanner || null)
+                })
+                .catch(console.error)
+        }
+    }, [isOpen])
 
     const amountNumber = parseFloat(amount.replace(',', '.') || '0')
 
@@ -105,23 +115,36 @@ export function WithdrawModal({ isOpen, onOpenChange }: WithdrawModalProps) {
                 <DialogTitle className="sr-only">Sacar</DialogTitle>
                 <div className="relative h-auto overflow-y-auto max-h-[90vh] custom-scrollbar text-black dark:text-white">
 
-                    <div className="p-6 flex flex-col">
-                        {/* Header with Back */}
-                        <div className="flex items-center mb-10 relative">
-                            <div className="flex flex-col flex-1 items-center">
-                                <h3 className="text-[18px] font-bold text-black dark:text-white mb-0.5">Valor do Saque</h3>
-                                <span className="text-[13px] text-[#606E85] dark:text-[#A1A7BB] font-medium">
-                                    Saldo Atual: R$ {(currentBalance / 100).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-                                </span>
+                    <div className="p-6 flex flex-col relative pt-8">
+                        {/* Close Button */}
+                        <button
+                            onClick={handleClose}
+                            className="absolute right-4 top-4 z-10 text-black/40 dark:text-white/40 hover:text-black dark:hover:text-white transition-colors p-2 bg-black/10 dark:bg-white/10 rounded-full hover:bg-black/20 dark:hover:bg-white/20 backdrop-blur-sm"
+                        >
+                            <svg width="12" height="12" viewBox="0 0 14 14" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                <path d="M1.4 14L0 12.6L5.6 7L0 1.4L1.4 0L7 5.6L12.6 0L14 1.4L8.4 7L14 12.6L12.6 14L7 8.4L1.4 14Z" fill="currentColor" />
+                            </svg>
+                        </button>
+
+                        {/* Optional Banner */}
+                        {banner && (
+                            <div className="mb-6 w-full rounded-xl overflow-hidden shadow-sm">
+                                {banner.linkUrl ? (
+                                    <a href={banner.linkUrl} target="_blank" rel="noopener noreferrer">
+                                        <img src={banner.imageUrl} alt={banner.title || 'Banner'} className="w-full h-auto object-cover max-h-[140px]" />
+                                    </a>
+                                ) : (
+                                    <img src={banner.imageUrl} alt={banner.title || 'Banner'} className="w-full h-auto object-cover max-h-[140px]" />
+                                )}
                             </div>
-                            <button
-                                onClick={handleClose}
-                                className="absolute right-0 text-black/40 dark:text-white/40 hover:text-black dark:hover:text-white transition-colors"
-                            >
-                                <svg width="14" height="14" viewBox="0 0 14 14" fill="none" xmlns="http://www.w3.org/2000/svg">
-                                    <path d="M1.4 14L0 12.6L5.6 7L0 1.4L1.4 0L7 5.6L12.6 0L14 1.4L8.4 7L14 12.6L12.6 14L7 8.4L1.4 14Z" fill="currentColor" />
-                                </svg>
-                            </button>
+                        )}
+
+                        {/* Header with Title and Balance */}
+                        <div className="flex flex-col flex-1 items-center mb-8">
+                            <h3 className="text-[18px] font-bold text-black dark:text-white mb-0.5">Valor do Saque</h3>
+                            <span className="text-[13px] text-[#606E85] dark:text-[#A1A7BB] font-medium">
+                                Saldo Atual: R$ {(currentBalance / 100).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                            </span>
                         </div>
 
                         {/* Amount Input */}

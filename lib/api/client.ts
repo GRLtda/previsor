@@ -253,6 +253,11 @@ async function baseFetch<T>(
   return data
 }
 
+// Global promise cache to deduplicate simultaneous requests before localStorage saves
+let bannersFetchPromise: Promise<import('@/lib/types').Banner[]> | null = null;
+// In-memory cache to prevent any network requests (even 304s) during the active session
+let sessionBannersCache: import('@/lib/types').Banner[] | null = null;
+
 // User API client
 export const userApi = {
   // Auth
@@ -574,11 +579,79 @@ export const userApi = {
       '/v1/public/categories'
     ),
 
-  getBanners: () =>
-    baseFetch<{ success: true; data: { banners: import('@/lib/types').Banner[] } }>(
-      'user',
-      '/v1/public/banners'
-    ),
+  getBanners: async (params?: { placement?: string }): Promise<{ success: true; data: { banners: import('@/lib/types').Banner[] } }> => {
+    // Se for SSR fallback to raw mode
+    if (typeof window === 'undefined') {
+      return baseFetch<{ success: true; data: { banners: import('@/lib/types').Banner[] } }>('user', '/v1/public/banners', { params });
+    }
+
+    // Retorna direto da memória se já foi carregado nesta sessão (impede requisições 304 ao abrir modais)
+    if (sessionBannersCache !== null) {
+      const filtered = params?.placement
+        ? sessionBannersCache.filter((b) => b.placement === params.placement)
+        : sessionBannersCache;
+      return { success: true, data: { banners: filtered } };
+    }
+
+    const CACHE_KEY = 'previzor_banners_cache';
+    const ETAG_KEY = 'previzor_banners_etag';
+
+    const cachedDataStr = localStorage.getItem(CACHE_KEY);
+    const cachedEtag = localStorage.getItem(ETAG_KEY);
+
+    let allBanners: import('@/lib/types').Banner[] = [];
+
+    // Se já temos uma requisição em andamento, aguardamos ela terminar
+    if (!bannersFetchPromise) {
+      bannersFetchPromise = (async () => {
+        const headers: HeadersInit = {
+          'Content-Type': 'application/json'
+        };
+        if (cachedEtag) {
+          headers['If-None-Match'] = cachedEtag;
+        }
+
+        try {
+          const response = await fetch(`${USER_API_BASE}/v1/public/banners`, {
+            method: 'GET',
+            headers
+          });
+
+          if (response.status === 304 && cachedDataStr) {
+            return JSON.parse(cachedDataStr);
+          } else if (response.ok) {
+            const data = await response.json();
+            let freshBanners = [];
+            if (data.success && data.data && data.data.banners) {
+              freshBanners = data.data.banners;
+            }
+
+            const newEtag = response.headers.get('etag');
+            if (newEtag) localStorage.setItem(ETAG_KEY, newEtag);
+            localStorage.setItem(CACHE_KEY, JSON.stringify(freshBanners));
+
+            return freshBanners;
+          } else {
+            return cachedDataStr ? JSON.parse(cachedDataStr) : [];
+          }
+        } catch (e) {
+          return cachedDataStr ? JSON.parse(cachedDataStr) : [];
+        } finally {
+          bannersFetchPromise = null;
+        }
+      })();
+    }
+
+    allBanners = await bannersFetchPromise;
+    sessionBannersCache = allBanners;
+
+    // Client-side filtering
+    if (params?.placement) {
+      allBanners = allBanners.filter((b: import('@/lib/types').Banner) => b.placement === params.placement);
+    }
+
+    return { success: true, data: { banners: allBanners } };
+  },
 
   // Comments / Discussion
   getComments: (eventId: string, params?: { limit?: number; offset?: number; sortBy?: 'recent' | 'popular' | 'oldest' }) =>
@@ -616,6 +689,7 @@ export const userApi = {
       { method: 'DELETE' }
     ),
 }
+
 
 // Admin API client
 export const adminApi = {

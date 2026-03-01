@@ -9,6 +9,8 @@ import { ForgotPasswordForm } from './forgot-password-form'
 import { ResetPasswordForm } from './reset-password-form'
 import { AnimatePresence, motion } from 'framer-motion'
 import { cn } from '@/lib/utils'
+import { userApi } from '@/lib/api/client'
+import type { Banner } from '@/lib/types'
 
 type AuthView = 'LOGIN' | 'REGISTER' | 'OTP' | 'FORGOT_PASSWORD' | 'RESET_PASSWORD'
 
@@ -23,11 +25,22 @@ interface AuthModalProps {
 export function AuthModal({ isOpen, onOpenChange, defaultView = 'LOGIN', resetToken, children }: AuthModalProps) {
     const [view, setView] = useState<AuthView>(defaultView)
     const [email, setEmail] = useState('')
+    const [loginBanner, setLoginBanner] = useState<Banner | null>(null)
+    const [registerBanner, setRegisterBanner] = useState<Banner | null>(null)
 
     // Reset view when modal opens
     useEffect(() => {
         if (isOpen) {
             setView(defaultView)
+
+            // Fetch banners for Auth
+            userApi.getBanners({ placement: 'modal_login' }).then(res => {
+                setLoginBanner(res.data.banners.find(b => b.isActive) || null)
+            }).catch(console.error)
+
+            userApi.getBanners({ placement: 'modal_register' }).then(res => {
+                setRegisterBanner(res.data.banners.find(b => b.isActive) || null)
+            }).catch(console.error)
         }
     }, [isOpen, defaultView])
 
@@ -61,6 +74,22 @@ export function AuthModal({ isOpen, onOpenChange, defaultView = 'LOGIN', resetTo
                             transition={{ duration: 0.2 }}
                             className="w-full max-w-sm mx-auto"
                         >
+                            {(() => {
+                                const banner = view === 'LOGIN' ? loginBanner : view === 'REGISTER' ? registerBanner : null;
+                                if (!banner) return null;
+                                return (
+                                    <div className="mb-6 w-full rounded-xl overflow-hidden">
+                                        {banner.linkUrl ? (
+                                            <a href={banner.linkUrl} target="_blank" rel="noopener noreferrer">
+                                                <img src={banner.imageUrl} alt={banner.title || 'Banner'} className="w-full h-auto object-cover" />
+                                            </a>
+                                        ) : (
+                                            <img src={banner.imageUrl} alt={banner.title || 'Banner'} className="w-full h-auto object-cover" />
+                                        )}
+                                    </div>
+                                )
+                            })()}
+
                             {view === 'LOGIN' && (
                                 <LoginForm
                                     onSuccess={handleLoginSuccess}

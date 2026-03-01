@@ -14,6 +14,13 @@ import {
     DialogTitle,
     DialogFooter,
 } from "@/components/ui/dialog";
+import {
+    Select,
+    SelectContent,
+    SelectItem,
+    SelectTrigger,
+    SelectValue,
+} from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent } from "@/components/ui/card";
@@ -43,6 +50,7 @@ export default function AdminBannersPage() {
 
     // Form state
     const [formData, setFormData] = useState({
+        placement: "carousel",
         title: "",
         imageUrl: "",
         linkUrl: "",
@@ -84,6 +92,7 @@ export default function AdminBannersPage() {
         if (banner) {
             setEditingBanner(banner);
             setFormData({
+                placement: banner.placement || "carousel",
                 title: banner.title || "",
                 imageUrl: banner.imageUrl,
                 linkUrl: banner.linkUrl || "",
@@ -93,6 +102,7 @@ export default function AdminBannersPage() {
         } else {
             setEditingBanner(null);
             setFormData({
+                placement: "carousel",
                 title: "",
                 imageUrl: "",
                 linkUrl: "",
@@ -189,6 +199,20 @@ export default function AdminBannersPage() {
                     {banner.displayOrder}
                 </span>
             ),
+        },
+        {
+            header: "Local",
+            cell: (banner) => (
+                <span className="text-sm">
+                    {banner.placement === 'carousel' ? 'Carrossel Principal' :
+                        banner.placement === 'modal_deposit' ? 'Modal Depósito' :
+                            banner.placement === 'modal_withdraw' ? 'Modal Saque' :
+                                banner.placement === 'modal_login' ? 'Modal Login' :
+                                    banner.placement === 'modal_register' ? 'Modal Registro' :
+                                        banner.placement === 'global_logo' ? 'Logo Global' :
+                                            banner.placement}
+                </span>
+            )
         },
         {
             header: "Preview",
@@ -325,6 +349,26 @@ export default function AdminBannersPage() {
                                 onChange={handleFileUpload}
                                 disabled={isUploading}
                             />
+                        </div>
+
+                        <div className="grid gap-2">
+                            <Label>Localização</Label>
+                            <Select
+                                value={formData.placement}
+                                onValueChange={(val) => setFormData(prev => ({ ...prev, placement: val }))}
+                            >
+                                <SelectTrigger>
+                                    <SelectValue placeholder="Selecione o local de exibição" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    <SelectItem value="carousel">Carrossel Principal</SelectItem>
+                                    <SelectItem value="modal_deposit">Modal Depósito</SelectItem>
+                                    <SelectItem value="modal_withdraw">Modal Saque</SelectItem>
+                                    <SelectItem value="modal_login">Modal Login</SelectItem>
+                                    <SelectItem value="modal_register">Modal Registro</SelectItem>
+                                    <SelectItem value="global_logo">Logo Global</SelectItem>
+                                </SelectContent>
+                            </Select>
                         </div>
 
                         <div className="grid gap-2">

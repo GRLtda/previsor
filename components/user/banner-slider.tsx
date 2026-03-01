@@ -18,7 +18,7 @@ export function BannerSlider() {
         let mounted = true
         async function loadBanners() {
             try {
-                const res = await userApi.getBanners()
+                const res = await userApi.getBanners({ placement: 'carousel' })
                 if (mounted && res.success && res.data) {
                     setBanners(res.data.banners || [])
                 }

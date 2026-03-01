@@ -18,9 +18,9 @@ export default function EditProfilePage() {
 
     const [isLoading, setIsLoading] = useState(false)
     const [displayName, setDisplayName] = useState(user?.full_name || '')
-    const [bio, setBio] = useState('')
-    const [twitterUsername, setTwitterUsername] = useState('')
-    const [instagramUsername, setInstagramUsername] = useState('')
+    const [bio, setBio] = useState(user?.bio || '')
+    const [twitterUsername, setTwitterUsername] = useState(user?.twitter_username || '')
+    const [instagramUsername, setInstagramUsername] = useState(user?.instagram_username || '')
 
     const isOwner = isAuthenticated && user?.id === username
 
@@ -30,18 +30,36 @@ export default function EditProfilePage() {
         }
     }, [isOwner, isAuthenticated, username, router])
 
+    // Pre-populate when user data loads
+    useEffect(() => {
+        if (user) {
+            setDisplayName(user.full_name || '')
+            setBio(user.bio || '')
+            setTwitterUsername(user.twitter_username || '')
+            setInstagramUsername(user.instagram_username || '')
+        }
+    }, [user])
+
     if (!isOwner) {
         return null
     }
 
-    const hasChanges = displayName !== (user?.full_name || '') || bio.length > 0 || twitterUsername.length > 0 || instagramUsername.length > 0
+    const hasChanges =
+        displayName !== (user?.full_name || '') ||
+        bio !== (user?.bio || '') ||
+        twitterUsername !== (user?.twitter_username || '') ||
+        instagramUsername !== (user?.instagram_username || '')
 
     const handleSave = async () => {
         if (!hasChanges) return
         setIsLoading(true)
         try {
-            await userApi.updateMe({ full_name: displayName })
-            // TODO: missing api to update bio, twitter, instagram 
+            await userApi.updateMe({
+                full_name: displayName,
+                bio: bio || null,
+                twitter_username: twitterUsername || null,
+                instagram_username: instagramUsername || null,
+            })
             toast.success('Perfil atualizado com sucesso!')
             await refreshUser()
             router.push(`/u/${username}`)
@@ -106,12 +124,13 @@ export default function EditProfilePage() {
                             </label>
                             <textarea
                                 id="bio"
-                                placeholder="Bio"
-                                maxLength={160}
+                                placeholder="Escreva uma breve descrição sobre você..."
+                                maxLength={200}
                                 value={bio}
                                 onChange={(e) => setBio(e.target.value)}
                                 className="min-h-[100px] w-full resize-none rounded-lg border border-border bg-transparent p-4 text-sm font-medium text-black placeholder:text-muted-foreground focus:border-brand focus:outline-none dark:text-white"
                             />
+                            <span className="text-xs text-muted-foreground text-right">{bio.length}/200</span>
                         </div>
 
                         {/* Social Links */}
@@ -123,7 +142,7 @@ export default function EditProfilePage() {
                                 {/* Twitter */}
                                 <div className="relative flex h-[46px] flex-1 items-center rounded-lg border border-border bg-transparent">
                                     <div className="flex h-full w-[46px] items-center justify-center border-r border-border text-muted-foreground">
-                                        <TwitterX className="size-4" />
+                                        <svg className="size-3.5" viewBox="0 0 24 24" fill="currentColor"><path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z" /></svg>
                                     </div>
                                     <input
                                         placeholder="Twitter Username"

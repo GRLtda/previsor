@@ -39,6 +39,9 @@ export interface User {
   email: string
   phone: string
   full_name: string | null
+  bio: string | null
+  twitter_username: string | null
+  instagram_username: string | null
   kyc: {
     status: 'pending' | 'approved' | 'rejected'
     level: 'basic' | 'intermediate' | 'full'

@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect, useCallback, useMemo } from 'react'
+import { useState, useEffect, useCallback, useMemo, useRef } from 'react'
 import { useParams } from 'next/navigation'
 import { useAuth } from '@/contexts/auth-context'
 import { userApi } from '@/lib/api/client'
@@ -8,7 +8,7 @@ import { Skeleton } from '@/components/ui/skeleton'
 import Link from 'next/link'
 import { cn } from '@/lib/utils'
 import { Logo } from '@/components/ui/logo'
-import { Copy, Edit3, LogOut, Settings, ArrowUpRight } from 'lucide-react'
+import { Copy, Edit3, LogOut, Settings, ArrowUpRight, Instagram } from 'lucide-react'
 import { ProfilePositions } from '@/components/profile/profile-positions'
 import type { Position } from '@/lib/types'
 const Odometer = ({ value }: { value: number }) => {
@@ -41,6 +41,7 @@ export default function PublicProfilePage() {
     const [viewMode, setViewMode] = useState<'portfolio' | 'favorites'>('portfolio')
     const [selectedCategory, setSelectedCategory] = useState<string | null>(null)
     const [activeActivityTab, setActiveActivityTab] = useState<'positions' | 'activity'>('positions')
+    const [dominantColors, setDominantColors] = useState<string[]>(['#6b7280', '#9ca3af', '#4b5563'])
 
     const filteredPositions = useMemo(() => {
         if (viewMode === 'favorites' && selectedCategory) {
@@ -70,6 +71,9 @@ export default function PublicProfilePage() {
         walletAddress: username,
         joinedAt: new Date().toISOString(),
         avatarUrl: null as string | null,
+        bio: null as string | null,
+        twitterUsername: null as string | null,
+        instagramUsername: null as string | null,
     })
 
     const fetchProfileData = useCallback(async () => {
@@ -84,6 +88,9 @@ export default function PublicProfilePage() {
                 walletAddress: username,
                 joinedAt: data.created_at,
                 avatarUrl: data.avatar_url ?? null,
+                bio: data.bio ?? null,
+                twitterUsername: data.twitter_username ?? null,
+                instagramUsername: data.instagram_username ?? null,
             })
             setPositions(data.positions || [])
             setStats({
@@ -105,6 +112,61 @@ export default function PublicProfilePage() {
     useEffect(() => {
         fetchProfileData()
     }, [fetchProfileData])
+
+    // Extract dominant colors from avatar
+    useEffect(() => {
+        if (!profileData.avatarUrl) return
+        const img = new Image()
+        img.crossOrigin = 'anonymous'
+        img.onload = () => {
+            try {
+                const canvas = document.createElement('canvas')
+                const size = 64
+                canvas.width = size
+                canvas.height = size
+                const ctx = canvas.getContext('2d')
+                if (!ctx) return
+                ctx.drawImage(img, 0, 0, size, size)
+                const imageData = ctx.getImageData(0, 0, size, size).data
+
+                // Sample colors from regions
+                const colors: [number, number, number][] = []
+                const step = 4 * 8 // every 8th pixel
+                for (let i = 0; i < imageData.length; i += step) {
+                    const r = imageData[i], g = imageData[i + 1], b = imageData[i + 2]
+                    // Skip very dark or very light pixels
+                    const brightness = (r + g + b) / 3
+                    if (brightness > 30 && brightness < 225) {
+                        colors.push([r, g, b])
+                    }
+                }
+
+                if (colors.length < 3) return
+
+                // Simple k-means-like: pick 3 spread colors
+                const sorted = colors.sort((a, b) => (a[0] * 2 + a[1] * 3 + a[2]) - (b[0] * 2 + b[1] * 3 + b[2]))
+                const c1 = sorted[Math.floor(sorted.length * 0.15)]
+                const c2 = sorted[Math.floor(sorted.length * 0.5)]
+                const c3 = sorted[Math.floor(sorted.length * 0.85)]
+
+                // Boost saturation slightly for vibrancy
+                const boost = ([r, g, b]: [number, number, number]): string => {
+                    const max = Math.max(r, g, b), min = Math.min(r, g, b)
+                    const mid = (max + min) / 2
+                    const factor = 1.3
+                    const nr = Math.min(255, Math.round(mid + (r - mid) * factor))
+                    const ng = Math.min(255, Math.round(mid + (g - mid) * factor))
+                    const nb = Math.min(255, Math.round(mid + (b - mid) * factor))
+                    return `rgb(${nr}, ${ng}, ${nb})`
+                }
+
+                setDominantColors([boost(c1), boost(c2), boost(c3)])
+            } catch (e) {
+                // CORS or canvas error, keep defaults
+            }
+        }
+        img.src = profileData.avatarUrl
+    }, [profileData.avatarUrl])
 
     const handleCopyAddress = async () => {
         try {
@@ -159,28 +221,59 @@ export default function PublicProfilePage() {
     }
 
     return (
-        <div className="flex size-full justify-center px-3 pb-16 pt-[20px]">
-            <div className="mx-auto flex w-full max-w-[1200px] flex-col gap-6 lg:flex-row lg:gap-8 pb-20 lg:pb-0">
+        <div className="relative flex size-full justify-center px-3 pb-16 pt-[20px] overflow-hidden">
+            {/* Dynamic background glow from avatar colors */}
+            <div
+                className="pointer-events-none absolute inset-0 opacity-[0.07] dark:opacity-[0.12] transition-opacity duration-1000"
+                style={{
+                    background: `
+                        radial-gradient(ellipse 600px 500px at 15% 10%, ${dominantColors[0]}, transparent 70%),
+                        radial-gradient(ellipse 500px 400px at 5% 40%, ${dominantColors[1]}, transparent 70%),
+                        radial-gradient(ellipse 400px 350px at 25% 25%, ${dominantColors[2]}, transparent 70%)
+                    `,
+                }}
+            />
+            <div className="relative mx-auto flex w-full max-w-[1200px] flex-col gap-6 lg:flex-row lg:gap-8 pb-20 lg:pb-0">
                 {/* Left Sidebar */}
                 <aside className="flex w-full flex-col items-center lg:w-[320px] lg:items-start shrink-0">
-                    {/* Avatar */}
-                    <div className="relative mb-6 flex size-[140px] items-center justify-center rounded-full overflow-hidden"
-                        style={{
-                            background: profileData.avatarUrl ? 'transparent' : 'linear-gradient(135deg, #f59e0b 0%, #d97706 100%)',
-                        }}
-                    >
-                        {profileData.avatarUrl ? (
-                            <img
-                                src={profileData.avatarUrl}
-                                alt={profileData.displayName}
-                                className="w-full h-full object-cover"
-                            />
-                        ) : (
-                            <span className="text-5xl font-bold text-white">
-                                {profileData.displayName.charAt(0).toUpperCase()}
-                            </span>
-                        )}
+                    {/* Avatar with animated gradient ring */}
+                    <div className="relative mb-6 flex items-center justify-center">
+                        {/* Spinning gradient ring */}
+                        <div
+                            className="absolute inset-0 rounded-full"
+                            style={{
+                                background: `conic-gradient(from 0deg, ${dominantColors[0]}, ${dominantColors[1]}, ${dominantColors[2]}, ${dominantColors[0]})`,
+                                animation: 'spin-slow 4s linear infinite',
+                            }}
+                        />
+                        {/* Background gap */}
+                        <div className="relative rounded-full bg-background p-[3px] m-[3px]">
+                            <div className="flex size-[140px] items-center justify-center rounded-full overflow-hidden"
+                                style={{
+                                    background: profileData.avatarUrl ? 'transparent' : 'linear-gradient(135deg, #f59e0b 0%, #d97706 100%)',
+                                }}
+                            >
+                                {profileData.avatarUrl ? (
+                                    <img
+                                        src={profileData.avatarUrl}
+                                        alt={profileData.displayName}
+                                        className="w-full h-full object-cover"
+                                    />
+                                ) : (
+                                    <span className="text-5xl font-bold text-white">
+                                        {profileData.displayName.charAt(0).toUpperCase()}
+                                    </span>
+                                )}
+                            </div>
+                        </div>
                     </div>
+
+                    <style jsx>{`
+                        @keyframes spin-slow {
+                            from { transform: rotate(0deg); }
+                            to { transform: rotate(360deg); }
+                        }
+                    `}</style>
 
                     {/* Username & Wallet */}
                     <div className="mb-6 flex flex-col items-center lg:items-start w-full">
@@ -207,7 +300,40 @@ export default function PublicProfilePage() {
                         </div>
                     </div>
 
+                    {/* Bio */}
+                    {profileData.bio && (
+                        <p className="mb-4 text-sm text-muted-foreground text-center lg:text-left w-full leading-relaxed whitespace-pre-line break-words">
+                            {profileData.bio}
+                        </p>
+                    )}
 
+                    {/* Social Links */}
+                    {(profileData.twitterUsername || profileData.instagramUsername) && (
+                        <div className="mb-6 flex items-center gap-2 w-full justify-center lg:justify-start">
+                            {profileData.twitterUsername && (
+                                <a
+                                    href={`https://x.com/${profileData.twitterUsername}`}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className="flex h-8 items-center gap-1.5 rounded-full bg-black/5 px-3 text-[13px] font-medium text-muted-foreground transition-all hover:bg-black/10 dark:bg-white/5 dark:hover:bg-white/10"
+                                >
+                                    <svg className="size-3.5" viewBox="0 0 24 24" fill="currentColor"><path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z" /></svg>
+                                    @{profileData.twitterUsername}
+                                </a>
+                            )}
+                            {profileData.instagramUsername && (
+                                <a
+                                    href={`https://instagram.com/${profileData.instagramUsername}`}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className="flex h-8 items-center gap-1.5 rounded-full bg-black/5 px-3 text-[13px] font-medium text-muted-foreground transition-all hover:bg-black/10 dark:bg-white/5 dark:hover:bg-white/10"
+                                >
+                                    <Instagram className="size-3.5" />
+                                    @{profileData.instagramUsername}
+                                </a>
+                            )}
+                        </div>
+                    )}
 
                     {/* Bottom Actions (Only for owner) */}
                     {isOwner && (
@@ -233,7 +359,7 @@ export default function PublicProfilePage() {
                 <main className="flex w-full flex-col gap-5 lg:pl-5">
                     {/* Portfolio Card (Flat Style) */}
                     <section className="relative z-10 w-full animate-fade-down overflow-hidden rounded-[24px] border border-black/10 bg-black/5 dark:border-white/10 dark:bg-white/5 p-6 min-h-[220px]">
-                        <header className="relative z-10 flex w-full min-h-[165px] justify-between text-black dark:text-white flex-col lg:flex-row max-sm:min-h-[209px]">
+                        <header className="relative z-10 flex w-full min-h-[125px] justify-between text-black dark:text-white flex-col lg:flex-row max-sm:min-h-[209px]">
                             <div className="flex flex-col gap-3 lg:px-0">
                                 {viewMode === 'portfolio' ? (
                                     <div className="flex flex-col gap-3">

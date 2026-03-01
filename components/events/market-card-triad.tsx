@@ -116,22 +116,17 @@ export function MarketCardTriad({
                                         onYesClick?.()
                                     }}
                                     className={cn(
-                                        "touch-manipulation flex px-3 h-[42px] lg:h-[48px] w-full items-center justify-between rounded-xl font-bold transition-all duration-200 border text-sm",
+                                        "touch-manipulation flex gap-x-2 h-[42px] lg:h-[48px] w-full items-center justify-center rounded-xl font-bold transition-all duration-300 text-sm",
                                         isMarketOpen
-                                            ? "bg-[#22c55e]/10 border-[#22c55e]/30 text-[#22c55e] hover:bg-[#22c55e]/20"
-                                            : "bg-muted text-muted-foreground border-border/40 opacity-50 cursor-not-allowed"
+                                            ? "bg-green-500/10 text-green-500 hover:bg-green-500 hover:text-white"
+                                            : "bg-muted text-muted-foreground opacity-50 cursor-not-allowed"
                                     )}
                                 >
-                                    <div className="flex items-center justify-center gap-1">
-                                        <svg width="18" height="18" viewBox="0 0 12 12" fill="none" xmlns="http://www.w3.org/2000/svg">
-                                            <path d="M6 11C8.75 11 11 8.75 11 6C11 3.25 8.75 1 6 1C3.25 1 1 3.25 1 6C1 8.75 3.25 11 6 11Z" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" />
-                                            <path d="M3.875 5.99996L5.29 7.41496L8.125 4.58496" stroke="currentColor" strokeWidth="1.03571" strokeLinecap="round" strokeLinejoin="round" />
-                                        </svg>
-                                        <span>Sim</span>
-                                    </div>
-                                    <div className="flex min-h-[22px] px-2 items-center justify-center rounded-[6px] bg-[#22c55e]">
-                                        <span className="text-[11px] font-bold text-white">{yesMultiplier}</span>
-                                    </div>
+                                    <svg width="16" height="16" viewBox="0 0 14 14" fill="none" xmlns="http://www.w3.org/2000/svg" className="min-w-4">
+                                        <path d="M6.99935 12.8332C10.2077 12.8332 12.8327 10.2082 12.8327 6.99984C12.8327 3.7915 10.2077 1.1665 6.99935 1.1665C3.79102 1.1665 1.16602 3.7915 1.16602 6.99984C1.16602 10.2082 3.79102 12.8332 6.99935 12.8332Z" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round" strokeLinejoin="round" />
+                                        <path d="M4.52051 6.99995L6.17134 8.65079L9.47884 5.34912" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round" strokeLinejoin="round" />
+                                    </svg>
+                                    <span>Sim {yesMultiplier}</span>
                                 </button>
                                 <div className="mt-[6px] flex w-full justify-center">
                                     <div className="flex items-center gap-1.5 text-[12px] sm:text-xs lg:text-sm font-semibold dark:text-white whitespace-nowrap">
@@ -155,23 +150,18 @@ export function MarketCardTriad({
                                         onNoClick?.()
                                     }}
                                     className={cn(
-                                        "touch-manipulation flex px-3 h-[42px] lg:h-[48px] w-full items-center justify-between rounded-xl font-bold transition-all duration-200 border text-sm",
+                                        "touch-manipulation flex gap-x-2 h-[42px] lg:h-[48px] w-full items-center justify-center rounded-xl font-bold transition-all duration-300 text-sm",
                                         isMarketOpen
-                                            ? "bg-[#ef4444]/10 border-[#ef4444]/30 text-[#ef4444] hover:bg-[#ef4444]/20"
-                                            : "bg-muted text-muted-foreground border-border/40 opacity-50 cursor-not-allowed"
+                                            ? "bg-red-500/10 text-red-500 hover:bg-red-500 hover:text-white"
+                                            : "bg-muted text-muted-foreground opacity-50 cursor-not-allowed"
                                     )}
                                 >
-                                    <div className="flex items-center justify-center gap-1">
-                                        <svg width="18" height="18" viewBox="0 0 12 12" fill="none" xmlns="http://www.w3.org/2000/svg">
-                                            <path d="M6 11C8.75 11 11 8.75 11 6C11 3.25 8.75 1 6 1C3.25 1 1 3.25 1 6C1 8.75 3.25 11 6 11Z" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" />
-                                            <path d="M4.58496 7.41496L7.41496 4.58496" stroke="currentColor" strokeWidth="1.03571" strokeLinecap="round" strokeLinejoin="round" />
-                                            <path d="M7.41496 7.41496L4.58496 4.58496" stroke="currentColor" strokeWidth="0.776786" strokeLinecap="round" strokeLinejoin="round" />
-                                        </svg>
-                                        <span>Não</span>
-                                    </div>
-                                    <div className="flex min-h-[22px] px-2 items-center justify-center rounded-[6px] bg-[#ef4444]">
-                                        <span className="text-[11px] font-bold text-white">{noMultiplier}</span>
-                                    </div>
+                                    <svg width="16" height="16" viewBox="0 0 14 14" fill="none" xmlns="http://www.w3.org/2000/svg" className="min-w-4">
+                                        <path d="M6.99935 12.8332C10.2077 12.8332 12.8327 10.2082 12.8327 6.99984C12.8327 3.7915 10.2077 1.1665 6.99935 1.1665C3.79102 1.1665 1.16602 3.7915 1.16602 6.99984C1.16602 10.2082 3.79102 12.8332 6.99935 12.8332Z" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round" strokeLinejoin="round" />
+                                        <path d="M5.34863 8.65079L8.6503 5.34912" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round" strokeLinejoin="round" />
+                                        <path d="M8.6503 8.65079L5.34863 5.34912" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round" strokeLinejoin="round" />
+                                    </svg>
+                                    <span>Não {noMultiplier}</span>
                                 </button>
                                 <div className="mt-[6px] flex w-full justify-center">
                                     <div className="flex items-center gap-1.5 text-[12px] sm:text-xs lg:text-sm font-semibold dark:text-white whitespace-nowrap">

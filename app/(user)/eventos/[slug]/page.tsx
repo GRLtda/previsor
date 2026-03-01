@@ -11,7 +11,7 @@ import { ptBR } from 'date-fns/locale'
 import { toast } from 'sonner'
 import Link from 'next/link'
 import { cn } from '@/lib/utils'
-import { MarketCardTriad } from '@/components/events/market-card-triad'
+import { MarketRow } from '@/components/events/market-row'
 import { CountdownTimer } from '@/components/events/countdown-timer'
 import { PredictionPanel } from '@/components/events/prediction-panel'
 import { MobilePredictionSheet } from '@/components/events/mobile-prediction-sheet'
@@ -498,9 +498,9 @@ export default function EventDetailPage({ params }: PageProps) {
                     </p>
                   </div>
                 ) : (
-                  <div className="grid grid-cols-1 gap-4 xl:grid-cols-2">
+                  <div className="flex flex-col rounded-xl border border-border/40 bg-card/50 px-2 sm:px-4 py-2">
                     {event.markets.map((market) => (
-                      <MarketCardTriad
+                      <MarketRow
                         key={market.id}
                         market={market}
                         onYesClick={() => handleSelectPrediction(market, 'YES')}

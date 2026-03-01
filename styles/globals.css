@@ -75,8 +75,8 @@
 }
 
 @theme inline {
-  --font-sans: 'Geist', 'Geist Fallback';
-  --font-mono: 'Geist Mono', 'Geist Mono Fallback';
+  --font-sans: 'Inter', sans-serif;
+  --font-mono: 'Inter', monospace;
   --color-background: var(--background);
   --color-foreground: var(--foreground);
   --color-card: var(--card);
@@ -119,6 +119,7 @@
   * {
     @apply border-border outline-ring/50;
   }
+
   body {
     @apply bg-background text-foreground;
   }
@@ -128,16 +129,20 @@
 .admin-scrollbar-light::-webkit-scrollbar {
   width: 4px;
 }
+
 .admin-scrollbar-light::-webkit-scrollbar-track {
   background: transparent;
 }
+
 .admin-scrollbar-light::-webkit-scrollbar-thumb {
   background: rgba(0, 0, 0, 0.08);
   border-radius: 999px;
 }
+
 .admin-scrollbar-light::-webkit-scrollbar-thumb:hover {
   background: rgba(0, 0, 0, 0.15);
 }
+
 .admin-scrollbar-light {
   scrollbar-width: thin;
   scrollbar-color: rgba(0, 0, 0, 0.08) transparent;

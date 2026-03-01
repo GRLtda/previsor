@@ -72,7 +72,7 @@ export function EventCard({ event, isFavorite: initialIsFavorite = false, onFavo
   return (
     <Link
       href={`/eventos/${event.slug}`}
-      className="flex hover:shadow-md cursor-pointer min-w-[341px] min-h-[198px] dark:hover:shadow-none hover:dark:bg-white/[7%] w-full flex-col rounded-2xl border border-black/10 dark:border-transparent bg-white px-3 pt-3 text-start hover:cursor-pointer dark:bg-white/5 pb-3 transition-all"
+      className="flex min-w-[341px] min-h-[198px] w-full flex-col rounded-xl border border-border/40 bg-card/50 px-3 pt-3 pb-3 text-start transition-all duration-300 ease-in-out hover:border-border/80 cursor-pointer"
     >
       {/* Header */}
       <div className="flex h-auto w-full flex-col gap-y-2.5 lg:gap-y-3">

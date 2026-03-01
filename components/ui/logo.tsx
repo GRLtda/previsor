@@ -28,7 +28,7 @@ export function Logo({ className = '', width, height = 40 }: LogoProps) {
             </svg>
 
             {/* WORDMARK + TAGLINE */}
-            <div className="flex flex-col justify-center" style={{ fontFamily: 'var(--font-sora), sans-serif' }}>
+            <div className="flex flex-col justify-center" style={{ fontFamily: 'var(--font-sans), sans-serif' }}>
                 <span
                     className="font-bold text-black dark:text-white leading-none tracking-tight"
                     style={{ fontSize: height * 0.6 + 'px' }}

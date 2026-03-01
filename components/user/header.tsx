@@ -176,19 +176,12 @@ export function UserHeader() {
               ) : isLoggedIn ? (
                 <div className="flex items-center justify-end">
                   {/* Unified Balance & Deposit Pill */}
-                  <div className="flex items-center bg-black/5 dark:bg-white/5 rounded-xl p-1 border border-black/5 dark:border-white/5">
+                  <div className="flex items-center hover:bg-black/10 hover:dark:bg-white/10 bg-black/5 dark:bg-white/5 rounded-lg p-1 border border-transparent">
                     <Link
                       href="/app/carteira"
-                      className="flex items-center justify-center rounded-lg px-3 py-1.5 transition-colors hover:bg-black/5 dark:hover:bg-white/10"
+                      className="flex items-center justify-center rounded-lg px-3 py-1.5 transition-colors"
                     >
                       <div className="flex items-center gap-2">
-                        <span className="flex items-center justify-center size-5 rounded-full bg-brand/10 text-brand">
-                          <svg width="12" height="12" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
-                            <path d="M7.86016 5.36016C7.60448 5.38964 7.41152 5.60612 7.41152 5.8635C7.41152 6.12087 7.60448 6.33736 7.86016 6.36683C7.9945 6.36869 8.12379 6.31569 8.21815 6.22007C8.31252 6.12444 8.36381 5.99446 8.36016 5.86016C8.35657 5.58552 8.1348 5.36375 7.86016 5.36016Z" fill="currentColor" />
-                            <path d="M7.86016 7.28016C7.72701 7.27835 7.59877 7.33045 7.50461 7.42461C7.41045 7.51877 7.35835 7.64701 7.36016 7.78016V9.86016C7.36016 10.1363 7.58402 10.3602 7.86016 10.3602C8.1363 10.3602 8.36016 10.1363 8.36016 9.86016V7.7935C8.36376 7.65859 8.31268 7.52796 8.21851 7.43129C8.12435 7.33462 7.99511 7.28011 7.86016 7.28016Z" fill="currentColor" />
-                            <path fillRule="evenodd" clipRule="evenodd" d="M7.86016 1.3335C4.25711 1.33717 1.33717 4.25711 1.3335 7.86016C1.3335 11.4647 4.25558 14.3868 7.86016 14.3868C11.4647 14.3868 14.3868 11.4647 14.3868 7.86016C14.3832 4.25711 11.4632 1.33717 7.86016 1.3335ZM7.86016 13.3868C4.80787 13.3868 2.3335 10.9125 2.3335 7.86016C2.3335 4.80787 4.80787 2.3335 7.86016 2.3335C10.9125 2.3335 13.3868 4.80787 13.3868 7.86016C13.3832 10.9109 10.9109 13.3832 7.86016 13.3868Z" fill="currentColor" />
-                          </svg>
-                        </span>
                         <span className="font-semibold text-black dark:text-white text-sm">
                           {balanceFormatted}
                         </span>
@@ -207,9 +200,9 @@ export function UserHeader() {
                   <DropdownMenu>
                     <DropdownMenuTrigger asChild>
                       <div className="relative cursor-pointer z-20 flex items-center gap-x-2 ml-2.5">
-                        <div className="relative flex w-fit items-center justify-center rounded-full bg-brand/20 p-[2px] transition-colors hover:bg-brand/40">
+                        <div className="relative flex w-fit items-center justify-center rounded-full bg-brand/20 p-[2px] transition-colors hover:bg-brand/40 whitespace-nowrap">
                           <div className="rounded-full bg-white p-0.5 dark:bg-[#12121a]">
-                            <Avatar className="h-[32px] w-[32px]">
+                            <Avatar className="h-[30px] w-[30px]">
                               {user?.avatar_url ? (
                                 <img
                                   src={user.avatar_url.replace('w=256_h=256_q=80', 'w=64_h=64_q=70')}
@@ -224,11 +217,14 @@ export function UserHeader() {
                             </Avatar>
                           </div>
                         </div>
-                        <button className="flex size-[20px] items-center justify-center rounded-full">
-                          <svg width="12" height="12" viewBox="0 0 12 12" fill="none" xmlns="http://www.w3.org/2000/svg" className="dark:text-white text-black">
+                        <span className="text-sm font-semibold text-black dark:text-white hidden sm:block">
+                          {user?.full_name?.split(' ')[0] || 'Usuário'}
+                        </span>
+                        <div className="flex h-[20px] w-[20px] items-center justify-center">
+                          <svg width="10" height="10" viewBox="0 0 12 12" fill="none" xmlns="http://www.w3.org/2000/svg" className="dark:text-white text-black opacity-70">
                             <path d="M9.96004 4.47501L6.70004 7.73501C6.31504 8.12001 5.68504 8.12001 5.30004 7.73501L2.04004 4.47501" stroke="currentColor" strokeWidth="1.28571" strokeMiterlimit="10" strokeLinecap="round" strokeLinejoin="round" />
                           </svg>
-                        </button>
+                        </div>
                       </div>
                     </DropdownMenuTrigger>
                     <DropdownMenuContent

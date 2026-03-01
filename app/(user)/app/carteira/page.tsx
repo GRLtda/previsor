@@ -1,10 +1,9 @@
 'use client'
 
-import { useState, useEffect, useCallback, Suspense } from 'react'
-
+import { useState, useEffect, useCallback, useMemo, Suspense } from 'react'
 import Link from 'next/link'
 import { userApi, ApiClientError } from '@/lib/api/client'
-import type { Wallet, Deposit, Withdrawal } from '@/lib/types'
+import type { Wallet, Deposit, Withdrawal, Position } from '@/lib/types'
 import { useAuth } from '@/contexts/auth-context'
 import { Label } from '@/components/ui/label'
 import { Input } from '@/components/ui/input'
@@ -23,29 +22,43 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog'
 import { Skeleton } from '@/components/ui/skeleton'
-import { StatusBadge } from '@/components/shared/status-badge'
 import { DepositModal } from '@/components/wallet/deposit-modal'
 import { toast } from 'sonner'
-import { RefreshCw, AlertCircle } from 'lucide-react'
+import { AlertCircle, Search, Share, Eye, EyeOff, History, ArrowUpRight, ArrowDownLeft, ExternalLink } from 'lucide-react'
 import { Logo } from '@/components/ui/logo'
+import { cn } from '@/lib/utils'
 
-type HistoryItem = (Deposit | Withdrawal) & {
-  _type: 'deposit' | 'withdrawal'
+const Odometer = ({ value }: { value: number }) => {
+  const formatted = (value / 100).toFixed(2).split('.')
+  const integerPart = formatted[0]
+  const decimalPart = formatted[1]
+
+  return (
+    <span className="inline-flex items-baseline">
+      R$
+      <span>
+        {integerPart.split('').map((digit, i) => (
+          <span key={i} className="inline-block">{digit}</span>
+        ))}
+      </span>
+      <span>.</span>
+      <span className="inline-block">{decimalPart}</span>
+    </span>
+  )
 }
 
 function WalletPageContent() {
   const { user, isOtpVerified, refreshUser } = useAuth()
 
   const [wallet, setWallet] = useState<Wallet | null>(null)
-  const [deposits, setDeposits] = useState<Deposit[]>([])
-  const [withdrawals, setWithdrawals] = useState<Withdrawal[]>([])
+  const [positions, setPositions] = useState<Position[]>([])
   const [isLoading, setIsLoading] = useState(true)
-  const [isRefreshing, setIsRefreshing] = useState(false)
+  const [balanceVisible, setBalanceVisible] = useState(true)
 
-  const [showBalance, setShowBalance] = useState(true)
-  const [timeFilter, setTimeFilter] = useState('all')
+  const [viewMode, setViewMode] = useState<'portfolio' | 'favorites'>('portfolio')
+  const [activeTab, setActiveTab] = useState('previsoes')
+  const [searchQuery, setSearchQuery] = useState('')
   const [sortOrder, setSortOrder] = useState('newest')
-  const [methodFilter, setMethodFilter] = useState('all')
 
   const [depositModalOpen, setDepositModalOpen] = useState(false)
   const [withdrawModalOpen, setWithdrawModalOpen] = useState(false)
@@ -54,30 +67,58 @@ function WalletPageContent() {
   const [pixKeyValue, setPixKeyValue] = useState('')
   const [isCreatingWithdraw, setIsCreatingWithdraw] = useState(false)
 
+  // Stats
+  const [stats, setStats] = useState({
+    portfolioValue: 0,
+    profitLoss: 0,
+    volume: 0,
+    winRate: 0,
+    winCount: 0,
+    lossCount: 0,
+  })
+
+  const categoriesList = useMemo(() => {
+    const baseCategories = [
+      { id: 'esportes', name: 'Esportes', icon: '/assets/svg/profile/football.svg', color: '#00B774', bgColor: 'rgba(0, 183, 116, 0.12)' },
+      { id: 'social', name: 'Social', icon: '/assets/svg/profile/social.svg', color: '#E922FF', bgColor: 'rgba(233, 34, 255, 0.12)' },
+      { id: 'cripto', name: 'Cripto', icon: '/assets/svg/profile/btc.svg', color: '#FA9316', bgColor: 'rgba(250, 147, 22, 0.12)' },
+      { id: 'politica', name: 'Política', icon: '/assets/svg/profile/politics.svg', color: '#0052FF', bgColor: 'rgba(0, 82, 255, 0.12)' },
+      { id: 'jogos', name: 'Jogos', icon: '/assets/svg/profile/gaming.svg', color: '#8A8C99', bgColor: 'rgba(255, 255, 255, 0.05)' },
+      { id: 'mercados_rapid', name: 'Mercados Rápid.', icon: '/assets/svg/profile/fast.svg', color: '#8A8C99', bgColor: 'rgba(255, 255, 255, 0.05)' },
+    ];
+
+    return baseCategories.map((cat) => ({
+      ...cat,
+      count: positions.filter(p =>
+        p.marketStatus === 'open' && p.status === 'active' && (
+          p.eventCategory?.toLowerCase() === cat.id ||
+          (cat.id === 'esportes' && p.eventCategory?.toLowerCase() === 'esporte') ||
+          (cat.id === 'politica' && (p.eventCategory?.toLowerCase() === 'política' || p.eventCategory?.toLowerCase() === 'politica'))
+        )
+      ).length
+    }));
+  }, [positions]);
+
   const fetchData = useCallback(async () => {
     try {
-      const [walletRes, depositsRes, withdrawalsRes] = await Promise.all([
+      const [walletRes, publicProfileRes] = await Promise.all([
         userApi.getWallet(),
-        userApi.getDeposits({ limit: 50 }),
-        userApi.getWithdrawals({ limit: 50 }),
+        userApi.getPublicProfile(user?.id || '', { limit: 100 }).catch(() => ({ data: { positions: [], stats: { portfolioValue: 0, profitLoss: 0, volume: 0, winRate: 0, liveMarkets: 0, marketsTraded: 0, openPositions: 0 } } }))
       ])
+
       setWallet(walletRes.data.wallet)
-      setDeposits(depositsRes.data.deposits)
-      setWithdrawals(withdrawalsRes.data.withdrawals)
+      setPositions(publicProfileRes.data.positions)
+      setStats({
+        ...publicProfileRes.data.stats,
+        winCount: (publicProfileRes.data.stats as any).winCount || 0,
+        lossCount: (publicProfileRes.data.stats as any).lossCount || 0,
+      })
     } catch (err) {
       if (err instanceof ApiClientError) {
         toast.error(err.message)
       }
     }
-  }, [])
-
-  const handleRefresh = async () => {
-    setIsRefreshing(true)
-    await fetchData()
-    await refreshUser()
-    setIsRefreshing(false)
-    toast.success('Dados atualizados!')
-  }
+  }, [user?.id])
 
   useEffect(() => {
     if (isOtpVerified) {
@@ -118,58 +159,32 @@ function WalletPageContent() {
     }
   }
 
-  const historyItems: HistoryItem[] = [
-    ...deposits.map(d => ({ ...d, _type: 'deposit' as const })),
-    ...withdrawals.map(w => ({ ...w, _type: 'withdrawal' as const })),
-  ]
-    .filter(item => {
-      if (timeFilter !== 'all') {
-        const date = new Date(item.created_at)
-        const now = new Date()
-        if (timeFilter === '7days' && date < new Date(now.setDate(now.getDate() - 7))) return false
-        if (timeFilter === '30days' && date < new Date(now.setDate(now.getDate() - 30))) return false
-        if (timeFilter === '90days' && date < new Date(now.setDate(now.getDate() - 90))) return false
+  const handleClosePosition = async (positionId: string) => {
+    try {
+      await userApi.closePosition(positionId)
+      toast.success('Posição encerrada com sucesso!')
+      fetchData()
+      refreshUser()
+    } catch (err) {
+      if (err instanceof ApiClientError) {
+        toast.error(err.message)
+      } else {
+        toast.error('Ocorreu um erro ao encerrar a posição')
       }
-      if (methodFilter !== 'all') {
-        if (methodFilter === 'deposit' && item._type !== 'deposit') return false
-        if (methodFilter === 'withdrawal' && item._type !== 'withdrawal') return false
-      }
-      return true
-    })
-    .sort((a, b) => {
-      const dateA = new Date(a.created_at).getTime()
-      const dateB = new Date(b.created_at).getTime()
-      return sortOrder === 'newest' ? dateB - dateA : dateA - dateB
-    })
-
-  const formatBalance = (balance: number) => {
-    if (!showBalance) return 'R$ •••••'
-    return new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(balance / 100)
+    }
   }
 
-  const handleExportCSV = () => {
-    const headers = ['Data', 'Tipo', 'Método', 'Valor', 'Status']
-    const rows = historyItems.map(item => [
-      new Date(item.created_at).toLocaleDateString('pt-BR'),
-      item._type === 'deposit' ? 'Depósito' : 'Saque',
-      'PIX',
-      item.amount_formatted,
-      item.status,
-    ])
-    const csvContent = [headers, ...rows].map(row => row.join(',')).join('\n')
-    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' })
-    const link = document.createElement('a')
-    link.href = URL.createObjectURL(blob)
-    link.download = `historico-carteira-${new Date().toISOString().split('T')[0]}.csv`
-    link.click()
-    toast.success('CSV exportado!')
+  const formatCurrency = (value: number) => {
+    return new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(value / 100)
   }
+
+  const kycApproved = user?.kyc?.status === 'approved'
 
   if (!isOtpVerified) {
     return (
       <div className="mx-auto w-full lg:pt-[60px] pt-0">
-        <div className="mx-auto min-h-[100vh] px-3 pt-4 lg:mt-0 lg:max-w-[1118px] lg:pt-11">
-          <div className="rounded-lg border border-yellow-200 bg-yellow-50 p-6 flex items-center gap-4">
+        <div className="mx-auto min-h-[100vh] px-3 pt-4 lg:mt-0 lg:max-w-[1200px] lg:pt-11">
+          <div className="rounded-xl border border-yellow-200 bg-yellow-50 p-6 flex items-center gap-4">
             <AlertCircle className="h-8 w-8 text-yellow-600" />
             <div>
               <h3 className="font-semibold text-yellow-800">Verificação Necessária</h3>
@@ -181,275 +196,366 @@ function WalletPageContent() {
     )
   }
 
-  const kycApproved = user?.kyc?.status === 'approved'
+  const activePositions = positions.filter(p => p.status === 'active')
 
   return (
-    <div className="mx-auto w-full lg:pt-[60px] pt-0">
-      <div className="mx-auto min-h-[100vh] px-3 pt-4 lg:mt-0 lg:max-w-[1118px] lg:pt-11">
-        <div className="flex flex-col gap-5 lg:pb-20">
-          {/* Title */}
-          <span className="hidden text-[32px] font-bold text-black dark:text-white lg:flex">
-            Visão geral
-          </span>
-
-          <div className="flex flex-col gap-3 lg:gap-5">
-            {/* Mobile Header */}
-            <div className="mb-4 flex items-center justify-between text-black dark:text-white lg:hidden">
-              <Link href="/" className="flex size-9 items-center justify-center rounded-full bg-black/5 dark:bg-white/5">
-                <svg width="20" height="20" viewBox="0 0 18 18" fill="none" xmlns="http://www.w3.org/2000/svg">
-                  <path d="M11.2875 14.94L6.39747 10.05C5.81997 9.4725 5.81997 8.5275 6.39747 7.95L11.2875 3.06" stroke="currentColor" strokeWidth="2" strokeMiterlimit="10" strokeLinecap="round" strokeLinejoin="round" />
-                </svg>
-              </Link>
-              <div className="flex items-center gap-2.5">
-                <button
-                  onClick={() => setShowBalance(!showBalance)}
-                  className="flex size-9 items-center justify-center rounded-full bg-black/5 dark:bg-white/5"
-                >
-                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                    <path d="M15.5799 12C15.5799 13.98 13.9799 15.58 11.9999 15.58C10.0199 15.58 8.41992 13.98 8.41992 12C8.41992 10.02 10.0199 8.41998 11.9999 8.41998C13.9799 8.41998 15.5799 10.02 15.5799 12Z" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
-                    <path d="M12.0001 20.27C15.5301 20.27 18.8201 18.19 21.1101 14.59C22.0101 13.18 22.0101 10.81 21.1101 9.39997C18.8201 5.79997 15.5301 3.71997 12.0001 3.71997C8.47009 3.71997 5.18009 5.79997 2.89009 9.39997C1.99009 10.81 1.99009 13.18 2.89009 14.59C5.18009 18.19 8.47009 20.27 12.0001 20.27Z" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
-                  </svg>
-                </button>
-                <button className="flex size-9 items-center justify-center rounded-full bg-black/5 dark:bg-white/5">
-                  <svg width="14" height="14" viewBox="0 0 14 14" fill="none" xmlns="http://www.w3.org/2000/svg">
-                    <path d="M9.58999 5.19141C11.69 5.37224 12.5475 6.45141 12.5475 8.81391V8.88974C12.5475 11.4972 11.5033 12.5414 8.89582 12.5414H5.09832C2.49082 12.5414 1.44666 11.4972 1.44666 8.88974V8.81391C1.44666 6.46891 2.29249 5.38974 4.35749 5.19724" stroke="currentColor" strokeWidth="1.01111" strokeLinecap="round" strokeLinejoin="round" />
-                    <path d="M6.99988 2.15805V8.79639" stroke="currentColor" strokeWidth="1.01111" strokeLinecap="round" strokeLinejoin="round" />
-                    <path d="M8.95411 7.49554L6.99994 9.44971L5.04578 7.49554" stroke="currentColor" strokeWidth="1.01111" strokeLinecap="round" strokeLinejoin="round" />
-                  </svg>
-                </button>
-              </div>
+    <div className="flex size-full flex-col items-center justify-center px-4 pb-16 pt-[89px] lg:pt-[32px]">
+      <div className="mx-auto h-full w-full max-w-[1140px] pb-20 lg:pb-0">
+        <div className="flex min-h-[220px] flex-col gap-3 lg:max-h-[220px] lg:flex-row lg:gap-4">
+          {/* Portfolio Card */}
+          <section className="relative z-10 size-full max-h-[300px] min-h-[300px] max-w-3xl animate-fade-right overflow-hidden rounded-[30px] border-white/5 p-6 animate-normal animate-duration-[400ms] animate-once animate-ease-out dark:border max-sm:px-0.5 lg:max-h-[220px] lg:min-h-[220px]">
+            <div className="absolute inset-0 overflow-hidden rounded-[30px]">
+              <div className="absolute inset-0 bg-[url('/assets/img/texture.webp')] bg-cover bg-no-repeat opacity-40"></div>
+              <div className="absolute inset-0 bg-gradient-to-b from-[#1c1c24] via-[#1c1c24] to-[#1c1c24]/85 lg:bg-gradient-to-r"></div>
             </div>
 
-            {/* Balance Card */}
-            <div className="relative z-10 overflow-hidden rounded-2xl bg-[#10131A] px-4 py-5 lg:flex lg:w-full lg:flex-col lg:gap-y-[68px]">
-              {/* Background Effects */}
-              <div className="pointer-events-none absolute inset-0 size-full opacity-50">
-                <div className="absolute left-0 top-0 h-full w-1/2 bg-gradient-to-r from-brand/20 to-transparent" />
-              </div>
-              <div className="pointer-events-none absolute inset-0 z-10 size-full opacity-50">
-                <div className="absolute right-0 top-0 h-full w-1/2 bg-gradient-to-l from-purple-500/20 to-transparent" />
-              </div>
-
-              {isLoading ? (
-                <div className="relative z-30 space-y-4">
-                  <Skeleton className="h-4 w-24 bg-white/10" />
-                  <Skeleton className="h-10 w-40 bg-white/10" />
-                </div>
-              ) : (
-                <>
-                  <div className="relative z-30 flex items-center justify-between">
-                    <span className="text-sm font-medium text-white dark:text-[#A1A7BB]">Saldo Total</span>
-                    <div className="opacity-50 grayscale contrast-200">
-                      <Logo width={80} height={26} />
-                    </div>
+            <header className="relative z-10 flex size-full min-h-[165px] justify-between text-white max-sm:min-h-[209px]">
+              <div className="flex flex-col gap-3 px-5 lg:px-0">
+                {viewMode === 'portfolio' ? (
+                  <div className="flex flex-col gap-3">
+                    <span className="mb-3 flex items-center gap-x-1 text-sm font-normal text-[#8A8C99]">Valor do Portfolio</span>
+                    <span className="relative bottom-1 text-4xl font-semibold text-[#f0f0f0]">
+                      <Odometer value={stats.portfolioValue} />
+                    </span>
+                    <span className="flex items-center gap-1 text-xs font-medium text-[#00B471]">
+                      <ArrowUpRight className="size-3" />
+                      +R$0,00 (+0.00%)
+                    </span>
                   </div>
-
-                  <div className="relative z-30 mt-10 flex flex-col lg:mt-0 lg:gap-3">
-                    <div className="flex items-center gap-2.5">
-                      <span className="text-[32px] font-bold text-white">
-                        {formatBalance(wallet?.balance || 0)}
-                      </span>
-                      <button
-                        onClick={() => setShowBalance(!showBalance)}
-                        className="hidden size-8 items-center justify-center rounded-lg bg-white/5 text-[#A1A7BB] lg:flex"
-                      >
-                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                          <path d="M15.5799 12C15.5799 13.98 13.9799 15.58 11.9999 15.58C10.0199 15.58 8.41992 13.98 8.41992 12C8.41992 10.02 10.0199 8.41998 11.9999 8.41998C13.9799 8.41998 15.5799 10.02 15.5799 12Z" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
-                          <path d="M12.0001 20.27C15.5301 20.27 18.8201 18.19 21.1101 14.59C22.0101 13.18 22.0101 10.81 21.1101 9.39997C18.8201 5.79997 15.5301 3.71997 12.0001 3.71997C8.47009 3.71997 5.18009 5.79997 2.89009 9.39997C1.99009 10.81 1.99009 13.18 2.89009 14.59C5.18009 18.19 8.47009 20.27 12.0001 20.27Z" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
-                        </svg>
-                      </button>
+                ) : (
+                  <div className="favorite-categories relative flex w-full flex-col lg:max-w-[430px]">
+                    <div className="flex items-center mb-4">
+                      <h2 className="text-sm font-normal text-[#8A8C99]">Categorias Favoritas</h2>
                     </div>
-
-                    <div className="flex flex-col gap-1 text-xs font-medium text-white dark:text-[#A1A7BB]">
-                      <div className="flex items-center gap-3">
-                        <span className="flex items-center gap-1">
-                          Saldo disponível
-                          <svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
-                            <path d="M7.86016 5.36016C7.60448 5.38964 7.41152 5.60612 7.41152 5.8635C7.41152 6.12087 7.60448 6.33736 7.86016 6.36683C7.9945 6.36869 8.12379 6.31569 8.21815 6.22007C8.31252 6.12444 8.36381 5.99446 8.36016 5.86016C8.35657 5.58552 8.1348 5.36375 7.86016 5.36016Z" fill="#A1A7BB" />
-                            <path d="M7.86016 7.28016C7.72701 7.27835 7.59877 7.33045 7.50461 7.42461C7.41045 7.51877 7.35835 7.64701 7.36016 7.78016V9.86016C7.36016 10.1363 7.58402 10.3602 7.86016 10.3602C8.1363 10.3602 8.36016 10.1363 8.36016 9.86016V7.7935C8.36376 7.65859 8.31268 7.52796 8.21851 7.43129C8.12435 7.33462 7.99511 7.28011 7.86016 7.28016Z" fill="#A1A7BB" />
-                            <path fillRule="evenodd" clipRule="evenodd" d="M7.86016 1.3335C4.25711 1.33717 1.33717 4.25711 1.3335 7.86016C1.3335 11.4647 4.25558 14.3868 7.86016 14.3868C11.4647 14.3868 14.3868 11.4647 14.3868 7.86016C14.3832 4.25711 11.4632 1.33717 7.86016 1.3335ZM7.86016 13.3868C4.80787 13.3868 2.3335 10.9125 2.3335 7.86016C2.3335 4.80787 4.80787 2.3335 7.86016 2.3335C10.9125 2.3335 13.3868 4.80787 13.3868 7.86016C13.3832 10.9109 10.9109 13.3832 7.86016 13.3868Z" fill="#A1A7BB" />
+                    <div className="flex flex-col lg:flex-row lg:items-center lg:gap-6">
+                      <div className="flex lg:justify-center shrink-0">
+                        <div className="relative size-[110px]">
+                          <svg viewBox="0 0 36 36" className="size-full -rotate-90">
+                            <circle cx="18" cy="18" r="15.9155" fill="none" stroke="rgba(255,255,255,0.05)" strokeWidth="3" />
+                            <circle cx="18" cy="18" r="15.9155" fill="none" stroke="#00B774" strokeWidth="3" strokeDasharray="30 100" />
+                            <circle cx="18" cy="18" r="15.9155" fill="none" stroke="#E922FF" strokeWidth="3" strokeDasharray="20 100" strokeDashoffset="-30" />
+                            <circle cx="18" cy="18" r="15.9155" fill="none" stroke="#FA9316" strokeWidth="3" strokeDasharray="15 100" strokeDashoffset="-50" />
+                            <circle cx="18" cy="18" r="15.9155" fill="none" stroke="#0052FF" strokeWidth="3" strokeDasharray="35 100" strokeDashoffset="-65" />
                           </svg>
-                        </span>
-                        <div className="ml-4 font-semibold text-white">
-                          {formatBalance(wallet?.balance || 0)}
                         </div>
+                      </div>
+                      <div className="grid grid-cols-2 gap-x-4 gap-y-2 mt-4 lg:mt-0">
+                        {categoriesList.map((cat) => (
+                          <div
+                            key={cat.id}
+                            className={cn(
+                              "flex h-7 items-center gap-2 whitespace-nowrap rounded-full px-3 transition-all",
+                              cat.count > 0 ? "bg-transparent border border-white/20 opacity-100" : "bg-transparent border border-white/5 opacity-40"
+                            )}
+                          >
+                            <div className="size-3 rounded-full" style={{ backgroundColor: cat.color }} />
+                            <span className="text-[11px] font-medium text-white">{cat.count} {cat.name}</span>
+                          </div>
+                        ))}
                       </div>
                     </div>
                   </div>
-                </>
-              )}
-            </div>
-
-            {/* Action Buttons Section */}
-            <div className="flex flex-col gap-[30px] lg:gap-[50px]">
-              <div className="items-center lg:flex">
-                <div className="grid w-full grid-cols-2 gap-2.5 text-sm font-semibold lg:flex lg:gap-3">
-                  <button
-                    onClick={() => setDepositModalOpen(true)}
-                    className="flex h-[42px] w-full items-center justify-center gap-1.5 rounded-lg bg-brand text-white lg:h-10 lg:w-[111px]"
-                  >
-                    <svg width="12" height="12" viewBox="0 0 12 12" fill="none" xmlns="http://www.w3.org/2000/svg">
-                      <path d="M2.84473 1.40527C2.65579 1.21634 2.34421 1.21634 2.15527 1.40527C1.96648 1.59422 1.96638 1.90584 2.15527 2.09473L8.32422 8.2627H4.36523C4.0981 8.2627 3.87793 8.48287 3.87793 8.75C3.87808 9.01701 4.09819 9.2373 4.36523 9.2373H9.5C9.56674 9.2373 9.62587 9.22345 9.68652 9.19922V9.19824C9.80542 9.15164 9.90391 9.05458 9.9502 8.93555L9.94922 8.93457C9.97308 8.87448 9.98727 8.81613 9.9873 8.75V3.61426C9.98705 3.34734 9.76698 3.12695 9.5 3.12695C9.23302 3.12695 9.01295 3.34734 9.0127 3.61426V7.57324L2.84473 1.40527Z" fill="currentColor" stroke="currentColor" strokeWidth="0.225" />
-                      <path d="M1.75 10.5127C1.48287 10.5127 1.2627 10.7329 1.2627 11C1.2627 11.2671 1.48287 11.4873 1.75 11.4873H10.25C10.5171 11.4873 10.7373 11.2671 10.7373 11C10.7373 10.7329 10.5171 10.5127 10.25 10.5127H1.75Z" fill="currentColor" stroke="currentColor" strokeWidth="0.225" />
-                    </svg>
-                    Depósito
-                  </button>
-                  <button
-                    onClick={() => kycApproved ? setWithdrawModalOpen(true) : toast.error('KYC necessário para saques')}
-                    disabled={!kycApproved}
-                    className="flex h-[42px] w-full items-center justify-center gap-1.5 rounded-lg bg-black/5 text-[#606E85] dark:bg-white/5 dark:text-[#A1A7BB] lg:h-10 lg:w-[124px] disabled:opacity-50"
-                  >
-                    <svg width="12" height="12" viewBox="0 0 12 12" fill="none" xmlns="http://www.w3.org/2000/svg">
-                      <path d="M1.75 10.5127C1.48287 10.5127 1.2627 10.7329 1.2627 11C1.2627 11.2671 1.48287 11.4873 1.75 11.4873H10.25C10.5171 11.4873 10.7373 11.2671 10.7373 11C10.7373 10.7329 10.5171 10.5127 10.25 10.5127H1.75Z" fill="currentColor" stroke="currentColor" strokeWidth="0.225" />
-                      <path d="M4.36523 1.2627C4.0981 1.2627 3.87793 1.48287 3.87793 1.75C3.87793 2.01713 4.0981 2.2373 4.36523 2.2373H8.32422L2.15527 8.40527C1.96634 8.59421 1.96634 8.90579 2.15527 9.09473C2.25248 9.19194 2.37677 9.2373 2.5 9.2373C2.62323 9.2373 2.74752 9.19194 2.84473 9.09473L9.0127 2.92578V6.88477C9.0127 7.1519 9.23287 7.37207 9.5 7.37207C9.76713 7.37207 9.9873 7.1519 9.9873 6.88477V1.75C9.9873 1.68353 9.97327 1.62484 9.94922 1.56445H9.9502C9.90376 1.44506 9.80494 1.34624 9.68555 1.2998V1.30078C9.62516 1.27673 9.56647 1.2627 9.5 1.2627H4.36523Z" fill="currentColor" stroke="currentColor" strokeWidth="0.225" />
-                    </svg>
-                    Retirar
-                  </button>
-                </div>
+                )}
               </div>
 
-              {/* History Section */}
-              <div className="relative h-full">
-                <span className="text-xl font-bold text-black dark:text-white lg:text-2xl">Histórico</span>
-
-                <div className="my-[14px] flex-col items-start justify-between gap-4 lg:flex lg:flex-row lg:items-center">
-                  <div className="items-center gap-2.5 lg:flex">
-                    {/* Time Filter */}
-                    <div className="relative">
-                      <Select value={timeFilter} onValueChange={setTimeFilter}>
-                        <SelectTrigger className="flex w-full items-center gap-1.5 rounded-lg border border-black/10 px-[12px] py-3 text-[#606E85] dark:border-none dark:bg-white/5 dark:text-[#A1A7BB] lg:w-[163px]">
-                          <svg width="18" height="18" viewBox="0 0 18 18" fill="none" xmlns="http://www.w3.org/2000/svg">
-                            <path d="M12.5625 2.67V1.5C12.5625 1.1925 12.3075 0.9375 12 0.9375C11.6925 0.9375 11.4375 1.1925 11.4375 1.5V2.625H6.56249V1.5C6.56249 1.1925 6.30749 0.9375 5.99999 0.9375C5.69249 0.9375 5.43749 1.1925 5.43749 1.5V2.67C3.41249 2.8575 2.42999 4.065 2.27999 5.8575C2.26499 6.075 2.44499 6.255 2.65499 6.255H15.345C15.5625 6.255 15.7425 6.0675 15.72 5.8575C15.57 4.065 14.5875 2.8575 12.5625 2.67Z" fill="currentColor" />
-                            <path d="M15 7.37988H3C2.5875 7.37988 2.25 7.71738 2.25 8.12988V12.7499C2.25 14.9999 3.375 16.4999 6 16.4999H12C14.625 16.4999 15.75 14.9999 15.75 12.7499V8.12988C15.75 7.71738 15.4125 7.37988 15 7.37988Z" fill="currentColor" />
-                          </svg>
-                          <SelectValue placeholder="Todo o Tempo" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="all">Todo o Tempo</SelectItem>
-                          <SelectItem value="7days">Últimos 7 dias</SelectItem>
-                          <SelectItem value="30days">Últimos 30 dias</SelectItem>
-                          <SelectItem value="90days">Últimos 90 dias</SelectItem>
-                        </SelectContent>
-                      </Select>
-                    </div>
-
-                    <div className="mt-2.5 flex items-center gap-2.5 lg:mt-0">
-                      {/* Sort Order */}
-                      <Select value={sortOrder} onValueChange={setSortOrder}>
-                        <SelectTrigger className="flex w-full items-center gap-2 rounded-lg border border-black/10 px-[12px] py-3 text-[#606E85] dark:border-none dark:bg-white/5 dark:text-[#A1A7BB] lg:min-w-[147px]">
-                          <SelectValue placeholder="Mais Novos" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="newest">Mais Novos</SelectItem>
-                          <SelectItem value="oldest">Mais Antigos</SelectItem>
-                        </SelectContent>
-                      </Select>
-
-                      {/* Method Filter */}
-                      <Select value={methodFilter} onValueChange={setMethodFilter}>
-                        <SelectTrigger className="flex w-full items-center gap-2 rounded-lg border border-black/10 px-[12px] py-3 font-medium dark:border-none dark:bg-white/5 lg:min-w-[147px]">
-                          <span className="text-[13px] text-[#606E85] dark:text-[#A1A7BB]">Método:</span>
-                          <SelectValue placeholder="Todos" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="all">Todos</SelectItem>
-                          <SelectItem value="deposit">Depósitos</SelectItem>
-                          <SelectItem value="withdrawal">Saques</SelectItem>
-                        </SelectContent>
-                      </Select>
-
-                      {/* Refresh Button */}
-                      <button
-                        onClick={handleRefresh}
-                        disabled={isRefreshing}
-                        className="flex h-[43px] w-fit items-center gap-x-2 rounded-lg px-[12px] text-[13px] text-[#606E85] hover:bg-black/5 dark:bg-white/5 dark:text-[#A1A7BB]"
-                      >
-                        <span className="hidden items-center whitespace-nowrap lg:flex">Atualizar</span>
-                        <RefreshCw className={`size-3 ${isRefreshing ? 'animate-spin' : ''}`} />
-                      </button>
-                    </div>
-                  </div>
-
-                  {/* Export CSV Button */}
-                  <button
-                    onClick={handleExportCSV}
-                    className="hidden items-center gap-1.5 rounded-lg bg-black/5 px-[14px] py-3 text-[#606E85] hover:bg-black/10 dark:bg-white/5 dark:text-[#A1A7BB] lg:flex"
-                  >
-                    <svg width="14" height="14" viewBox="0 0 14 14" fill="none" xmlns="http://www.w3.org/2000/svg">
-                      <path d="M9.58999 5.19141C11.69 5.37224 12.5475 6.45141 12.5475 8.81391V8.88974C12.5475 11.4972 11.5033 12.5414 8.89582 12.5414H5.09832C2.49082 12.5414 1.44666 11.4972 1.44666 8.88974V8.81391C1.44666 6.46891 2.29249 5.38974 4.35749 5.19724" stroke="currentColor" strokeWidth="1.01111" strokeLinecap="round" strokeLinejoin="round" />
-                      <path d="M6.99988 2.15805V8.79639" stroke="currentColor" strokeWidth="1.01111" strokeLinecap="round" strokeLinejoin="round" />
-                      <path d="M8.95411 7.49554L6.99994 9.44971L5.04578 7.49554" stroke="currentColor" strokeWidth="1.01111" strokeLinecap="round" strokeLinejoin="round" />
-                    </svg>
-                    <span className="text-[13px] font-semibold">Baixar CSV</span>
-                  </button>
-                </div>
-
-                {/* Table */}
-                <div className="overflow-x-auto">
-                  <div className="hidden min-w-[800px] lg:block">
-                    {/* Table Header */}
-                    <div className="w-full gap-6 border-black/10 px-3 py-[13px] text-xs font-medium text-[#606E85] dark:border-white/5 dark:text-[#A1A7BB] lg:grid lg:grid-cols-[1fr_150px_180px_150px_150px] lg:border-b">
-                      <div>Solicitações</div>
-                      <div className="flex justify-end pr-3">Tipo</div>
-                      <div className="flex justify-end pr-3">Método</div>
-                      <div className="flex justify-end pr-3">Montante Total</div>
-                      <div className="flex justify-end">Status</div>
-                    </div>
-
-                    {/* Table Body */}
-                    <div className="w-full">
-                      {isLoading ? (
-                        Array.from({ length: 5 }).map((_, i) => (
-                          <div key={i} className="w-full gap-6 px-3 py-4 lg:grid lg:grid-cols-[1fr_150px_180px_150px_150px] border-b border-black/5 dark:border-white/5">
-                            <Skeleton className="h-4 w-24" />
-                            <Skeleton className="h-4 w-16" />
-                            <Skeleton className="h-4 w-12" />
-                            <Skeleton className="h-4 w-20" />
-                            <Skeleton className="h-4 w-16" />
-                          </div>
-                        ))
-                      ) : historyItems.length === 0 ? (
-                        <div className="text-center py-12 text-[#606E85] dark:text-[#A1A7BB]">
-                          Nenhuma transação encontrada
-                        </div>
-                      ) : (
-                        historyItems.map((item) => (
-                          <div key={`${item._type}-${item.id}`} className="w-full gap-6 px-3 py-4 lg:grid lg:grid-cols-[1fr_150px_180px_150px_150px] border-b border-black/5 dark:border-white/5 text-sm">
-                            <div className="font-medium text-black dark:text-white">
-                              {new Date(item.created_at).toLocaleDateString('pt-BR', {
-                                day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit',
-                              })}
-                            </div>
-                            <div className={`flex justify-end pr-3 ${item._type === 'deposit' ? 'text-green-500' : 'text-red-500'}`}>
-                              {item._type === 'deposit' ? 'Depósito' : 'Saque'}
-                            </div>
-                            <div className="flex justify-end pr-3 text-[#606E85] dark:text-[#A1A7BB]">PIX</div>
-                            <div className="flex justify-end pr-3 font-medium text-black dark:text-white">{item.amount_formatted}</div>
-                            <div className="flex justify-end"><StatusBadge status={item.status} /></div>
-                          </div>
-                        ))
+              <div className="relative mr-6 flex h-fit gap-x-2.5 lg:mr-0">
+                <button className="flex size-[38px] items-center justify-center rounded-full bg-white/[7%] backdrop-blur-xl hover:bg-white/[12%] transition-colors">
+                  <svg className="size-4" width="10" height="10" viewBox="0 0 10 10" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M9.16659 5.00016C9.16659 7.30016 7.29992 9.16683 4.99992 9.16683C2.69992 9.16683 1.29575 6.85016 1.29575 6.85016M1.29575 6.85016H3.17909M1.29575 6.85016V8.9335M0.833252 5.00016C0.833252 2.70016 2.68325 0.833496 4.99992 0.833496C7.77909 0.833496 9.16659 3.15016 9.16659 3.15016M9.16659 3.15016V1.06683M9.16659 3.15016H7.31658" stroke="#8A8C99" strokeWidth="0.6" strokeLinecap="round" strokeLinejoin="round"></path></svg>
+                </button>
+                <div className="hidden lg:flex">
+                  <div className="relative flex h-[38px] items-center rounded-full bg-white/[6%] p-1 backdrop-blur-xl">
+                    <span
+                      className={cn(
+                        "absolute h-[30px] rounded-full bg-[#f0f0f0] transition-all duration-300 ease-out w-[110px]",
+                        viewMode === 'portfolio' ? "left-1" : "left-[114px]"
                       )}
-                    </div>
+                    />
+                    <button
+                      onClick={() => setViewMode('portfolio')}
+                      className={cn(
+                        "relative z-10 flex h-[30px] w-[110px] items-center justify-center gap-x-2 rounded-full text-xs font-normal transition-colors",
+                        viewMode === 'portfolio' ? "text-black" : "text-[#8A8C99]"
+                      )}
+                    >
+                      <svg width="14" height="14" viewBox="0 0 14 14" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M4.05206 11.3501C4.51532 10.8529 5.2215 10.8925 5.62826 11.4348L6.19885 12.1975C6.65645 12.802 7.39653 12.802 7.85413 12.1975L8.42473 11.4348C8.83148 10.8925 9.53766 10.8529 10.0009 11.3501C11.0065 12.4235 11.8257 12.0676 11.8257 10.5648V4.1979C11.8313 1.92118 11.3003 1.35059 9.1648 1.35059H4.89383C2.75834 1.35059 2.22729 1.92118 2.22729 4.1979V10.5592C2.22729 12.0676 3.05211 12.4178 4.05206 11.3501Z" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round"></path><path d="M4.76953 4.17529H9.28908" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round"></path><path d="M5.33447 6.43506H8.72413" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round"></path></svg>
+                      Portfólio
+                    </button>
+                    <button
+                      onClick={() => setViewMode('favorites')}
+                      className={cn(
+                        "relative z-10 flex h-[30px] w-[110px] items-center justify-center gap-x-2 rounded-full text-xs font-normal transition-colors",
+                        viewMode === 'favorites' ? "text-black" : "text-[#8A8C99]"
+                      )}
+                    >
+                      <svg width="14" height="14" viewBox="0 0 14 14" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M7.00008 12.3959C9.98012 12.3959 12.3959 9.98012 12.3959 7.00008C12.3959 4.02005 9.98012 1.60425 7.00008 1.60425C4.02005 1.60425 1.60425 4.02005 1.60425 7.00008C1.60425 9.98012 4.02005 12.3959 7.00008 12.3959Z" stroke="currentColor" strokeWidth="0.875" strokeLinecap="round" strokeLinejoin="round"></path><path d="M7.00002 1.60425C5.8122 1.60415 4.65753 1.99601 3.71512 2.71905C2.7727 3.44209 2.0952 4.45589 1.7877 5.60323C1.4802 6.75056 1.55989 7.9673 2.01439 9.06473C2.4689 10.1622 3.27283 11.0789 4.30149 11.6729C5.33016 12.2669 6.52606 12.5048 7.70373 12.3498C8.8814 12.1948 9.97501 11.6555 10.8149 10.8156C11.6549 9.97568 12.1942 8.88209 12.3493 7.70443C12.5043 6.52677 12.2664 5.33085 11.6725 4.30216L7.00002 7.00008V1.60425Z" stroke="currentColor" strokeWidth="0.875" strokeLinecap="round" strokeLinejoin="round"></path><path d="M7.00002 1.60425C6.05284 1.60417 5.12232 1.85343 4.302 2.32697C3.48168 2.8005 2.80047 3.48163 2.32683 4.30189C1.85318 5.12214 1.60381 6.05263 1.60376 6.99981C1.60371 7.947 1.853 8.87751 2.32656 9.69781C2.80012 10.5181 3.48127 11.1993 4.30154 11.6729C5.12181 12.1465 6.0523 12.3959 6.99949 12.3959C7.94667 12.3959 8.87717 12.1466 9.69746 11.673C10.5178 11.1995 11.1989 10.5183 11.6725 9.698L7.00002 7.00008V1.60425Z" stroke="currentColor" strokeWidth="0.875" strokeLinecap="round" strokeLinejoin="round"></path></svg>
+                      Favoritos
+                    </button>
                   </div>
+                </div>
+              </div>
+            </header>
 
-                  {/* Mobile List */}
-                  <div className="block pb-20 lg:hidden">
-                    {historyItems.map((item) => (
-                      <div key={`mobile-${item._type}-${item.id}`} className="flex items-center justify-between py-4 border-b border-black/5 dark:border-white/5">
-                        <div>
-                          <div className={`text-sm font-medium ${item._type === 'deposit' ? 'text-green-500' : 'text-red-500'}`}>
-                            {item._type === 'deposit' ? 'Depósito' : 'Saque'}
-                          </div>
-                          <div className="text-xs text-[#606E85] dark:text-[#A1A7BB]">
-                            {new Date(item.created_at).toLocaleDateString('pt-BR')}
-                          </div>
-                        </div>
-                        <div className="text-right">
-                          <div className="font-medium text-black dark:text-white">{item.amount_formatted}</div>
-                          <StatusBadge status={item.status} />
+            {viewMode === 'portfolio' && (
+              <div className="relative bottom-12 z-10 flex w-full gap-x-5 px-5 lg:bottom-9 lg:gap-x-[30px] lg:overflow-visible lg:px-0">
+                <div className="flex w-full flex-wrap gap-x-5 lg:gap-x-[30px]">
+                  <div className="flex w-fit flex-col gap-[2px]">
+                    <span className="whitespace-nowrap text-xs font-normal text-[#8A8C99]">Lucro/perda</span>
+                    <span className="whitespace-nowrap font-medium text-lg text-[#F0F0F0]">
+                      {stats.profitLoss >= 0 ? '+' : ''}{formatCurrency(stats.profitLoss)}
+                    </span>
+                  </div>
+                  <div className="flex w-fit flex-col gap-[2px]">
+                    <span className="whitespace-nowrap text-xs font-normal text-[#8A8C99]">Taxa de ganho</span>
+                    <span className="whitespace-nowrap font-medium text-lg text-[#F0F0F0]">
+                      <div className="flex items-center gap-2">
+                        <span>{stats.winRate.toFixed(0)}%</span>
+                        <div className="relative bottom-0.5 flex h-4 w-fit items-center justify-center rounded-full bg-white px-1.5 text-[10px] font-medium text-black">
+                          {stats.winCount}W - {stats.lossCount}L
                         </div>
                       </div>
+                    </span>
+                  </div>
+                  <div className="flex w-fit flex-col gap-[2px]">
+                    <span className="whitespace-nowrap text-xs font-normal text-[#8A8C99]">Posições abertas</span>
+                    <span className="whitespace-nowrap font-medium text-lg text-[#F0F0F0]">{activePositions.length}</span>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            <div className="absolute bottom-5 left-1/2 flex -translate-x-1/2 items-center gap-2 lg:hidden">
+              <button onClick={() => setViewMode('portfolio')} className={cn("size-2.5 rounded-full transition-all duration-300", viewMode === 'portfolio' ? "bg-white" : "bg-white/10")} />
+              <button onClick={() => setViewMode('favorites')} className={cn("size-2.5 rounded-full transition-all duration-300", viewMode === 'favorites' ? "bg-white" : "bg-white/10")} />
+            </div>
+          </section>
+
+          {/* Balance Card */}
+          <div className="flex flex-1">
+            <div className="flex size-full max-h-[220px] min-h-[220px] animate-fade-left flex-col justify-between rounded-3xl border border-black/10 bg-white p-5 text-white animate-normal animate-duration-[400ms] animate-once animate-ease-out dark:border-white/5 dark:bg-[#1c1c24]">
+              <div className="mb-6 flex items-start justify-between">
+                <div>
+                  <h2 className="mb-4 text-sm font-normal text-[#8A8C99]">Saldo Total</h2>
+                  <div className="relative mb-0.5 text-3xl font-bold text-[#00B471]">
+                    <span className={cn("absolute inset-0 transition-all font-semibold duration-300 ease-out", balanceVisible ? "opacity-100 translate-y-0 blur-0" : "opacity-0 translate-y-2 blur-sm")}>
+                      {formatCurrency(wallet?.balance || 0)}
+                    </span>
+                    <span className={cn("absolute inset-0 transition-all duration-300 ease-out", !balanceVisible ? "opacity-100 translate-y-0 blur-0" : "opacity-0 translate-y-2 blur-sm")}>
+                      ••••••
+                    </span>
+                    <span className="invisible">{formatCurrency(wallet?.balance || 0)}</span>
+                  </div>
+                  <div className="relative mt-1 flex items-center gap-2 text-xs text-[#8A8C99]">
+                    <span>Saldo da Carteira</span>
+                    <span className="text-[#f0f0f0]">{formatCurrency(wallet?.balance || 0)}</span>
+                  </div>
+                </div>
+                <div className="flex gap-3">
+                  <button className="flex size-[38px] items-center justify-center rounded-full bg-black/5 transition-colors dark:bg-white/5 dark:hover:bg-white/10">
+                    <History className="size-4 text-[#8A8C99]" />
+                  </button>
+                  <button
+                    onClick={() => setBalanceVisible(!balanceVisible)}
+                    className="flex size-[38px] items-center justify-center rounded-full bg-black/5 transition-colors dark:bg-white/5 dark:hover:bg-white/10"
+                  >
+                    {balanceVisible ? <Eye className="size-4 text-[#8A8C99]" /> : <EyeOff className="size-4 text-[#8A8C99]" />}
+                  </button>
+                </div>
+              </div>
+              <div className="flex gap-4">
+                <button
+                  onClick={() => setDepositModalOpen(true)}
+                  className="flex h-12 flex-1 items-center justify-center gap-1.5 rounded-[14px] bg-black text-sm font-normal text-white transition-colors hover:bg-black/90 dark:bg-[#f0f0f0] dark:text-black hover:dark:bg-white/90"
+                >
+                  <ArrowDownLeft className="size-3.5" />
+                  Depósito
+                </button>
+                <button
+                  onClick={() => kycApproved ? setWithdrawModalOpen(true) : toast.error('KYC necessário para saques')}
+                  disabled={!kycApproved}
+                  className="flex h-12 flex-1 bg-black/5 disabled:opacity-70 disabled:cursor-not-allowed ease-in-out hover:bg-black/10 hover:dark:bg-white/[7%] dark:bg-white/5 items-center text-sm text-[#8A8C99] justify-center gap-1.5 rounded-[14px] font-normal transition-colors"
+                >
+                  <ArrowUpRight className="size-3.5" />
+                  Retirar
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Categories Carousel */}
+        <div className="w-full animate-fade-up animate-normal animate-duration-[400ms] animate-once animate-ease-out">
+          <div className="flex w-full items-center justify-center">
+            <section className="mt-4 flex w-full items-center gap-3 overflow-x-auto pb-2 scrollbar-hide">
+              {categoriesList.map((cat, idx) => (
+                <div
+                  key={cat.id}
+                  className={cn(
+                    "flex max-h-[50px] shrink-0 w-[126px] relative min-h-[50px] overflow-hidden flex-row items-center gap-3 rounded-xl border p-1.5 transition-all",
+                    cat.count > 0 ? "opacity-100 bg-transparent border-white/20" : "opacity-40 bg-transparent border-white/5"
+                  )}
+                >
+                  <div className="absolute -bottom-9 h-6 w-full rounded-full bg-black/10 blur-[60px] dark:bg-white/15"></div>
+                  <div className="flex size-[38px] items-center justify-center rounded-lg shrink-0" style={{ backgroundColor: cat.color }}>
+                    <img className="size-[20px]" alt="" src={cat.icon} />
+                  </div>
+                  <div className="flex flex-col leading-tight overflow-hidden">
+                    <span className="text-[10px] font-normal text-[#8A8C99] transition-colors truncate">{cat.name}</span>
+                    <span className="text-sm font-semibold text-black dark:text-[#f0f0f0]">{cat.count}</span>
+                  </div>
+                </div>
+              ))}
+            </section>
+
+            <div className="hidden items-center lg:block ml-auto">
+              <Logo width={168} height={30} className="relative mt-4" />
+            </div>
+          </div>
+
+          <div className="mt-5 lg:mt-0">
+            <div className="rounded-3xl border-black/10 bg-transparent dark:border-white/5 dark:bg-transparent lg:mt-4 lg:border lg:p-5">
+              <div className="w-full relative h-full">
+                <div className="relative flex h-10 items-center justify-between">
+                  <div className="relative flex items-baseline mb-0 w-fit justify-start gap-x-2.5 bg-transparent dark:bg-transparent max-lg:overflow-x-auto max-lg:whitespace-nowrap" role="tablist">
+                    {['previsoes', 'ordens', 'atividade'].map((tab) => (
+                      <button
+                        key={tab}
+                        onClick={() => setActiveTab(tab)}
+                        className={cn(
+                          "flex relative text-sm outline-0 items-center py-2.5 px-4 h-fit w-fit rounded-xl transition-all ease-in-out font-medium",
+                          activeTab === tab
+                            ? "dark:bg-white bg-black text-white dark:text-black"
+                            : "text-[#8A8C99] bg-transparent border border-black/10 dark:bg-white/5 hover:dark:text-white hover:text-black hover:border-black/20 hover:dark:border-white/10"
+                        )}
+                      >
+                        <span className="capitalize">{tab === 'previsoes' ? 'Previsões' : tab === 'ordens' ? 'Ordens' : 'Atividade'}</span>
+                      </button>
                     ))}
+                  </div>
+                </div>
+
+                <div className="size-full">
+                  <div className="w-full h-full p-0 mt-3">
+                    {activeTab === 'previsoes' && (
+                      <section className="w-full">
+                        <div className="flex w-full items-center gap-2.5 mb-4">
+                          <div className="flex h-10 w-full items-center justify-between rounded-xl p-3.5 text-sm transition-all border border-black/10 bg-transparent hover:border-black/20 dark:bg-white/5 hover:dark:border-white/10">
+                            <div className="flex w-full items-center gap-x-1.5">
+                              <Search className="size-3.5 text-[#8A8C99]" />
+                              <input
+                                placeholder="Pesquisar por Mercados, Tópicos..."
+                                className="flex w-full flex-1 bg-transparent outline-none placeholder:text-black/30 dark:text-[#f0f0f0] dark:placeholder:text-white/30"
+                                type="text"
+                                value={searchQuery}
+                                onChange={(e) => setSearchQuery(e.target.value)}
+                              />
+                            </div>
+                          </div>
+                          <div className="relative h-10 max-w-[200px] rounded-xl lg:min-w-[200px]">
+                            <Select value={sortOrder} onValueChange={setSortOrder}>
+                              <SelectTrigger className="h-10 w-full whitespace-nowrap rounded-xl border border-black/10 bg-white px-3 py-2 text-[13px] font-medium text-[#8A8C99] transition-all hover:border-black/20 dark:border-none dark:bg-white/5 dark:text-[#f0f0f0]">
+                                <div className="text-[#8A8C99]">Ordenar: <span className="ml-0.5 text-black dark:text-[#f0f0f0]">{sortOrder === 'newest' ? 'Newest' : 'Oldest'}</span></div>
+                              </SelectTrigger>
+                              <SelectContent>
+                                <SelectItem value="newest">Newest</SelectItem>
+                                <SelectItem value="oldest">Oldest</SelectItem>
+                              </SelectContent>
+                            </Select>
+                          </div>
+                        </div>
+
+                        <div className="overflow-x-auto min-h-[300px] w-full rounded-lg">
+                          <table className="h-full min-w-full divide-y divide-black/10 dark:divide-white/5">
+                            <thead>
+                              <tr>
+                                <th className="whitespace-nowrap px-6 py-3 text-left text-xs font-normal capitalize border-b border-black/10 pt-4 tracking-normal text-[#8A8C99] dark:border-white/5 lg:px-4">Resultado Previsto</th>
+                                <th className="whitespace-nowrap px-6 py-3 text-right text-xs font-normal capitalize border-b border-black/10 pt-4 tracking-normal text-[#8A8C99] dark:border-white/5 lg:px-4">Preço de entrada → Agora</th>
+                                <th className="whitespace-nowrap px-6 py-3 text-right text-xs font-normal capitalize border-b border-black/10 pt-4 tracking-normal text-[#8A8C99] dark:border-white/5 lg:px-4">Previu no valor de</th>
+                                <th className="whitespace-nowrap px-6 py-3 text-right text-xs font-normal capitalize border-b border-black/10 pt-4 tracking-normal text-[#8A8C99] dark:border-white/5 lg:px-4">Para ganhar</th>
+                                <th className="whitespace-nowrap px-6 py-3 text-right text-xs font-normal capitalize border-b border-black/10 pt-4 tracking-normal text-[#8A8C99] dark:border-white/5 lg:px-4">Valor Atual</th>
+                                <th className="whitespace-nowrap px-6 py-3 border-b border-black/10 dark:border-white/5 lg:px-4"></th>
+                              </tr>
+                            </thead>
+                            <tbody className="divide-y divide-black/5 dark:divide-white/5">
+                              {activePositions.length === 0 ? (
+                                <tr>
+                                  <td colSpan={6} className="py-20 text-center text-[#8A8C99]">Nenhuma previsão encontrada</td>
+                                </tr>
+                              ) : (
+                                activePositions.map((pos) => {
+                                  const currentSellValue = pos.currentSellValue || 0;
+                                  const profitAmount = currentSellValue - (pos.amount || 0);
+                                  const profitPercent = pos.amount > 0 ? (profitAmount / pos.amount) * 100 : 0;
+                                  const currentSellPrice = pos.currentSellPrice || (currentSellValue > 0 ? (currentSellValue / (pos.shares || 1)) : 0);
+
+                                  // Use potential payout (payoutAmount) but if it is still open, it is shares * 100 (cents)
+                                  const potentialPayout = pos.status === 'active' ? (pos.shares * 100) : (pos.payoutAmount || 0);
+
+                                  return (
+                                    <tr key={pos.id} className="hover:bg-black/[2%] dark:hover:bg-white/[2%] transition-colors group">
+                                      <td className="px-5 py-5 lg:px-4">
+                                        <div className="flex gap-x-3">
+                                          <div className="relative h-fit shrink-0">
+                                            <div className="size-10 rounded-lg bg-black/5 dark:bg-white/5 flex items-center justify-center overflow-hidden">
+                                              {pos.eventImageUrl ? <img src={pos.eventImageUrl} alt="" className="size-full object-cover" /> : <div className="text-xl">🎯</div>}
+                                            </div>
+                                          </div>
+                                          <div className="overflow-hidden">
+                                            <Link href={`/eventos/${pos.eventSlug}`} className="line-clamp-1 text-sm font-medium text-black dark:text-[#f0f0f0] hover:underline block">
+                                              {pos.marketStatement}
+                                            </Link>
+                                            <div className="flex items-center gap-2 mt-1">
+                                              <span className={cn("text-[10px] font-bold px-1.5 py-0.5 rounded uppercase", pos.side === 'YES' ? "bg-[#00B471]/10 text-[#00B471]" : "bg-red-500/10 text-red-500")}>
+                                                {pos.side === 'YES' ? 'Sim' : 'Não'}
+                                              </span>
+                                              <span className="text-xs text-[#8A8C99]">{pos.shares.toFixed(2)} shares</span>
+                                            </div>
+                                          </div>
+                                        </div>
+                                      </td>
+                                      <td className="px-5 py-5 lg:px-4 text-right">
+                                        <div className="flex flex-col items-end">
+                                          <span className="text-sm font-medium text-black dark:text-[#f0f0f0]">{pos.avgPrice.toFixed(1)}¢ → {currentSellPrice.toFixed(1)}¢</span>
+                                        </div>
+                                      </td>
+                                      <td className="px-5 py-5 lg:px-4 text-right">
+                                        <span className="text-sm font-medium text-black dark:text-[#f0f0f0]">{formatCurrency(pos.amount)}</span>
+                                      </td>
+                                      <td className="px-5 py-5 lg:px-4 text-right text-[#00B471]">
+                                        <span className="text-sm font-medium">{formatCurrency(potentialPayout)}</span>
+                                      </td>
+                                      <td className="px-5 py-5 lg:px-4 text-right">
+                                        <div className="flex flex-col items-end">
+                                          <span className="text-sm font-medium text-black dark:text-[#f0f0f0]">{formatCurrency(currentSellValue)}</span>
+                                          <span className={cn("text-[10px] font-medium", profitAmount >= 0 ? "text-[#00B471]" : "text-red-500")}>
+                                            {profitAmount >= 0 ? '+' : ''}{formatCurrency(profitAmount)} ({profitPercent.toFixed(2)}%)
+                                          </span>
+                                        </div>
+                                      </td>
+                                      <td className="px-5 py-5 lg:px-4 text-right">
+                                        <div className="flex items-center justify-end gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                                          <button
+                                            onClick={() => handleClosePosition(pos.id)}
+                                            className="h-9 px-4 rounded-xl border border-red-500 text-red-500 text-xs font-semibold hover:bg-red-500 hover:text-white transition-all whitespace-nowrap"
+                                          >
+                                            Encerrar Previsão
+                                          </button>
+                                          <Link href={`/eventos/${pos.eventSlug}`} className="size-9 rounded-xl border border-black/10 dark:border-white/10 flex items-center justify-center hover:bg-black/5 dark:hover:bg-white/5 transition-colors">
+                                            <ExternalLink className="size-4 text-[#8A8C99]" />
+                                          </Link>
+                                        </div>
+                                      </td>
+                                    </tr>
+                                  );
+                                })
+                              )}
+                            </tbody>
+                          </table>
+                        </div>
+                      </section>
+                    )}
+                    {(activeTab === 'ordens' || activeTab === 'atividade') && (
+                      <div className="py-20 text-center text-[#8A8C99]">Nenhum registro encontrado</div>
+                    )}
                   </div>
                 </div>
               </div>
@@ -458,7 +564,6 @@ function WalletPageContent() {
         </div>
       </div>
 
-      {/* Deposit Modal */}
       <DepositModal
         isOpen={depositModalOpen}
         onOpenChange={(open) => {
@@ -470,7 +575,6 @@ function WalletPageContent() {
         }}
       />
 
-      {/* Withdraw Modal */}
       <Dialog open={withdrawModalOpen} onOpenChange={setWithdrawModalOpen}>
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
@@ -536,7 +640,7 @@ function WalletPageContent() {
                 </div>
                 <div className="flex justify-between font-semibold border-t border-black/10 dark:border-white/10 pt-2">
                   <span>Você receberá:</span>
-                  <span className="text-green-500">R$ {(Number.parseFloat(withdrawAmount) * 0.98).toFixed(2)}</span>
+                  <span className="text-emerald-500">R$ {(Number.parseFloat(withdrawAmount) * 0.98).toFixed(2)}</span>
                 </div>
               </div>
             )}
@@ -544,7 +648,7 @@ function WalletPageContent() {
             <button
               onClick={handleCreateWithdraw}
               disabled={isCreatingWithdraw || Number.parseFloat(withdrawAmount) < 10 || !pixKeyType || !pixKeyValue}
-              className="w-full h-[46px] rounded-lg bg-brand text-white font-semibold hover:bg-brand/90 disabled:opacity-50 disabled:cursor-not-allowed"
+              className="w-full h-[46px] rounded-lg bg-emerald-500 text-white font-semibold hover:bg-emerald-600 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
             >
               {isCreatingWithdraw ? 'Processando...' : 'Solicitar Saque'}
             </button>
@@ -558,15 +662,9 @@ function WalletPageContent() {
 export default function WalletPage() {
   return (
     <Suspense fallback={
-      <div className="mx-auto w-full lg:pt-[60px] pt-0">
-        <div className="mx-auto min-h-[100vh] px-3 pt-4 lg:mt-0 lg:max-w-[1118px] lg:pt-11">
-          <Skeleton className="h-8 w-32 mb-6" />
-          <Skeleton className="h-40 rounded-2xl mb-6" />
-          <div className="flex gap-3 mb-8">
-            <Skeleton className="h-10 w-32" />
-            <Skeleton className="h-10 w-32" />
-          </div>
-        </div>
+      <div className="mx-auto w-full max-w-[1200px] px-3 pt-[80px]">
+        <Skeleton className="h-[180px] w-full rounded-[20px] mb-6" />
+        <Skeleton className="h-[400px] w-full rounded-[20px]" />
       </div>
     }>
       <WalletPageContent />

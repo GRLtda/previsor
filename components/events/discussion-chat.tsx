@@ -7,6 +7,7 @@ import { useAuthModal } from '@/contexts/auth-modal-context'
 import { useCommentRealTime } from '@/hooks/use-market-ws'
 import type { Comment } from '@/lib/types'
 import { Loader2, Heart, MessageSquare, ChevronDown, Send, Trash2 } from 'lucide-react'
+import { UserAvatar } from '@/components/shared/user-avatar'
 import Link from 'next/link'
 
 interface DiscussionChatProps {
@@ -166,12 +167,15 @@ function CommentItem({
         <div className="border-b border-black/5 dark:border-white/5 py-4">
             <div className="flex gap-3">
                 {/* Avatar */}
-                <Link href={`/profile/${comment.userId}`} className="flex size-[36px] min-w-[36px] items-center justify-center rounded-full bg-black/10 dark:bg-white/10 overflow-hidden hover:ring-2 hover:ring-blue-500/50 transition-all">
-                    {comment.user.avatarUrl ? (
-                        <img src={comment.user.avatarUrl} alt={comment.user.firstName} className="size-full object-cover" />
-                    ) : (
-                        <span className="text-xs font-bold">{comment.user.firstName.charAt(0).toUpperCase()}</span>
-                    )}
+                <Link href={`/profile/${comment.userId}`}>
+                    <UserAvatar
+                        src={comment.user.avatarUrl}
+                        fallback={comment.user.firstName}
+                        size="sm" // 32px
+                        showRing={true}
+                        ringColors={['#6366f1', '#8b5cf6', '#d946ef']} // Purple/Indigo/Pink for comments
+                        className="hover:ring-2 hover:ring-blue-500/50 transition-all"
+                    />
                 </Link>
 
                 <div className="flex-1 min-w-0">

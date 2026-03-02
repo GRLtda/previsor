@@ -19,6 +19,7 @@ export default function EditProfilePage() {
     const [bio, setBio] = useState('')
     const [twitterUsername, setTwitterUsername] = useState('')
     const [instagramUsername, setInstagramUsername] = useState('')
+    const [avatarFile, setAvatarFile] = useState<File | Blob | null>(null)
 
     // Redirect to login if unauthenticated after auth initialized
     useEffect(() => {
@@ -45,12 +46,21 @@ export default function EditProfilePage() {
         nickname !== (user?.nickname || '') ||
         bio !== (user?.bio || '') ||
         twitterUsername !== (user?.twitter_username || '') ||
-        instagramUsername !== (user?.instagram_username || '')
+        instagramUsername !== (user?.instagram_username || '') ||
+        avatarFile !== null
 
     const handleSave = async () => {
         if (!hasChanges) return
         setIsLoading(true)
         try {
+            // 1. Upload avatar if changed
+            if (avatarFile) {
+                const formData = new FormData()
+                formData.append('file', avatarFile)
+                await userApi.updateAvatar(formData)
+            }
+
+            // 2. Update profile
             await userApi.updateMe({
                 nickname: nickname || null,
                 bio: bio || null,
@@ -96,7 +106,8 @@ export default function EditProfilePage() {
                     <div className="mb-10 flex w-full justify-center">
                         <AvatarUpload
                             currentAvatarUrl={user?.avatar_url}
-                            onSuccess={() => refreshUser()}
+                            immediateUpload={false}
+                            onFileSelect={(file) => setAvatarFile(file)}
                         />
                     </div>
 

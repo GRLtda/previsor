@@ -9,6 +9,7 @@ import { cn } from '@/lib/utils'
 import { Logo } from '@/components/ui/logo'
 import { Copy, Edit3, ArrowUpRight, Instagram } from 'lucide-react'
 import { ProfilePositions } from '@/components/profile/profile-positions'
+import { ProfileBadge, type ProfileRole } from '@/components/shared/profile-badge'
 import type { Position } from '@/lib/types'
 
 const Odometer = ({ value }: { value: number }) => {
@@ -81,6 +82,7 @@ export function PublicProfile({ identifier }: PublicProfileProps) {
         bio: null as string | null,
         twitterUsername: null as string | null,
         instagramUsername: null as string | null,
+        flags: {} as Record<string, any>,
     })
 
     const fetchProfileData = useCallback(async () => {
@@ -100,6 +102,7 @@ export function PublicProfile({ identifier }: PublicProfileProps) {
                 bio: data.bio ?? null,
                 twitterUsername: data.twitter_username ?? null,
                 instagramUsername: data.instagram_username ?? null,
+                flags: data.flags ?? {},
             })
             setPositions(data.positions || [])
             setStats({
@@ -336,15 +339,9 @@ export function PublicProfile({ identifier }: PublicProfileProps) {
                             <h1 className="text-2xl font-bold text-black dark:text-white">
                                 {profileData.nickname ? `@${profileData.nickname}` : truncateAddress(profileData.displayName)}
                             </h1>
-                            {profileData.userId === '7a73f723-8c13-44db-914d-f772af04e9cb' && (
-                                <span className="inline-flex items-center gap-1 rounded-md bg-blue-500/15 px-2 py-0.5 text-[11px] font-semibold text-blue-500 dark:text-blue-400">
-                                    <svg className="size-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                                        <polyline points="16 18 22 12 16 6" />
-                                        <polyline points="8 6 2 12 8 18" />
-                                    </svg>
-                                    Dev
-                                </span>
-                            )}
+                            {profileData.flags?.badges && Array.isArray(profileData.flags.badges) && (profileData.flags.badges as string[]).map((badge) => (
+                                <ProfileBadge key={badge} role={badge as ProfileRole} className="h-5" />
+                            ))}
                         </div>
                         <div className="flex items-center gap-2">
                             <button

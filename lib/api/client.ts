@@ -839,8 +839,8 @@ export const adminApi = {
       { method: 'PATCH', body: { status, reason } }
     ),
 
-  updateUserFlags: (id: string, flags: Record<string, boolean>) =>
-    baseFetch<{ success: true; data: { id: string; flags: Record<string, boolean>; updated_at: string } }>(
+  updateUserFlags: (id: string, flags: Record<string, any>) =>
+    baseFetch<{ success: true; data: { id: string; flags: Record<string, any>; updated_at: string } }>(
       'admin',
       `/users/${id}/flags`,
       { method: 'PATCH', body: flags }

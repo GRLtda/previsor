@@ -262,6 +262,7 @@ export interface AdminUser {
   id: string
   cpf?: string
   email: string
+  nickname: string | null
   phone: string
   full_name: string
   birth_date?: string
@@ -271,7 +272,7 @@ export interface AdminUser {
   kyc_status: 'pending' | 'approved' | 'rejected'
   kyc_level: 'basic' | 'intermediate' | 'full'
   avatar_url?: string | null
-  flags: Record<string, boolean>
+  flags: Record<string, boolean | string[] | undefined> & { badges?: string[] }
   verified_at: string | null
   accept_terms?: boolean
   accept_terms_at?: string

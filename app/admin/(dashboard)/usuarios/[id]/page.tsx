@@ -22,12 +22,25 @@ import {
   ArrowUpCircle,
   TrendingUp,
   Clock,
-  ArrowRight
+  ArrowRight,
+  Settings2
 } from "lucide-react";
 import { adminApi } from "@/lib/api/client";
 import { ConfirmDialog } from "@/components/shared/confirm-dialog";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+  DialogTrigger
+} from "@/components/ui/dialog";
+import { Label } from "@/components/ui/label";
+import { Checkbox } from "@/components/ui/checkbox";
+import { toast } from "sonner";
 import Link from "next/link";
 import { cn } from "@/lib/utils";
+import { ProfileBadge, type ProfileRole } from "@/components/shared/profile-badge";
 
 export default function UserDetailPage({
   params,
@@ -43,6 +56,16 @@ export default function UserDetailPage({
   const [loadingActivity, setLoadingActivity] = useState(true);
   const [actionType, setActionType] = useState<"block" | "unblock" | "approveKyc" | "rejectKyc" | null>(null);
   const [actionLoading, setActionLoading] = useState(false);
+  const [isBadgeModalOpen, setIsBadgeModalOpen] = useState(false);
+  const [selectedBadges, setSelectedBadges] = useState<string[]>([]);
+  const [badgeUpdating, setBadgeUpdating] = useState(false);
+
+  const ALL_ROLES: { id: ProfileRole; label: string }[] = [
+    { id: "moderator", label: "Moderador" },
+    { id: "developer", label: "Developer" },
+    { id: "system", label: "System" },
+    { id: "vip", label: "VIP" },
+  ];
 
   useEffect(() => {
     loadUser();
@@ -58,6 +81,12 @@ export default function UserDetailPage({
         setWallet(userRes.data.wallet);
       } else if ((userRes.data?.user as any)?.wallet) {
         setWallet((userRes.data?.user as any).wallet);
+      }
+
+      if (userRes.data?.user?.flags?.badges) {
+        setSelectedBadges(userRes.data.user.flags.badges as string[]);
+      } else {
+        setSelectedBadges([]);
       }
     } catch (error) {
       console.error("Error loading user:", error);
@@ -98,6 +127,34 @@ export default function UserDetailPage({
       setActionLoading(false);
       setActionType(null);
     }
+  };
+
+  const handleUpdateBadges = async () => {
+    if (!user) return;
+    setBadgeUpdating(true);
+    try {
+      const newFlags = {
+        ...user.flags,
+        badges: selectedBadges
+      };
+      await adminApi.updateUserFlags(user.id, newFlags);
+      toast.success("Badges atualizados com sucesso");
+      setIsBadgeModalOpen(false);
+      loadUser();
+    } catch (error) {
+      console.error("Error updating badges:", error);
+      toast.error("Erro ao atualizar badges");
+    } finally {
+      setBadgeUpdating(false);
+    }
+  };
+
+  const toggleBadge = (role: string) => {
+    setSelectedBadges(prev =>
+      prev.includes(role)
+        ? prev.filter(r => r !== role)
+        : [...prev, role]
+    );
   };
 
   const formatCurrency = (amount: number) => {
@@ -156,6 +213,44 @@ export default function UserDetailPage({
             Desbloquear
           </Button>
         )}
+
+        <Dialog open={isBadgeModalOpen} onOpenChange={setIsBadgeModalOpen}>
+          <DialogTrigger asChild>
+            <Button variant="outline">
+              <Settings2 className="mr-2 h-4 w-4" />
+              Badges
+            </Button>
+          </DialogTrigger>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>Gerenciar Badges de Perfil</DialogTitle>
+            </DialogHeader>
+            <div className="py-4 space-y-4">
+              {ALL_ROLES.map((role) => (
+                <div key={role.id} className="flex items-center space-x-3">
+                  <Checkbox
+                    id={`badge-${role.id}`}
+                    checked={selectedBadges.includes(role.id)}
+                    onCheckedChange={() => toggleBadge(role.id)}
+                  />
+                  <Label
+                    htmlFor={`badge-${role.id}`}
+                    className="flex flex-1 items-center justify-between cursor-pointer"
+                  >
+                    <span>{role.label}</span>
+                    <ProfileBadge role={role.id} showIcon={false} className="h-5" />
+                  </Label>
+                </div>
+              ))}
+            </div>
+            <DialogFooter>
+              <Button variant="ghost" onClick={() => setIsBadgeModalOpen(false)}>Cancelar</Button>
+              <Button onClick={handleUpdateBadges} disabled={badgeUpdating}>
+                {badgeUpdating ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : "Salvar Alterações"}
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
       </div>
 
       {/* Main Info Card */}
@@ -174,8 +269,21 @@ export default function UserDetailPage({
                 </AvatarFallback>
               </Avatar>
               <div className="flex flex-col">
-                <h2 className="text-2xl font-bold leading-tight">{(user as any).full_name || user.email}</h2>
-                <p className="text-sm text-muted-foreground">{user.email}</p>
+                <div className="flex items-center gap-2">
+                  <h2 className="text-2xl font-bold leading-tight">{(user as any).full_name || user.email}</h2>
+                  {/* Renderiza badges reais vindos da API */}
+                  {user.flags?.badges && Array.isArray(user.flags.badges) && (user.flags.badges as string[]).map((badge) => (
+                    <ProfileBadge key={badge} role={badge as ProfileRole} className="h-6" />
+                  ))}
+                </div>
+                <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                  {user.nickname && <span className="font-medium text-primary/80">@{user.nickname}</span>}
+                  {user.nickname && <span>|</span>}
+                  <span className="flex items-center gap-1">
+                    <span className="font-medium">email:</span>
+                    {user.email}
+                  </span>
+                </div>
                 <Badge variant={(user as any).status === "active" ? "outline" : "destructive"} className="mt-2 w-fit">
                   {(user as any).status === "active" ? "Ativo" : "Suspenso"}
                 </Badge>

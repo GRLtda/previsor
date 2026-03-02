@@ -160,7 +160,11 @@ export default function AdminUsersPage() {
           </Avatar>
           <div className="flex flex-col">
             <span className="font-medium text-sm leading-tight">{user.full_name || "Usuário"}</span>
-            <span className="text-xs text-muted-foreground">{user.email}</span>
+            <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
+              {user.nickname && <span className="text-[11px] text-primary/80 font-medium">@{user.nickname}</span>}
+              {user.nickname && <span className="opacity-50">|</span>}
+              <span>email: {user.email}</span>
+            </div>
           </div>
         </div>
       ),

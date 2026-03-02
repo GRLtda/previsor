@@ -26,6 +26,7 @@ import {
 } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import {
   Search,
   MoreHorizontal,
@@ -40,7 +41,7 @@ import { adminApi } from "@/lib/api/client";
 import type { User } from "@/lib/types";
 import { ConfirmDialog } from "@/components/shared/confirm-dialog";
 import Link from "next/link";
-import { useSearchParams } from "next/navigation";
+import { useSearchParams, useRouter } from "next/navigation";
 import { DataTable, ColumnDef } from "@/components/shared/data-table";
 
 export default function AdminUsersPage() {
@@ -57,6 +58,7 @@ export default function AdminUsersPage() {
   const [actionLoading, setActionLoading] = useState(false);
   const [selectedUsers, setSelectedUsers] = useState<string[]>([]);
   const searchParams = useSearchParams();
+  const router = useRouter();
 
   const loadUsers = useCallback(async () => {
     setLoading(true);
@@ -150,12 +152,19 @@ export default function AdminUsersPage() {
       accessorKey: "email",
       cell: (user: any) => (
         <div className="flex items-center gap-3 py-1">
-          <div className="h-9 w-9 overflow-hidden rounded-full bg-muted flex items-center justify-center border text-xs font-semibold text-muted-foreground">
-            {user.full_name ? user.full_name.substring(0, 2).toUpperCase() : user.email.substring(0, 2).toUpperCase()}
-          </div>
+          <Avatar className="h-9 w-9 border">
+            {user.avatar_url && <AvatarImage src={user.avatar_url} alt={user.full_name} />}
+            <AvatarFallback className="text-xs font-semibold text-muted-foreground">
+              {user.full_name ? user.full_name.substring(0, 2).toUpperCase() : user.email.substring(0, 2).toUpperCase()}
+            </AvatarFallback>
+          </Avatar>
           <div className="flex flex-col">
             <span className="font-medium text-sm leading-tight">{user.full_name || "Usuário"}</span>
-            <span className="text-xs text-muted-foreground">{user.email}</span>
+            <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
+              {user.nickname && <span className="text-[11px] text-primary/80 font-medium">@{user.nickname}</span>}
+              {user.nickname && <span className="opacity-50">|</span>}
+              <span>email: {user.email}</span>
+            </div>
           </div>
         </div>
       ),
@@ -282,6 +291,7 @@ export default function AdminUsersPage() {
           selectable={true}
           selectedIds={selectedUsers}
           onSelectionChange={setSelectedUsers}
+          onRowClick={(user) => router.push(`/admin/usuarios/${user.id}`)}
           isLoading={loading}
           pagination={{
             currentPage: page,

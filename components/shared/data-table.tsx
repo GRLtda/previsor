@@ -12,6 +12,7 @@ import {
 import { Checkbox } from "@/components/ui/checkbox"
 import { Pagination } from "@/components/shared/pagination"
 import { Loader2 } from "lucide-react"
+import { cn } from "@/lib/utils"
 
 export interface ColumnDef<T> {
   header: React.ReactNode
@@ -45,6 +46,7 @@ export interface DataTableProps<T> {
   // Status
   isLoading?: boolean
   emptyMessage?: string
+  onRowClick?: (row: T) => void
 }
 
 export function DataTable<T extends { id?: string }>({
@@ -58,6 +60,7 @@ export function DataTable<T extends { id?: string }>({
   bulkActions,
   isLoading,
   emptyMessage = "Nenhum registro encontrado.",
+  onRowClick,
 }: DataTableProps<T>) {
 
   const extractKey = keyExtractor || ((row: T) => row.id || JSON.stringify(row))
@@ -128,10 +131,14 @@ export function DataTable<T extends { id?: string }>({
                   <TableRow
                     key={id}
                     data-state={isSelected ? "selected" : undefined}
-                    className="border-b transition-colors hover:bg-muted/50 data-[state=selected]:bg-muted/80"
+                    className={cn(
+                      "border-b transition-colors hover:bg-muted/50 data-[state=selected]:bg-muted/80",
+                      onRowClick && "cursor-pointer"
+                    )}
+                    onClick={() => onRowClick && onRowClick(row)}
                   >
                     {selectable && (
-                      <TableCell className="px-4">
+                      <TableCell className="px-4" onClick={(e) => e.stopPropagation()}>
                         <Checkbox
                           checked={isSelected}
                           onCheckedChange={(checked) => handleSelectRow(id, !!checked)}
@@ -140,7 +147,15 @@ export function DataTable<T extends { id?: string }>({
                       </TableCell>
                     )}
                     {columns.map((col, i) => (
-                      <TableCell key={i} className={col.className}>
+                      <TableCell
+                        key={i}
+                        className={col.className}
+                        onClick={(e) => {
+                          if (col.header === "Ações") {
+                            e.stopPropagation();
+                          }
+                        }}
+                      >
                         {col.cell ? col.cell(row) : (col.accessorKey ? String(row[col.accessorKey as keyof T]) : null)}
                       </TableCell>
                     ))}

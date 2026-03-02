@@ -23,6 +23,7 @@ import {
   Share2
 } from 'lucide-react'
 import { Avatar, AvatarFallback } from '@/components/ui/avatar'
+import { UserAvatar } from '@/components/shared/user-avatar'
 import { cn } from '@/lib/utils'
 import { useAuth } from '@/contexts/auth-context'
 import { SubHeader } from './sub-header'
@@ -319,15 +320,13 @@ function SearchInput() {
                       className="flex items-center gap-4 px-5 py-3.5 hover:bg-white/[0.04] transition-colors"
                     >
                       {/* Avatar */}
-                      <Avatar className="h-[42px] w-[42px] shrink-0 border border-white/5">
-                        {profile.avatar_url ? (
-                          <img src={profile.avatar_url} alt="" className="w-full h-full object-cover" />
-                        ) : (
-                          <AvatarFallback className="bg-brand/20 text-brand text-sm">
-                            {profile.display_name?.[0]?.toUpperCase() || 'U'}
-                          </AvatarFallback>
-                        )}
-                      </Avatar>
+                      <UserAvatar
+                        src={profile.avatar_url}
+                        fallback={profile.display_name?.[0]?.toUpperCase() || 'U'}
+                        size={42}
+                        showRing={true}
+                        gapClassName="bg-[#12121a]" // Blend with dropdown background
+                      />
 
                       {/* Info */}
                       <div className="flex flex-col flex-1 min-w-0 pr-3 justify-center">
@@ -449,23 +448,13 @@ export function UserHeader() {
                   <DropdownMenu>
                     <DropdownMenuTrigger asChild>
                       <div className="relative cursor-pointer z-20 flex items-center gap-x-2 ml-4">
-                        <div className="relative flex w-fit items-center justify-center rounded-full p-[2px] whitespace-nowrap">
-                          <div className="rounded-full bg-white p-0.5 dark:bg-[#12121a] ring-1 ring-black/5 dark:ring-white/10">
-                            <Avatar className="h-[32px] w-[32px]">
-                              {user?.avatar_url ? (
-                                <img
-                                  src={user.avatar_url.replace('w=256_h=256_q=80', 'w=64_h=64_q=70')}
-                                  alt={user.full_name || 'U'}
-                                  className="h-full w-full object-cover rounded-full"
-                                />
-                              ) : (
-                                <AvatarFallback className="bg-brand/10 text-brand font-bold text-xs uppercase">
-                                  {user?.full_name?.[0] || 'U'}
-                                </AvatarFallback>
-                              )}
-                            </Avatar>
-                          </div>
-                        </div>
+                        <UserAvatar
+                          src={user?.avatar_url?.replace('w=256_h=256_q=80', 'w=64_h=64_q=70')}
+                          fallback={user?.full_name?.[0] || 'U'}
+                          size={36}
+                          showRing={true}
+                          gapClassName="bg-[#0B0B0F]" // Blend with header background
+                        />
                         <span className="text-sm font-semibold text-black dark:text-white hidden sm:block">
                           {user?.full_name?.split(' ')[0] || 'Usuário'}
                         </span>
@@ -483,23 +472,13 @@ export function UserHeader() {
                     >
                       {/* Profile Header */}
                       <div className="flex items-center gap-3 px-4 py-4">
-                        <div className="relative flex w-fit items-center justify-center rounded-full bg-brand/20 p-[2px]">
-                          <div className="rounded-full bg-white p-0.5 dark:bg-[#12121a]">
-                            <Avatar className="h-[46px] w-[46px]">
-                              {user?.avatar_url ? (
-                                <img
-                                  src={user.avatar_url.replace('w=256_h=256_q=80', 'w=128_h=128_q=70')}
-                                  alt={user.full_name || 'U'}
-                                  className="h-full w-full object-cover rounded-full"
-                                />
-                              ) : (
-                                <AvatarFallback className="bg-brand/10 text-brand font-bold text-lg uppercase">
-                                  {user?.full_name?.[0] || 'U'}
-                                </AvatarFallback>
-                              )}
-                            </Avatar>
-                          </div>
-                        </div>
+                        <UserAvatar
+                          src={user?.avatar_url?.replace('w=256_h=256_q=80', 'w=128_h=128_q=70')}
+                          fallback={user?.full_name?.[0] || 'U'}
+                          size={52}
+                          showRing={true}
+                          gapClassName="bg-[#12121a]" // Blend with dropdown background
+                        />
                         <div className="flex flex-col justify-center">
                           <div className="mb-1 flex items-center justify-start gap-2">
                             <span className="text-base font-semibold leading-none text-black dark:text-white">

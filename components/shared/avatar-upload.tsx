@@ -10,10 +10,18 @@ import { cn } from '@/lib/utils'
 interface AvatarUploadProps {
     currentAvatarUrl?: string | null
     onSuccess?: (newUrl: string) => void
+    onFileSelect?: (file: File | Blob) => void
+    immediateUpload?: boolean
     disabled?: boolean
 }
 
-export function AvatarUpload({ currentAvatarUrl, onSuccess, disabled }: AvatarUploadProps) {
+export function AvatarUpload({
+    currentAvatarUrl,
+    onSuccess,
+    onFileSelect,
+    immediateUpload = true,
+    disabled
+}: AvatarUploadProps) {
     const [isUploading, setIsUploading] = useState(false)
     const [previewUrl, setPreviewUrl] = useState<string | null>(null)
     const fileInputRef = useRef<HTMLInputElement>(null)
@@ -65,14 +73,34 @@ export function AvatarUpload({ currentAvatarUrl, onSuccess, disabled }: AvatarUp
         const originalFile = e.target.files?.[0]
         if (!originalFile) return
 
+        let fileToUpload: File | Blob = originalFile
+        const isLarge = originalFile.size > 5 * 1024 * 1024
+
+        if (!immediateUpload) {
+            // Preview imediato local
+            setPreviewUrl(URL.createObjectURL(originalFile))
+
+            if (isLarge) {
+                toast.info('Imagem grande, otimizando...')
+                try {
+                    fileToUpload = await compressImage(originalFile)
+                } catch (err) {
+                    console.error('Compression error:', err)
+                }
+            }
+
+            if (onFileSelect) {
+                onFileSelect(fileToUpload)
+            }
+            return
+        }
+
         setIsUploading(true)
         setPreviewUrl(URL.createObjectURL(originalFile))
 
         try {
-            let fileToUpload: File | Blob = originalFile
-
             // Se for maior que 5MB, comprimimos no cliente
-            if (originalFile.size > 5 * 1024 * 1024) {
+            if (isLarge) {
                 toast.info('Imagem grande, otimizando para o envio...')
                 fileToUpload = await compressImage(originalFile)
             }

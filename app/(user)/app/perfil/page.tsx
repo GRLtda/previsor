@@ -38,6 +38,7 @@ export default function ProfilePage() {
 
   // Edit profile
   const [phone, setPhone] = useState(user?.phone || '')
+  const [avatarFile, setAvatarFile] = useState<File | Blob | null>(null)
   const [isSavingProfile, setIsSavingProfile] = useState(false)
 
   // Change password
@@ -56,9 +57,21 @@ export default function ProfilePage() {
   // Export data
   const [isExporting, setIsExporting] = useState(false)
 
+  const hasProfileChanges = phone.replace(/\D/g, '') !== (user?.phone || '') || avatarFile !== null
+
   const handleSaveProfile = async () => {
+    if (!hasProfileChanges) return
     setIsSavingProfile(true)
     try {
+      // 1. Upload avatar if changed
+      if (avatarFile) {
+        const formData = new FormData()
+        formData.append('file', avatarFile)
+        await userApi.updateAvatar(formData)
+        setAvatarFile(null)
+      }
+
+      // 2. Update profile
       await userApi.updateMe({ phone: phone.replace(/\D/g, '') })
       toast.success('Perfil atualizado com sucesso!')
       refreshUser()
@@ -131,7 +144,8 @@ export default function ProfilePage() {
       <div className="mb-8 flex justify-center">
         <AvatarUpload
           currentAvatarUrl={user?.avatar_url}
-          onSuccess={() => refreshUser()}
+          immediateUpload={false}
+          onFileSelect={(file) => setAvatarFile(file)}
         />
       </div>
 
@@ -172,7 +186,7 @@ export default function ProfilePage() {
               />
             </div>
           </div>
-          <Button onClick={handleSaveProfile} disabled={isSavingProfile}>
+          <Button onClick={handleSaveProfile} disabled={isSavingProfile || !hasProfileChanges}>
             {isSavingProfile ? 'Salvando...' : 'Salvar Alteracoes'}
           </Button>
         </CardContent>

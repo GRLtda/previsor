@@ -10,6 +10,7 @@ import { Logo } from '@/components/ui/logo'
 import { Copy, Edit3, ArrowUpRight, Instagram } from 'lucide-react'
 import { ProfilePositions } from '@/components/profile/profile-positions'
 import { ProfileBadge, type ProfileRole } from '@/components/shared/profile-badge'
+import { UserAvatar } from '@/components/shared/user-avatar'
 import type { Position } from '@/lib/types'
 
 const Odometer = ({ value }: { value: number }) => {
@@ -295,43 +296,17 @@ export function PublicProfile({ identifier }: PublicProfileProps) {
                 {/* Left Sidebar */}
                 <aside className="flex w-full flex-col items-center lg:w-[320px] lg:items-start shrink-0">
                     {/* Avatar with animated gradient ring */}
-                    <div className="relative mb-6 flex items-center justify-center">
-                        {/* Spinning gradient ring */}
-                        <div
-                            className="absolute inset-0 rounded-full"
-                            style={{
-                                background: `conic-gradient(from 0deg, ${dominantColors[0]}, ${dominantColors[1]}, ${dominantColors[2]}, ${dominantColors[0]})`,
-                                animation: 'spin-slow 4s linear infinite',
-                            }}
+                    <div className="mb-6 flex items-center justify-center">
+                        <UserAvatar
+                            src={profileData.avatarUrl}
+                            fallback={profileData.displayName}
+                            size="xl"
+                            showRing={true}
+                            ringColors={dominantColors}
+                            animate={true}
                         />
-                        {/* Background gap */}
-                        <div className="relative rounded-full bg-background p-[3px] m-[3px]">
-                            <div className="flex size-[140px] items-center justify-center rounded-full overflow-hidden"
-                                style={{
-                                    background: profileData.avatarUrl ? 'transparent' : 'linear-gradient(135deg, #f59e0b 0%, #d97706 100%)',
-                                }}
-                            >
-                                {profileData.avatarUrl ? (
-                                    <img
-                                        src={profileData.avatarUrl}
-                                        alt={profileData.displayName}
-                                        className="w-full h-full object-cover"
-                                    />
-                                ) : (
-                                    <span className="text-5xl font-bold text-white">
-                                        {profileData.displayName.charAt(1) === '@' ? profileData.displayName.charAt(1).toUpperCase() : profileData.displayName.charAt(0).toUpperCase()}
-                                    </span>
-                                )}
-                            </div>
-                        </div>
                     </div>
 
-                    <style jsx>{`
-                        @keyframes spin-slow {
-                            from { transform: rotate(0deg); }
-                            to { transform: rotate(360deg); }
-                        }
-                    `}</style>
 
                     {/* Username & Wallet */}
                     <div className="mb-6 flex flex-col items-center lg:items-start w-full">

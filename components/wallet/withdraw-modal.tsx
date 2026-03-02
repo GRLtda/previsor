@@ -166,7 +166,7 @@ export function WithdrawModal({ isOpen, onOpenChange }: WithdrawModalProps) {
             if (!open) handleClose()
         }}>
             <DialogContent
-                className="flex flex-col h-fit max-h-[90vh] w-[95%] sm:w-11/12 max-w-[430px] overflow-hidden rounded-[24px] bg-white dark:bg-[#151515] p-0 shadow-xl border border-black/10 dark:border-white/5 outline-none duration-200 gap-0"
+                className="flex flex-col h-fit max-h-[90vh] w-[95%] sm:max-w-[430px] max-w-[430px] overflow-hidden rounded-[24px] bg-white dark:bg-[#151515] p-0 shadow-xl border border-black/10 dark:border-white/5 outline-none duration-200 gap-0"
                 showCloseButton={false}
             >
                 <DialogTitle className="sr-only">Sacar</DialogTitle>

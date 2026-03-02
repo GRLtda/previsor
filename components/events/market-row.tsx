@@ -48,7 +48,7 @@ export function MarketRow({ market: initialMarket, onYesClick, onNoClick }: Mark
         <div className="flex w-full items-center justify-between border-b border-border/40 py-3 sm:py-4 transition-colors hover:bg-white/[0.02] last:border-b-0 px-2 sm:px-4">
             {/* Left side - Icon and Name */}
             <div className="flex w-[40%] sm:w-[45%] items-center gap-3">
-                <div className="flex h-10 w-10 min-w-[40px] sm:h-12 sm:w-12 sm:min-w-[48px] items-center justify-center overflow-hidden rounded-xl bg-muted/30 dark:bg-white/5">
+                <div className="flex h-10 w-10 min-w-[40px] sm:h-12 sm:w-12 sm:min-w-[48px] items-center justify-center overflow-hidden rounded-xl">
                     {market.imageUrl ? (
                         <img src={market.imageUrl} alt="" className="size-full object-cover" />
                     ) : (

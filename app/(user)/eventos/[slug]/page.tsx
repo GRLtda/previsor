@@ -327,7 +327,7 @@ export default function EventDetailPage({ params }: PageProps) {
         {/* Mobile Title (Clean Top Section) */}
         <div className="lg:hidden mt-4 mb-2 flex flex-col items-center">
           {/* Event Image / Icon */}
-          <div className="size-16 sm:size-20 rounded-2xl overflow-hidden bg-muted flex items-center justify-center mb-3">
+          <div className="size-16 sm:size-20 rounded-2xl overflow-hidden flex items-center justify-center mb-3">
             {event.imageUrl && !imageError ? (
               <img
                 alt={event.title}

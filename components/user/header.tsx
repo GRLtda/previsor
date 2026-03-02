@@ -560,7 +560,7 @@ export function UserHeader() {
 
                         {/* Ajuda */}
                         <DropdownMenuItem
-                          onClick={() => router.push('/ajuda')}
+                          onClick={() => router.push('/jogo-responsavel')}
                           className="flex h-11 w-full items-center gap-3 rounded-xl px-4 text-sm font-medium text-black dark:text-white cursor-pointer hover:bg-black/5 dark:hover:bg-white/5 focus:bg-black/5 dark:focus:bg-white/5 outline-none transition-colors"
                         >
                           <Info className="size-5 text-black/50 dark:text-white/50" />

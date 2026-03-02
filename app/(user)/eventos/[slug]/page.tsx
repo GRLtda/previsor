@@ -18,6 +18,7 @@ import { MobilePredictionSheet } from '@/components/events/mobile-prediction-she
 import { ProbabilityChart } from '@/components/events/probability-chart'
 import { MultiProbabilityChart } from '@/components/events/multi-probability-chart'
 import { PlaceholderIcon } from '@/components/ui/placeholder-icon'
+import { MarkdownContent } from '@/components/ui/markdown-content'
 import { ActivityFeed } from '@/components/events/activity-feed'
 import { DiscussionChat } from '@/components/events/discussion-chat'
 
@@ -542,14 +543,11 @@ export default function EventDetailPage({ params }: PageProps) {
         {/* Rules Section */}
         <div className="mb-6 mt-[30px] w-full rounded-xl">
           <p className="text-lg font-bold dark:text-white">Regras e Detalhes do Mercado</p>
-          <p className={`mt-2 text-[14px] font-medium text-[#606E85] dark:text-[#A1A7BB] ${!showFullRules ? 'line-clamp-2' : ''}`}>
-            {event.resolveRules?.split(/\/n\/|\n/).map((line, i) => (
-              <span key={i}>
-                {line}
-                <br />
-              </span>
-            ))}
-          </p>
+          <div className={`mt-2 ${!showFullRules ? 'line-clamp-3 overflow-hidden' : ''}`}>
+            {event.resolveRules && (
+              <MarkdownContent content={event.resolveRules} />
+            )}
+          </div>
           <button
             onClick={() => setShowFullRules(!showFullRules)}
             className="mt-3 flex items-center gap-1 text-[14px] font-semibold hover:underline dark:text-white"

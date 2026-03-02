@@ -9,6 +9,7 @@ import { ArrowLeft, Check, X, ShieldAlert, Loader2 } from "lucide-react";
 import { adminApi, userApi } from "@/lib/api/client";
 import type { Market } from "@/lib/types";
 import { toast } from "sonner";
+import { MarkdownContent } from "@/components/ui/markdown-content";
 import {
     AlertDialog,
     AlertDialogAction,
@@ -147,14 +148,7 @@ export default function AdminMarketDetailsPage() {
                                 {market.resolveRules && (
                                     <div className="mt-4 p-3 bg-muted rounded-md border text-sm">
                                         <h4 className="font-semibold mb-1">Regras de Resolução</h4>
-                                        <div className="text-muted-foreground">
-                                            {market.resolveRules.split(/\/n\/|\n/).map((line, i) => (
-                                                <span key={i}>
-                                                    {line}
-                                                    <br />
-                                                </span>
-                                            ))}
-                                        </div>
+                                        <MarkdownContent content={market.resolveRules} />
                                     </div>
                                 )}
                             </div>

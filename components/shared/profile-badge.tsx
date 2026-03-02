@@ -22,30 +22,30 @@ const roleConfigs: Record<ProfileRole, RoleConfig> = {
     moderator: {
         label: "Moderador",
         icon: ShieldCheck,
-        variantClasses: "bg-blue-50/50 dark:bg-blue-900/10 text-blue-600 dark:text-blue-400 border-blue-100 dark:border-blue-900/30",
-        iconContainerClasses: "bg-blue-100/50 dark:bg-blue-800/30",
-        iconClasses: "text-blue-600 dark:text-blue-400",
+        variantClasses: "bg-blue-500/10 text-blue-500 border-blue-500/20 backdrop-blur-md",
+        iconContainerClasses: "bg-blue-500/20",
+        iconClasses: "text-blue-500",
     },
     developer: {
         label: "Developer",
         icon: Code2,
-        variantClasses: "bg-amber-50/50 dark:bg-amber-900/10 text-amber-600 dark:text-amber-400 border-amber-100 dark:border-amber-900/30",
-        iconContainerClasses: "bg-amber-100/50 dark:bg-amber-800/30",
-        iconClasses: "text-amber-600 dark:text-amber-400",
+        variantClasses: "bg-orange-500/10 text-orange-500 border-orange-500/20 backdrop-blur-md",
+        iconContainerClasses: "bg-orange-500/20",
+        iconClasses: "text-orange-500",
     },
     system: {
         label: "System",
         icon: Cpu,
-        variantClasses: "bg-emerald-50/50 dark:bg-emerald-900/10 text-emerald-600 dark:text-emerald-400 border-emerald-100 dark:border-emerald-900/30",
-        iconContainerClasses: "bg-emerald-100/50 dark:bg-emerald-800/30",
-        iconClasses: "text-emerald-600 dark:text-emerald-400",
+        variantClasses: "bg-emerald-500/10 text-emerald-500 border-emerald-500/20 backdrop-blur-md",
+        iconContainerClasses: "bg-emerald-500/20",
+        iconClasses: "text-emerald-500",
     },
     vip: {
         label: "VIP",
         icon: Crown,
-        variantClasses: "bg-yellow-50/50 dark:bg-yellow-900/10 text-yellow-600 dark:text-yellow-400 border-yellow-100 dark:border-yellow-900/30",
-        iconContainerClasses: "bg-yellow-100/50 dark:bg-yellow-800/20",
-        iconClasses: "text-yellow-600 dark:text-yellow-400",
+        variantClasses: "bg-yellow-500/10 text-yellow-500 border-yellow-500/20 backdrop-blur-md",
+        iconContainerClasses: "bg-yellow-500/20",
+        iconClasses: "text-yellow-500",
     },
 };
 
@@ -66,20 +66,15 @@ export function ProfileBadge({ role, className, showIcon = true }: ProfileBadgeP
         <Badge
             variant="outline"
             className={cn(
-                "pl-1 pr-3 py-1 h-7 rounded-full font-medium transition-colors border shadow-none",
+                "pl-2 pr-3 py-1 h-7 rounded-full font-bold tracking-tight transition-all border shadow-none select-none",
                 config.variantClasses,
                 className
             )}
         >
             {showIcon && (
-                <div className={cn(
-                    "flex h-5 w-5 items-center justify-center rounded-full mr-2",
-                    config.iconContainerClasses
-                )}>
-                    <Icon className={cn("h-3 w-3", config.iconClasses)} />
-                </div>
+                <Icon className={cn("h-3.5 w-3.5 mr-1 shrink-0", config.iconClasses)} />
             )}
-            {config.label}
+            <span className="text-[11px] uppercase">{config.label}</span>
         </Badge>
     );
 }

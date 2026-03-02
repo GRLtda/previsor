@@ -40,7 +40,6 @@ export function RegisterForm({ onSuccess, onLoginClick }: RegisterFormProps) {
         phone: '',
         password: '',
     })
-    const [acceptTerms, setAcceptTerms] = useState(false)
     const [showPassword, setShowPassword] = useState(false)
     const [isLoading, setIsLoading] = useState(false)
 
@@ -56,11 +55,6 @@ export function RegisterForm({ onSuccess, onLoginClick }: RegisterFormProps) {
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault()
-
-        if (!acceptTerms) {
-            toast.error('Você precisa aceitar os termos de uso')
-            return
-        }
 
         setIsLoading(true)
 
@@ -179,28 +173,13 @@ export function RegisterForm({ onSuccess, onLoginClick }: RegisterFormProps) {
                 </div>
 
                 <div className="flex items-start space-x-2 pt-2">
-                    <Checkbox
-                        id="terms"
-                        checked={acceptTerms}
-                        onCheckedChange={(checked) => setAcceptTerms(checked === true)}
-                    />
-                    <label
-                        htmlFor="terms"
-                        className="text-[11px] text-muted-foreground font-medium cursor-pointer"
-                    >
-                        Li e aceito os{' '}
-                        <Link href="/termos" target="_blank" className="font-bold text-black dark:text-white hover:underline">
-                            Termos
-                        </Link>{' '}
-                        e{' '}
-                        <Link href="/privacidade" target="_blank" className="font-bold text-black dark:text-white hover:underline">
-                            Privacidade
-                        </Link>
-                    </label>
+                    <p className="text-[11px] text-muted-foreground font-medium text-center w-full">
+                        Ao se registrar você concorda com nossos <Link href="/termos" target="_blank" className="font-bold text-black dark:text-white hover:underline">Termos de Uso</Link>
+                    </p>
                 </div>
 
                 <div className="pt-2">
-                    <Button type="submit" className="w-full h-12 font-bold text-[15px] shadow-sm tracking-wide rounded-xl bg-brand text-white hover:brightness-110" disabled={isLoading || !acceptTerms}>
+                    <Button type="submit" className="w-full h-12 font-bold text-[15px] shadow-sm tracking-wide rounded-xl bg-brand text-white hover:brightness-110" disabled={isLoading}>
                         {isLoading ? (
                             <>
                                 <Loader2 className="mr-2 h-4 w-4 animate-spin" />

@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import { cn } from '@/lib/utils'
-import { Loader2, Flame } from 'lucide-react'
+import { Loader2, Flame, Phone, Mail, User, Building2, Asterisk } from 'lucide-react'
 import { userApi, ApiClientError } from '@/lib/api/client'
 import { useAuth } from '@/contexts/auth-context'
 import { Dialog, DialogContent, DialogTitle } from '@/components/ui/dialog'
@@ -73,6 +73,46 @@ export function WithdrawModal({ isOpen, onOpenChange }: WithdrawModalProps) {
         setAmount(rawValue)
     }
 
+    const formatPixKey = (type: string, value: string) => {
+        const v = value.replace(/\D/g, '')
+
+        switch (type) {
+            case 'cpf':
+                return v
+                    .replace(/(\d{3})(\d)/, '$1.$2')
+                    .replace(/(\d{3})(\d)/, '$1.$2')
+                    .replace(/(\d{3})(\d{1,2})/, '$1-$2')
+                    .replace(/(-\d{2})\d+?$/, '$1')
+            case 'cnpj':
+                return v
+                    .replace(/(\d{2})(\d)/, '$1.$2')
+                    .replace(/(\d{3})(\d)/, '$1.$2')
+                    .replace(/(\d{3})(\d)/, '$1/$2')
+                    .replace(/(\d{4})(\d{1,2})/, '$1-$2')
+                    .replace(/(-\d{2})\d+?$/, '$1')
+            case 'phone':
+                return v
+                    .replace(/(\d{2})(\d)/, '($1) $2')
+                    .replace(/(\d{5})(\d)/, '$1-$2')
+                    .replace(/(-\d{4})\d+?$/, '$1')
+            case 'random': {
+                const hex = value.replace(/[^a-fA-F0-9]/g, '').slice(0, 32)
+                return hex
+                    .replace(/^([a-fA-F0-9]{8})([a-fA-F0-9])/, '$1-$2')
+                    .replace(/^([a-fA-F0-9]{8}-[a-fA-F0-9]{4})([a-fA-F0-9])/, '$1-$2')
+                    .replace(/^([a-fA-F0-9]{8}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4})([a-fA-F0-9])/, '$1-$2')
+                    .replace(/^([a-fA-F0-9]{8}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4})([a-fA-F0-9])/, '$1-$2')
+            }
+            default:
+                return value
+        }
+    }
+
+    const handlePixKeyChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        const val = e.target.value
+        setPixKeyValue(formatPixKey(pixKeyType, val))
+    }
+
     const handleCreateWithdraw = async () => {
         if (amountNumber < 10) {
             setError('Valor mínimo: R$ 10,00')
@@ -93,10 +133,10 @@ export function WithdrawModal({ isOpen, onOpenChange }: WithdrawModalProps) {
             const amountInCents = Math.round(amountNumber * 100)
 
             let finalPixKey = pixKeyValue.trim()
-            if (pixKeyType === 'phone') {
-                const digits = finalPixKey.replace(/\D/g, '')
-                if (digits.length > 0) {
-                    finalPixKey = digits.startsWith('55') ? `+${digits}` : `+55${digits}`
+            if (pixKeyType === 'phone' || pixKeyType === 'cpf' || pixKeyType === 'cnpj') {
+                finalPixKey = finalPixKey.replace(/\D/g, '')
+                if (pixKeyType === 'phone' && finalPixKey.length > 0) {
+                    finalPixKey = finalPixKey.startsWith('55') ? `+${finalPixKey}` : `+55${finalPixKey}`
                 }
             }
 
@@ -165,12 +205,11 @@ export function WithdrawModal({ isOpen, onOpenChange }: WithdrawModalProps) {
                         </div>
 
                         {/* Amount Input */}
-                        <div className="flex w-full flex-col items-center bg-transparent mb-8">
+                        <div className="flex w-full flex-col items-center bg-transparent mb-6">
                             <div className="relative flex w-full items-center justify-center bg-transparent p-1 font-semibold">
                                 <input
-                                    className="w-full max-w-full text-center bg-transparent font-bold placeholder:text-black/80 dark:placeholder:text-white/80 dark:text-white text-black outline-none"
+                                    className="w-full max-w-full text-center bg-transparent font-semibold placeholder:text-black/80 dark:placeholder:text-white/80 dark:text-white text-black outline-none"
                                     placeholder="R$ 0"
-                                    aria-label="input amount"
                                     inputMode="decimal"
                                     autoComplete="off"
                                     spellCheck="false"
@@ -195,21 +234,11 @@ export function WithdrawModal({ isOpen, onOpenChange }: WithdrawModalProps) {
                             <div className="w-full items-center justify-between gap-x-2 flex">
                                 {[20, 50, 100, 200, 500].map((val) => (
                                     <div key={val} className="relative flex-1">
-                                        {val === 50 && (
-                                            <div className="absolute -top-3.5 left-1/2 -translate-x-1/2 z-10">
-                                                <span className="bg-[#FF3B30] text-white text-[10px] font-black px-2.5 py-0.5 rounded-full shadow-md flex items-center gap-1 border border-white/20 dark:border-black/20 whitespace-nowrap">
-                                                    <Flame className="size-3.5 fill-white" />
-                                                    QUENTE
-                                                </span>
-                                            </div>
-                                        )}
                                         <button
                                             onClick={() => addAmount(val)}
                                             className={cn(
                                                 "flex w-full h-[40px] items-center transition-all duration-200 justify-center rounded-[12px] border text-[13px] font-bold bg-transparent",
-                                                val === 50
-                                                    ? "border-[#FF3B30] text-[#FF3B30] bg-[#FF3B30]/5 hover:bg-[#FF3B30]/10"
-                                                    : "border-black/10 dark:border-white/10 dark:text-white text-black hover:bg-black/5 dark:hover:bg-white/5"
+                                                "border-black/10 dark:border-white/10 dark:text-white text-black hover:bg-black/5 dark:hover:bg-white/5"
                                             )}
                                         >
                                             +R${val}
@@ -222,35 +251,66 @@ export function WithdrawModal({ isOpen, onOpenChange }: WithdrawModalProps) {
                         {/* Withdraw Fields */}
                         <div className="w-full space-y-4 mb-8">
                             <div className="space-y-2">
-                                <label className="text-[13px] font-bold text-black/60 dark:text-white/60">Tipo de Chave PIX</label>
-                                <Select value={pixKeyType} onValueChange={setPixKeyType}>
-                                    <SelectTrigger className="w-full h-12 bg-transparent border-black/10 dark:border-white/10 rounded-[12px] text-[14px]">
-                                        <SelectValue placeholder="Selecione o tipo" />
-                                    </SelectTrigger>
-                                    <SelectContent className="rounded-[12px] border-black/10 dark:border-white/10">
-                                        <SelectItem value="cpf">CPF</SelectItem>
-                                        <SelectItem value="cnpj">CNPJ</SelectItem>
-                                        <SelectItem value="email">Email</SelectItem>
-                                        <SelectItem value="phone">Telefone</SelectItem>
-                                        <SelectItem value="random">Chave Aleatória</SelectItem>
-                                    </SelectContent>
-                                </Select>
-                            </div>
+                                <label className="text-[13px] font-bold text-black/60 dark:text-white/60">Chave PIX</label>
+                                <div className="flex gap-2">
+                                    <Select value={pixKeyType} onValueChange={setPixKeyType}>
+                                        <SelectTrigger className="w-[90px] !h-12 !bg-transparent dark:!bg-transparent dark:hover:!bg-transparent border border-black/10 dark:border-white/10 rounded-[12px] px-4 text-[14px] flex items-center justify-between outline-none transition-colors focus:border-black/30 dark:focus:border-white/30 shadow-none">
+                                            <SelectValue placeholder="*">
+                                                {pixKeyType === 'phone' && <Phone className="size-4" />}
+                                                {pixKeyType === 'email' && <Mail className="size-4" />}
+                                                {pixKeyType === 'cpf' && <User className="size-4" />}
+                                                {pixKeyType === 'cnpj' && <Building2 className="size-4" />}
+                                                {pixKeyType === 'random' && <Asterisk className="size-4" />}
+                                                {!pixKeyType && <Asterisk className="size-4" />}
+                                            </SelectValue>
+                                        </SelectTrigger>
+                                        <SelectContent className="rounded-[12px] dark:!bg-[#151515] dark:!border-white/10 border-black/10">
+                                            <SelectItem value="phone" className="dark:hover:!bg-white/5 dark:data-[highlighted]:!bg-white/5">
+                                                <div className="flex items-center gap-2">
+                                                    <Phone className="size-4" />
+                                                    <span>Telefone</span>
+                                                </div>
+                                            </SelectItem>
+                                            <SelectItem value="email" className="dark:hover:!bg-white/5 dark:data-[highlighted]:!bg-white/5">
+                                                <div className="flex items-center gap-2">
+                                                    <Mail className="size-4" />
+                                                    <span>Email</span>
+                                                </div>
+                                            </SelectItem>
+                                            <SelectItem value="cpf" className="dark:hover:!bg-white/5 dark:data-[highlighted]:!bg-white/5">
+                                                <div className="flex items-center gap-2">
+                                                    <User className="size-4" />
+                                                    <span>CPF</span>
+                                                </div>
+                                            </SelectItem>
+                                            <SelectItem value="cnpj" className="dark:hover:!bg-white/5 dark:data-[highlighted]:!bg-white/5">
+                                                <div className="flex items-center gap-2">
+                                                    <Building2 className="size-4" />
+                                                    <span>CNPJ</span>
+                                                </div>
+                                            </SelectItem>
+                                            <SelectItem value="random" className="dark:hover:!bg-white/5 dark:data-[highlighted]:!bg-white/5">
+                                                <div className="flex items-center gap-2">
+                                                    <Asterisk className="size-4" />
+                                                    <span>Chave aleatória</span>
+                                                </div>
+                                            </SelectItem>
+                                        </SelectContent>
+                                    </Select>
 
-                            <div className="space-y-2">
-                                <label className="text-[13px] font-bold text-black/60 dark:text-white/60">Sua Chave PIX</label>
-                                <input
-                                    type="text"
-                                    className="w-full h-12 bg-transparent border border-black/10 dark:border-white/10 rounded-[12px] px-4 text-[14px] outline-none transition-colors focus:border-black/30 dark:focus:border-white/30"
-                                    placeholder={
-                                        pixKeyType === 'cpf' ? '000.000.000-00' :
-                                            pixKeyType === 'cnpj' ? '00.000.000/0000-00' :
-                                                pixKeyType === 'email' ? 'seu@email.com' :
-                                                    pixKeyType === 'phone' ? '+55 11 99999-9999' : 'Coloque sua chave PIX'
-                                    }
-                                    value={pixKeyValue}
-                                    onChange={(e) => setPixKeyValue(e.target.value)}
-                                />
+                                    <input
+                                        type="text"
+                                        className="flex-1 h-12 bg-transparent border border-black/10 dark:border-white/10 rounded-[12px] px-4 text-[14px] outline-none transition-colors focus:border-black/30 dark:focus:border-white/30"
+                                        placeholder={
+                                            pixKeyType === 'cpf' ? '000.000.000-00' :
+                                                pixKeyType === 'cnpj' ? '00.000.000/0000-00' :
+                                                    pixKeyType === 'email' ? 'seu@email.com' :
+                                                        pixKeyType === 'phone' ? '(11) 99999-9999' : 'Chave PIX'
+                                        }
+                                        value={pixKeyValue}
+                                        onChange={handlePixKeyChange}
+                                    />
+                                </div>
                             </div>
 
                             {amountNumber >= 10 && (

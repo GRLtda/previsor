@@ -350,7 +350,7 @@ export const userApi = {
       data: {
         userId: string
         nickname?: string | null
-        full_name?: string | null
+        display_name?: string
         bio?: string | null
         twitter_username?: string | null
         instagram_username?: string | null
@@ -372,6 +372,24 @@ export const userApi = {
       'user',
       `/v1/users/${userId}`,
       { params }
+    ),
+
+  searchPublicProfiles: (q: string, limit?: number) =>
+    baseFetch<{
+      success: true
+      data: {
+        users: Array<{
+          userId: string
+          nickname: string | null
+          display_name: string
+          avatar_url: string | null
+          created_at: string
+        }>
+      }
+    }>(
+      'user',
+      '/v1/users/search',
+      { params: { q, limit: limit || 5 } }
     ),
 
   changePassword: (current_password: string, new_password: string) =>

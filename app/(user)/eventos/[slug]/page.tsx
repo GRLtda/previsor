@@ -572,9 +572,7 @@ export default function EventDetailPage({ params }: PageProps) {
               >
                 <span className="relative flex items-center">
                   <span className="flex items-center">Chat</span>
-                  {activeTab === 'chat' && (
-                    <span className="absolute -bottom-1 left-0 right-0 h-[2px] bg-foreground dark:bg-white rounded-full" />
-                  )}
+
                 </span>
               </button>
               <button
@@ -586,9 +584,6 @@ export default function EventDetailPage({ params }: PageProps) {
               >
                 <span className="relative flex items-center">
                   <span className="flex items-center">Atividade</span>
-                  {activeTab === 'activity' && (
-                    <span className="absolute -bottom-1 left-0 right-0 h-[2px] bg-foreground dark:bg-white rounded-full" />
-                  )}
                 </span>
               </button>
             </div>

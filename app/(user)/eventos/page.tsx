@@ -179,24 +179,6 @@ function EventsContent() {
         </div>
       ) : (
         <>
-          {/* Header */}
-          <div className="flex items-center justify-between mb-4">
-            <div className="flex items-center">
-              <div className="flex items-center gap-1.5">
-                {/* Category Icon */}
-                <div className="flex size-10 items-center justify-center rounded-[10px] bg-blue-500/5 dark:bg-white/5">
-                  {(category === 'all' || !categoryInfo) ? (
-                    <DynamicIcon name="LayoutGrid" className="size-5 text-blue-500" />
-                  ) : (
-                    <DynamicIcon name={categoryInfo.icon} className="size-5 text-blue-500" />
-                  )}
-                </div>
-                <h3 className="text-xl font-bold dark:text-white">
-                  {category === 'all' ? 'Todos os Eventos' : categoryInfo?.name || category}
-                </h3>
-              </div>
-            </div>
-          </div>
 
           {/* Events Grid - 3 columns */}
           <div className="grid w-full grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">

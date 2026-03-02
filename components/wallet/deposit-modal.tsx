@@ -191,10 +191,10 @@ export function DepositModal({ isOpen, onOpenChange }: DepositModalProps) {
                             </div>
 
                             {/* Amount Input */}
-                            <div className="flex w-full flex-col items-center bg-transparent mb-2">
+                            <div className="flex w-full flex-col items-center bg-transparent mb-6">
                                 <div className="relative flex w-full items-center justify-center bg-transparent p-1 font-semibold">
                                     <input
-                                        className="w-full max-w-full text-center bg-transparent font-bold placeholder:text-black/80 dark:placeholder:text-white/80 dark:text-white text-black outline-none"
+                                        className="w-full max-w-full text-center bg-transparent font-semibold placeholder:text-black/80 dark:placeholder:text-white/80 dark:text-white text-black outline-none"
                                         placeholder="R$ 0"
                                         aria-label="input amount"
                                         inputMode="decimal"
@@ -206,24 +206,6 @@ export function DepositModal({ isOpen, onOpenChange }: DepositModalProps) {
                                         onChange={handleInputChange}
                                         style={{ fontSize: '3.5rem', letterSpacing: '-0.03em', height: '60px' }}
                                     />
-                                </div>
-                            </div>
-
-                            {/* Amount to Receive Display (Summary Box) */}
-                            <div className="w-full bg-black/5 dark:bg-white/5 rounded-[16px] p-4 mb-6 space-y-2.5">
-                                <div className="flex justify-between text-[13px] font-semibold text-black/60 dark:text-white/60">
-                                    <span>Valor do depósito:</span>
-                                    <span>R$ {amountNumber.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
-                                </div>
-                                <div className="flex justify-between text-[13px] font-semibold text-black/40 dark:text-white/40">
-                                    <span>Taxa (2%):</span>
-                                    <span>-R$ {(amountNumber * 0.02).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
-                                </div>
-                                <div className="flex justify-between text-[14px] font-bold border-t border-black/10 dark:border-white/10 pt-3 mt-1 text-black dark:text-white">
-                                    <span>Você recebe:</span>
-                                    <span className="text-[#00B471]">
-                                        R$ {(amountNumber * 0.98).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-                                    </span>
                                 </div>
                             </div>
 
@@ -241,7 +223,7 @@ export function DepositModal({ isOpen, onOpenChange }: DepositModalProps) {
                                         <div key={val} className="relative flex-1">
                                             {val === 50 && (
                                                 <div className="absolute -top-3.5 left-1/2 -translate-x-1/2 z-10">
-                                                    <span className="bg-[#FF3B30] text-white text-[10px] font-black px-2.5 py-0.5 rounded-full shadow-md flex items-center gap-0.5 border border-white/20 dark:border-black/20 whitespace-nowrap">
+                                                    <span className="bg-[#FF3B30] text-white text-[10px] font-bold px-2.5 py-0.5 rounded-lg shadow-md flex items-center gap-0.5 border border-white/20 dark:border-black/20 whitespace-nowrap">
                                                         <Flame className="size-3 fill-white" />
                                                         QUENTE
                                                     </span>
@@ -262,6 +244,26 @@ export function DepositModal({ isOpen, onOpenChange }: DepositModalProps) {
                                     ))}
                                 </div>
                             </div>
+
+                            {/* Amount to Receive Display (Summary Box) */}
+                            {amountNumber >= 11 && (
+                                <div className="w-full bg-black/5 dark:bg-white/5 rounded-[16px] p-4 mb-8 space-y-2.5 animate-in fade-in slide-in-from-top-1 duration-200">
+                                    <div className="flex justify-between text-[13px] font-semibold text-black/60 dark:text-white/60">
+                                        <span>Valor do depósito:</span>
+                                        <span>R$ {amountNumber.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+                                    </div>
+                                    <div className="flex justify-between text-[13px] font-semibold text-black/40 dark:text-white/40">
+                                        <span>Taxa (2%):</span>
+                                        <span>-R$ {(amountNumber * 0.02).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+                                    </div>
+                                    <div className="flex justify-between text-[14px] font-bold border-t border-black/10 dark:border-white/10 pt-3 mt-1 text-black dark:text-white">
+                                        <span>Você recebe:</span>
+                                        <span className="text-[#00B471]">
+                                            R$ {(amountNumber * 0.98).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                                        </span>
+                                    </div>
+                                </div>
+                            )}
 
                             {/* Submit Button */}
                             <button

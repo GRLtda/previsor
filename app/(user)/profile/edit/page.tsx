@@ -15,7 +15,6 @@ export default function EditProfilePage() {
     const { user, refreshUser, isAuthenticated } = useAuth()
 
     const [isLoading, setIsLoading] = useState(false)
-    const [displayName, setDisplayName] = useState('')
     const [nickname, setNickname] = useState('')
     const [bio, setBio] = useState('')
     const [twitterUsername, setTwitterUsername] = useState('')
@@ -31,7 +30,6 @@ export default function EditProfilePage() {
     // Pre-populate when user data loads
     useEffect(() => {
         if (user) {
-            setDisplayName(user.full_name || '')
             setNickname(user.nickname || '')
             setBio(user.bio || '')
             setTwitterUsername(user.twitter_username || '')
@@ -44,7 +42,6 @@ export default function EditProfilePage() {
     }
 
     const hasChanges =
-        displayName !== (user?.full_name || '') ||
         nickname !== (user?.nickname || '') ||
         bio !== (user?.bio || '') ||
         twitterUsername !== (user?.twitter_username || '') ||
@@ -55,7 +52,6 @@ export default function EditProfilePage() {
         setIsLoading(true)
         try {
             await userApi.updateMe({
-                full_name: displayName,
                 nickname: nickname || null,
                 bio: bio || null,
                 twitter_username: twitterUsername || null,
@@ -106,22 +102,6 @@ export default function EditProfilePage() {
 
                     {/* Form Fields */}
                     <div className="flex w-full flex-col gap-6">
-                        {/* Display Name */}
-                        <div className="flex w-full flex-col gap-2">
-                            <label htmlFor="displayName" className="text-sm font-semibold text-black dark:text-white">
-                                Nome de Exibição
-                            </label>
-                            <input
-                                id="displayName"
-                                placeholder="Seu nome"
-                                maxLength={40}
-                                value={displayName}
-                                onChange={(e) => setDisplayName(e.target.value)}
-                                className="h-[46px] w-full rounded-lg border border-border bg-transparent px-4 text-sm font-medium text-black placeholder:text-muted-foreground focus:border-brand focus:outline-none dark:text-white"
-                                type="text"
-                            />
-                        </div>
-
                         {/* Nickname (Unique) */}
                         <div className="flex w-full flex-col gap-2">
                             <label htmlFor="nickname" className="text-sm font-semibold text-black dark:text-white">

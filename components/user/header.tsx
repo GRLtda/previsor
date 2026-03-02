@@ -23,11 +23,15 @@ import {
   Share2
 } from 'lucide-react'
 import { Avatar, AvatarFallback } from '@/components/ui/avatar'
+import { cn } from '@/lib/utils'
 import { useAuth } from '@/contexts/auth-context'
 import { SubHeader } from './sub-header'
 import { AuthModal } from '@/components/auth/auth-modal'
 import { DepositModal } from '@/components/wallet/deposit-modal'
 import { Logo } from '@/components/ui/logo'
+import { userApi } from '@/lib/api/client'
+import { Event } from '@/lib/types'
+import { DynamicIcon } from '@/components/ui/dynamic-icon'
 
 function SearchInput() {
   const inputRef = useRef<HTMLInputElement>(null)
@@ -52,7 +56,14 @@ function SearchInput() {
   const searchParams = useSearchParams()
   const initialSearch = searchParams.get('search') || ''
   const [value, setValue] = useState(initialSearch)
-  const debouncedValue = useDebounce(value, 500)
+  const debouncedValue = useDebounce(value, 300)
+
+  // Dropdown state
+  const [isOpen, setIsOpen] = useState(false)
+  const [activeTab, setActiveTab] = useState<'markets' | 'profiles'>('markets')
+  const [isSearching, setIsSearching] = useState(false)
+  const [markets, setMarkets] = useState<Event[]>([])
+  const [profiles, setProfiles] = useState<any[]>([])
 
   const createQueryString = useCallback(
     (name: string, val: string) => {
@@ -67,12 +78,66 @@ function SearchInput() {
     [searchParams]
   )
 
-  useEffect(() => {
-    const currentSearch = searchParams.get('search') || ''
-    if (debouncedValue !== currentSearch) {
-      router.push(`/eventos?${createQueryString('search', debouncedValue)}`)
+  const handleSearchSubmit = (e?: React.FormEvent | React.KeyboardEvent) => {
+    e?.preventDefault()
+    if (value.trim()) {
+      setIsOpen(false)
+      if (activeTab === 'markets') {
+        router.push(`/eventos?${createQueryString('search', value.trim())}`)
+      } else {
+        // Just keep the state, clicking a profile directly works, 
+        // there is no dedicated search-all-profiles page.
+      }
     }
-  }, [debouncedValue, createQueryString, router, searchParams])
+  }
+
+  // Fetch data when debounced value or active tab changes
+  useEffect(() => {
+    if (!debouncedValue.trim()) {
+      setMarkets([])
+      setProfiles([])
+      setIsSearching(false)
+      return
+    }
+
+    const fetchResults = async () => {
+      setIsSearching(true)
+      try {
+        if (activeTab === 'markets') {
+          const res = await userApi.getEvents({ title: debouncedValue, limit: 5 })
+          setMarkets(res.events || [])
+        } else {
+          const res = await userApi.searchPublicProfiles(debouncedValue, 5)
+          if (res.success) {
+            setProfiles(res.data.users || [])
+          }
+        }
+      } catch (error) {
+        console.error('Search error:', error)
+      } finally {
+        setIsSearching(false)
+      }
+    }
+
+    fetchResults()
+  }, [debouncedValue, activeTab])
+
+  // Click outside to close
+  const dropdownRef = useRef<HTMLDivElement>(null)
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (
+        dropdownRef.current &&
+        !dropdownRef.current.contains(event.target as Node) &&
+        !inputRef.current?.contains(event.target as Node)
+      ) {
+        setIsOpen(false)
+      }
+    }
+
+    document.addEventListener('mousedown', handleClickOutside)
+    return () => document.removeEventListener('mousedown', handleClickOutside)
+  }, [])
 
   // Hotkey "/" to focus search
   useEffect(() => {
@@ -94,23 +159,194 @@ function SearchInput() {
   }, [])
 
   return (
-    <div className="flex h-10 w-full relative items-center rounded-lg transition-all border border-transparent ease-in hover:bg-black/10 hover:dark:bg-white/10 bg-black/5 dark:bg-white/5 p-3 text-sm">
-      <div className="flex w-full flex-1 items-center gap-x-1.5">
-        <svg width="14" height="15" viewBox="0 0 14 15" fill="none" xmlns="http://www.w3.org/2000/svg">
-          <path fillRule="evenodd" clipRule="evenodd" d="M10.631 4.47459C9.79903 2.47688 7.84973 1.17334 5.68572 1.16756C3.35344 1.15527 1.27964 2.64918 0.552616 4.86529C-0.174403 7.08139 0.611446 9.51344 2.49776 10.8851C4.38408 12.2568 6.93994 12.2548 8.82405 10.8801L12.032 14.2691C12.2029 14.4397 12.4796 14.4397 12.6504 14.2691C12.821 14.0983 12.821 13.8216 12.6504 13.6508L9.49489 10.3142C11.0151 8.77413 11.4629 6.47229 10.631 4.47459ZM9.85097 8.2661C9.15245 9.94941 7.50821 11.0458 5.68572 11.0434V11.0201C3.21222 11.0169 1.20424 9.01934 1.18822 6.54589C1.18586 4.7234 2.2822 3.07916 3.96551 2.38064C5.64882 1.68211 7.58719 2.06703 8.87589 3.35572C10.1646 4.64442 10.5495 6.5828 9.85097 8.2661Z" fill="#606e85" stroke="#606e85" strokeWidth="0.571429" />
-        </svg>
-        <input
-          ref={inputRef}
-          type="text"
-          placeholder="Pesquisar por Mercados, Tópicos..."
-          className="flex w-full bg-transparent pb-0.5 text-xs text-black placeholder:text-[13px] placeholder:text-[#606E85] dark:text-white dark:placeholder:text-[#A1A7BB] lg:text-base outline-none"
-          value={value}
-          onChange={(e) => setValue(e.target.value)}
-        />
+    <div className="w-full relative">
+      <div
+        className={cn(
+          "flex h-[42px] w-full relative items-center transition-all ease-in border text-sm rounded-lg",
+          isOpen
+            ? "border-white/10 bg-black/5 dark:bg-white/5"
+            : "border-transparent hover:bg-black/10 hover:dark:bg-white/10 bg-black/5 dark:bg-white/5"
+        )}
+      >
+        <div className="flex w-full flex-1 items-center gap-x-3 px-3">
+          <svg width="15" height="15" viewBox="0 0 14 15" fill="none" xmlns="http://www.w3.org/2000/svg" className="shrink-0 text-[#606E85] dark:text-[#A1A7BB]">
+            <path fillRule="evenodd" clipRule="evenodd" d="M10.631 4.47459C9.79903 2.47688 7.84973 1.17334 5.68572 1.16756C3.35344 1.15527 1.27964 2.64918 0.552616 4.86529C-0.174403 7.08139 0.611446 9.51344 2.49776 10.8851C4.38408 12.2568 6.93994 12.2548 8.82405 10.8801L12.032 14.2691C12.2029 14.4397 12.4796 14.4397 12.6504 14.2691C12.821 14.0983 12.821 13.8216 12.6504 13.6508L9.49489 10.3142C11.0151 8.77413 11.4629 6.47229 10.631 4.47459ZM9.85097 8.2661C9.15245 9.94941 7.50821 11.0458 5.68572 11.0434V11.0201C3.21222 11.0169 1.20424 9.01934 1.18822 6.54589C1.18586 4.7234 2.2822 3.07916 3.96551 2.38064C5.64882 1.68211 7.58719 2.06703 8.87589 3.35572C10.1646 4.64442 10.5495 6.5828 9.85097 8.2661Z" fill="currentColor" stroke="currentColor" strokeWidth="0.571429" />
+          </svg>
+          <input
+            ref={inputRef}
+            type="text"
+            placeholder="Pesquisar por Mercados, Perfis..."
+            className="flex w-full bg-transparent text-sm text-black placeholder:text-[14px] placeholder:font-medium placeholder:text-[#606E85] dark:text-white dark:placeholder:text-[#6b7280] outline-none"
+            value={value}
+            onChange={(e) => {
+              setValue(e.target.value)
+              if (!isOpen) setIsOpen(true)
+            }}
+            onFocus={() => {
+              if (value.trim()) setIsOpen(true)
+            }}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter') {
+                handleSearchSubmit(e)
+              }
+            }}
+          />
+        </div>
+        {!isOpen && (
+          <div className="absolute right-2 top-1/2 hidden size-[22px] -translate-y-1/2 items-center justify-center rounded bg-black/10 dark:bg-white/10 text-[#606E85] dark:text-[#A1A7BB] text-xs lg:flex cursor-pointer" onClick={() => inputRef.current?.focus()}>
+            /
+          </div>
+        )}
+        {isOpen && (
+          <button
+            onClick={() => {
+              setIsOpen(false)
+              setValue('')
+            }}
+            className="absolute right-3 top-1/2 -translate-y-1/2 text-[#606E85] hover:text-white transition-colors"
+          >
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+          </button>
+        )}
       </div>
-      <div className="absolute right-2 top-1/2 hidden size-[22px] -translate-y-1/2 items-center justify-center rounded bg-black/10 dark:bg-white/10 text-[#606E85] dark:text-[#A1A7BB] text-xs lg:flex cursor-pointer" onClick={() => inputRef.current?.focus()}>
-        /
-      </div>
+
+      {/* Dropdown */}
+      {isOpen && value.trim() && (
+        <div
+          ref={dropdownRef}
+          className="absolute left-0 top-[48px] w-full bg-background border border-black/10 dark:border-white/10 shadow-2xl rounded-2xl overflow-hidden z-50 flex flex-col"
+        >
+          {/* Tabs */}
+          <div className="flex px-4 pt-4 pb-2">
+            <button
+              onClick={() => setActiveTab('markets')}
+              onMouseDown={(e) => e.preventDefault()}
+              className={cn(
+                "px-3.5 py-1.5 text-[14px] font-bold transition-all duration-200 rounded-lg relative",
+                activeTab === 'markets'
+                  ? "text-white bg-white/10"
+                  : "text-[#8E9AAE] hover:text-white hover:bg-white/5"
+              )}
+            >
+              Markets
+            </button>
+            <button
+              onClick={() => setActiveTab('profiles')}
+              onMouseDown={(e) => e.preventDefault()}
+              className={cn(
+                "px-3.5 py-1.5 text-[14px] font-bold transition-all duration-200 rounded-lg relative ml-2",
+                activeTab === 'profiles'
+                  ? "text-white bg-white/10"
+                  : "text-[#8E9AAE] hover:text-white hover:bg-white/5"
+              )}
+            >
+              Profiles
+            </button>
+          </div>
+
+          <div className="h-[1px] w-full bg-white/5 mt-1" />
+
+          {/* List Content */}
+          <div className="flex flex-col overflow-y-auto max-h-[460px] pb-2">
+            {isSearching ? (
+              <div className="flex items-center justify-center py-8">
+                <div className="size-5 border-2 border-white/20 border-t-white rounded-full animate-spin" />
+              </div>
+            ) : activeTab === 'markets' ? (
+              markets.length > 0 ? (
+                <div className="flex flex-col">
+                  {markets.map((market) => (
+                    <Link
+                      key={market.id}
+                      href={`/eventos/${market.slug || market.id}`}
+                      onClick={() => setIsOpen(false)}
+                      className="flex items-center gap-4 px-5 py-3.5 hover:bg-white/[0.04] transition-colors"
+                    >
+                      {/* Market Icon */}
+                      <div className="flex size-[42px] shrink-0 items-center justify-center rounded-xl bg-[#22252C] overflow-hidden border border-white/5">
+                        {market.imageUrl ? (
+                          <img src={market.imageUrl} alt="" className="w-full h-full object-cover" />
+                        ) : (
+                          <DynamicIcon name={(market as any).category?.icon || 'LayoutGrid'} className="size-6 text-white/50" />
+                        )}
+                      </div>
+
+                      {/* Market Details */}
+                      <div className="flex flex-col flex-1 min-w-0 pr-3">
+                        <span className="text-[15px] font-bold text-white leading-tight line-clamp-2">
+                          {market.title}
+                        </span>
+                      </div>
+
+                      {/* Market Stats */}
+                      {market.markets && market.markets[0] && (
+                        <div className="flex flex-col items-end shrink-0 justify-center">
+                          <span className="text-[18px] font-bold text-white tracking-tight leading-none mb-1.5">
+                            {Math.round(market.markets[0].probYes)}%
+                          </span>
+                          <span className="text-[12px] font-medium text-[#8E9AAE] leading-none text-right line-clamp-1 max-w-[80px]">
+                            {market.markets[0].statement || 'Sim'}
+                          </span>
+                        </div>
+                      )}
+                    </Link>
+                  ))}
+
+                  {/* See all results link */}
+                  <div className="px-4 py-3 mt-1">
+                    <button
+                      onClick={handleSearchSubmit}
+                      className="text-[14px] font-semibold text-[#0099FF] hover:text-white transition-colors flex items-center gap-1 group"
+                    >
+                      See all results
+                      <span className="transition-transform group-hover:translate-x-0.5">→</span>
+                    </button>
+                  </div>
+                </div>
+              ) : (
+                <div className="py-8 text-center text-sm text-[#8E9AAE]">
+                  Nenhum mercado encontrado
+                </div>
+              )
+            ) : (
+              profiles.length > 0 ? (
+                <div className="flex flex-col">
+                  {profiles.map((profile) => (
+                    <Link
+                      key={profile.userId}
+                      href={profile.nickname ? `/@${profile.nickname}` : `/profile/${profile.userId}`}
+                      onClick={() => setIsOpen(false)}
+                      className="flex items-center gap-4 px-5 py-3.5 hover:bg-white/[0.04] transition-colors"
+                    >
+                      {/* Avatar */}
+                      <Avatar className="h-[42px] w-[42px] shrink-0 border border-white/5">
+                        {profile.avatar_url ? (
+                          <img src={profile.avatar_url} alt="" className="w-full h-full object-cover" />
+                        ) : (
+                          <AvatarFallback className="bg-brand/20 text-brand text-sm">
+                            {profile.display_name?.[0]?.toUpperCase() || 'U'}
+                          </AvatarFallback>
+                        )}
+                      </Avatar>
+
+                      {/* Info */}
+                      <div className="flex flex-col flex-1 min-w-0 pr-3 justify-center">
+                        <span className="text-[15px] font-bold text-white leading-tight">
+                          {profile.nickname ? `@${profile.nickname}` : `@${profile.userId.slice(0, 8)}`}
+                        </span>
+                      </div>
+                    </Link>
+                  ))}
+                </div>
+              ) : (
+                <div className="py-8 text-center text-sm text-[#8E9AAE]">
+                  Nenhum perfil encontrado
+                </div>
+              )
+            )}
+          </div>
+        </div>
+      )}
     </div>
   )
 }
@@ -164,7 +400,7 @@ export function UserHeader() {
     <>
       <header
         id="main-header"
-        className="fixed left-0 lg:h-[60px] place-content-center top-0 bg-background z-30 w-full"
+        className="fixed left-0 lg:h-[60px] place-content-center top-0 bg-background z-40 w-full"
       >
         <div>
           <div className="mx-auto flex h-full max-h-[60px] min-h-[60px] items-center justify-between px-4 md:px-6 lg:px-10 xl:px-16 2xl:px-24">
@@ -174,7 +410,7 @@ export function UserHeader() {
             </div>
 
             {/* Center: Search - Hidden on mobile - Absolutely centered */}
-            <div className="hidden xl:flex absolute left-1/2 -translate-x-1/2 w-full max-w-[500px] px-8">
+            <div className="hidden xl:flex absolute left-1/2 -translate-x-1/2 w-full max-w-[560px] px-8">
               <div className="relative w-full">
                 <Suspense fallback={null}>
                   <SearchInput />

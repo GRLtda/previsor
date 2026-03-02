@@ -234,7 +234,7 @@ function CommentItem({
                             <button
                                 onClick={handleReplySubmit}
                                 disabled={!replyText.trim() || submitting}
-                                className="flex items-center justify-center size-9 rounded-lg bg-blue-500 text-white hover:bg-blue-600 disabled:opacity-50 transition-colors cursor-pointer"
+                                className="flex items-center justify-center size-9 rounded-lg bbg-brand text-white hover:bg-brand/90 disabled:opacity-50 transition-colors cursor-pointer"
                             >
                                 {submitting ? <Loader2 className="size-4 animate-spin" /> : <Send className="size-4" />}
                             </button>
@@ -423,7 +423,7 @@ export function DiscussionChat({ eventId }: DiscussionChatProps) {
                     <button
                         onClick={handleSubmitComment}
                         disabled={submitting}
-                        className="flex items-center justify-center px-4 rounded-lg bg-blue-500 text-white hover:bg-blue-600 disabled:opacity-50 transition-colors font-medium text-[13px] gap-1.5 cursor-pointer"
+                        className="flex items-center justify-center px-4 rounded-lg bg-brand text-white hover:bg-brand/90 disabled:opacity-50 transition-colors font-medium text-[13px] gap-1.5 cursor-pointer"
                     >
                         {submitting ? <Loader2 className="size-4 animate-spin" /> : <><Send className="size-4" /><span className="hidden sm:inline">Enviar</span></>}
                     </button>

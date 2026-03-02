@@ -92,8 +92,8 @@ export function PublicProfile({ identifier }: PublicProfileProps) {
             setProfileData({
                 userId: data.userId || identifier,
                 nickname: data.nickname ?? null,
-                // If it has nickname display it, fallback to full_name or short ID
-                displayName: data.nickname ? `@${data.nickname}` : (data.full_name || (data.userId || identifier).slice(0, 4) + '...' + (data.userId || identifier).slice(-4)),
+                // Use display_name from API (nickname or @uuid[:8])
+                displayName: data.display_name || (data.nickname ? `@${data.nickname}` : `@${(data.userId || identifier).replace(/-/g, '').substring(0, 8)}`),
                 walletAddress: data.userId || identifier,
                 joinedAt: data.created_at,
                 avatarUrl: data.avatar_url ?? null,

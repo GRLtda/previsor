@@ -164,7 +164,7 @@ export default function AdminWalletsPage() {
       header: "Usuário",
       cell: (wallet: any) => (
         <Link
-          href={`/admin/usuarios/${wallet.user_id}`}
+          href={`/admin/carteiras/${wallet.user_id}`}
           className="flex items-center gap-3 group"
         >
           <Avatar className="h-8 w-8 rounded-full border shadow-sm transition-transform duration-200 group-hover:scale-105">

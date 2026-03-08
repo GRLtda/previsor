@@ -1,7 +1,6 @@
 "use client";
 
-import React from "react"
-
+import { Toaster } from "@/components/ui/sonner";
 import { AdminAuthProvider } from "@/contexts/admin-auth-context";
 
 export default function AdminLayout({
@@ -9,5 +8,10 @@ export default function AdminLayout({
 }: {
   children: React.ReactNode;
 }) {
-  return <AdminAuthProvider>{children}</AdminAuthProvider>;
+  return (
+    <AdminAuthProvider>
+      {children}
+      <Toaster position="top-right" />
+    </AdminAuthProvider>
+  );
 }

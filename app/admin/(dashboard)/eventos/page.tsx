@@ -27,8 +27,6 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { Badge } from "@/components/ui/badge";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
   Search,
   Plus,
@@ -37,22 +35,111 @@ import {
   Edit,
   Trash,
   Loader2,
-  ChevronLeft,
-  ChevronRight,
-  Calendar,
   Camera,
-  Upload,
-  Image as ImageIcon,
+  X,
 } from "lucide-react";
 import { adminApi, ApiClientError } from "@/lib/api/client";
 import type { Event } from "@/lib/types";
 import { ConfirmDialog } from "@/components/shared/confirm-dialog";
 import Link from "next/link";
-import { useSearchParams } from "next/navigation";
 import { Suspense } from "react";
 import Loading from "./loading";
-import { PlaceholderIcon } from '@/components/ui/placeholder-icon';
+import { PlaceholderIcon } from "@/components/ui/placeholder-icon";
 import { DataTable, ColumnDef } from "@/components/shared/data-table";
+
+// ── Helpers ───────────────────────────────────────────────────────────────────
+
+function todayStr() {
+  return new Date().toISOString().split("T")[0];
+}
+
+function addDays(base: string, days: number) {
+  const d = new Date(base);
+  d.setDate(d.getDate() + days);
+  return d.toISOString().split("T")[0];
+}
+
+function addMonths(base: string, months: number) {
+  const d = new Date(base);
+  d.setMonth(d.getMonth() + months);
+  return d.toISOString().split("T")[0];
+}
+
+const PERIOD_PILLS = [
+  { label: "3 dias", fn: (s: string) => addDays(s, 3) },
+  { label: "7 dias", fn: (s: string) => addDays(s, 7) },
+  { label: "1 mês", fn: (s: string) => addMonths(s, 1) },
+  { label: "3 meses", fn: (s: string) => addMonths(s, 3) },
+  { label: "6 meses", fn: (s: string) => addMonths(s, 6) },
+];
+
+// ── Image Hero ────────────────────────────────────────────────────────────────
+
+interface ImageHeroProps {
+  imageUrl: string;
+  isUploading: boolean;
+  onClick: () => void;
+  onClear?: () => void;
+}
+
+function ImageHero({ imageUrl, isUploading, onClick, onClear }: ImageHeroProps) {
+  return (
+    <div
+      className="relative w-full h-44 rounded-xl overflow-hidden cursor-pointer group border border-border bg-muted/40"
+      onClick={!isUploading ? onClick : undefined}
+    >
+      {imageUrl ? (
+        <>
+          <img
+            src={imageUrl}
+            alt="Imagem do evento"
+            className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-[1.02]"
+          />
+          {/* overlay on hover */}
+          <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-2">
+            <div className="flex items-center gap-1.5 bg-white/90 text-foreground text-xs font-medium px-3 py-1.5 rounded-full">
+              <Camera className="h-3.5 w-3.5" />
+              Trocar foto
+            </div>
+          </div>
+          {/* clear button */}
+          {onClear && (
+            <button
+              type="button"
+              onClick={(e) => { e.stopPropagation(); onClear(); }}
+              className="absolute top-2 right-2 h-7 w-7 rounded-full bg-black/60 text-white flex items-center justify-center hover:bg-black/80 transition-colors z-10"
+            >
+              <X className="h-3.5 w-3.5" />
+            </button>
+          )}
+        </>
+      ) : (
+        <div className="flex flex-col items-center justify-center h-full gap-2 text-muted-foreground select-none">
+          <div className="flex h-11 w-11 items-center justify-center rounded-full bg-muted border border-border">
+            {isUploading ? (
+              <Loader2 className="h-5 w-5 animate-spin" />
+            ) : (
+              <Camera className="h-5 w-5" />
+            )}
+          </div>
+          <span className="text-xs font-medium">
+            {isUploading ? "Enviando imagem…" : "Clique para adicionar foto"}
+          </span>
+          <span className="text-[11px] text-muted-foreground/70">PNG, JPG ou WEBP</span>
+        </div>
+      )}
+
+      {/* uploading overlay on existing image */}
+      {isUploading && imageUrl && (
+        <div className="absolute inset-0 bg-background/60 flex items-center justify-center">
+          <Loader2 className="h-6 w-6 animate-spin text-primary" />
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ── Main Page ─────────────────────────────────────────────────────────────────
 
 export default function AdminEventsPage() {
   const [events, setEvents] = useState<Event[]>([]);
@@ -68,30 +155,32 @@ export default function AdminEventsPage() {
   const [editEvent, setEditEvent] = useState<Event | null>(null);
   const [deleteEvent, setDeleteEvent] = useState<Event | null>(null);
   const [formLoading, setFormLoading] = useState(false);
-  const [isUploading, setIsUploading] = useState(false);
+  // pendingFile: file selected but not yet uploaded — only sent on submit
+  const [pendingFile, setPendingFile] = useState<File | null>(null);
+  const [previewUrl, setPreviewUrl] = useState<string>("");
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const today = todayStr();
+
   const [formData, setFormData] = useState({
     title: "",
     description: "",
     category: "",
     imageUrl: "",
-    startDate: "",
-    endDate: "",
+    startDate: today,
+    endDate: addMonths(today, 1),
     resolveRules: "",
   });
-
-  const searchParams = useSearchParams();
 
   const loadEvents = useCallback(async () => {
     setLoading(true);
     try {
       const params: { status?: string; limit?: number; offset?: number } = {
         limit: 20,
-        offset: (page - 1) * 20
+        offset: (page - 1) * 20,
       };
       if (statusFilter !== "all") params.status = statusFilter;
 
-      // Usa a API publica de eventos (userApi) para listagem
       const { userApi } = await import("@/lib/api/client");
       const response = await userApi.getEvents(params);
       setEvents(response.events || []);
@@ -113,24 +202,43 @@ export default function AdminEventsPage() {
     loadEvents();
   }, [loadEvents]);
 
+  // Upload the pending file and return the resulting URL (or existing imageUrl)
+  const uploadPendingFile = async (): Promise<string | undefined> => {
+    if (!pendingFile) return formData.imageUrl || undefined;
+    const fileToUpload = pendingFile.size > 5 * 1024 * 1024
+      ? await compressImage(pendingFile)
+      : pendingFile;
+    const fd = new FormData();
+    fd.append("file", fileToUpload, pendingFile.name);
+    const res = await adminApi.uploadEventImage(fd);
+    return res.data.imageUrl;
+  };
+
   const handleCreate = async () => {
     setFormLoading(true);
     try {
-      await adminApi.createEvent({
+      const uploadedUrl = await uploadPendingFile();
+      const createRes = await adminApi.createEvent({
         title: formData.title,
-        slug: formData.title.toLowerCase().replace(/\s+/g, '-'),
+        slug: formData.title.toLowerCase().replace(/\s+/g, "-"),
         description: formData.description,
         category: formData.category,
-        startsAt: formData.startDate,
-        endsAt: formData.endDate,
+        startsAt: formData.startDate ? new Date(formData.startDate + "T00:00").toISOString() : new Date().toISOString(),
+        endsAt: formData.endDate ? new Date(formData.endDate + "T23:59").toISOString() : new Date().toISOString(),
         resolveRules: formData.resolveRules,
         sourceUrls: [],
       });
+      if (uploadedUrl && createRes.data?.id) {
+        await adminApi.updateEvent(createRes.data.id, { imageUrl: uploadedUrl });
+      }
       loadEvents();
       setShowCreateDialog(false);
       resetForm();
+      toast.success("Evento criado com sucesso!");
     } catch (error) {
       console.error("Error:", error);
+      if (error instanceof ApiClientError) toast.error(error.message);
+      else toast.error("Erro ao criar evento");
     } finally {
       setFormLoading(false);
     }
@@ -140,20 +248,24 @@ export default function AdminEventsPage() {
     if (!editEvent) return;
     setFormLoading(true);
     try {
+      const uploadedUrl = await uploadPendingFile();
       await adminApi.updateEvent(editEvent.id, {
         title: formData.title,
         description: formData.description,
         category: formData.category,
-        imageUrl: formData.imageUrl || undefined,
-        startsAt: formData.startDate || undefined,
-        endsAt: formData.endDate || undefined,
+        imageUrl: uploadedUrl || undefined,
+        startsAt: formData.startDate ? new Date(formData.startDate + "T00:00").toISOString() : undefined,
+        endsAt: formData.endDate ? new Date(formData.endDate + "T23:59").toISOString() : undefined,
         resolveRules: formData.resolveRules,
       });
       loadEvents();
       setEditEvent(null);
       resetForm();
+      toast.success("Evento atualizado!");
     } catch (error) {
       console.error("Error:", error);
+      if (error instanceof ApiClientError) toast.error(error.message);
+      else toast.error("Erro ao salvar evento");
     } finally {
       setFormLoading(false);
     }
@@ -165,17 +277,16 @@ export default function AdminEventsPage() {
     try {
       const response = await adminApi.cancelEvent(deleteEvent.id);
       if (response.success) {
-        toast.success(`Evento cancelado! ${response.data.cancelledMarketsCount} mercados cancelados e R$ ${(response.data.totalRefunded / 100).toFixed(2)} estornados.`);
+        toast.success(
+          `Evento cancelado! ${response.data.cancelledMarketsCount} mercados cancelados e R$ ${(response.data.totalRefunded / 100).toFixed(2)} estornados.`
+        );
         loadEvents();
         setDeleteEvent(null);
       }
     } catch (error) {
       console.error("Error:", error);
-      if (error instanceof ApiClientError) {
-        toast.error(error.message);
-      } else {
-        toast.error("Erro ao cancelar evento");
-      }
+      if (error instanceof ApiClientError) toast.error(error.message);
+      else toast.error("Erro ao cancelar evento");
     } finally {
       setFormLoading(false);
     }
@@ -187,24 +298,55 @@ export default function AdminEventsPage() {
       description: event.description || "",
       category: event.category || "",
       imageUrl: event.imageUrl || "",
-      startDate: event.startsAt?.split("T")[0] || "",
-      endDate: event.endsAt?.split("T")[0] || "",
+      startDate: event.startsAt?.split("T")[0] || today,
+      endDate: event.endsAt?.split("T")[0] || addMonths(today, 1),
       resolveRules: event.resolveRules || "",
     });
+    setPendingFile(null);
+    setPreviewUrl(event.imageUrl || "");
     setEditEvent(event);
   };
 
-  const resetForm = () => {
+  const openCreateDialog = () => {
+    const t = todayStr();
     setFormData({
       title: "",
       description: "",
       category: "",
       imageUrl: "",
-      startDate: "",
-      endDate: "",
+      startDate: t,
+      endDate: addMonths(t, 1),
       resolveRules: "",
     });
+    setPendingFile(null);
+    setPreviewUrl("");
+    setShowCreateDialog(true);
   };
+
+  const resetForm = () => {
+    const t = todayStr();
+    setFormData({
+      title: "",
+      description: "",
+      category: "",
+      imageUrl: "",
+      startDate: t,
+      endDate: addMonths(t, 1),
+      resolveRules: "",
+    });
+    // Revoke object URL to avoid memory leaks
+    if (previewUrl && previewUrl.startsWith("blob:")) URL.revokeObjectURL(previewUrl);
+    setPendingFile(null);
+    setPreviewUrl("");
+  };
+
+  const closeDialog = () => {
+    setShowCreateDialog(false);
+    setEditEvent(null);
+    resetForm();
+  };
+
+  // ── Image upload ───────────────────────────────────────────────────────────
 
   const compressImage = (file: File): Promise<Blob> => {
     return new Promise((resolve, reject) => {
@@ -217,28 +359,16 @@ export default function AdminEventsPage() {
           const canvas = document.createElement("canvas");
           let width = img.width;
           let height = img.height;
-
           const maxDim = 1200;
           if (width > maxDim || height > maxDim) {
-            if (width > height) {
-              height = (height / width) * maxDim;
-              width = maxDim;
-            } else {
-              width = (width / height) * maxDim;
-              height = maxDim;
-            }
+            if (width > height) { height = (height / width) * maxDim; width = maxDim; }
+            else { width = (width / height) * maxDim; height = maxDim; }
           }
-
           canvas.width = width;
           canvas.height = height;
-          const ctx = canvas.getContext("2d");
-          ctx?.drawImage(img, 0, 0, width, height);
-
+          canvas.getContext("2d")?.drawImage(img, 0, 0, width, height);
           canvas.toBlob(
-            (blob) => {
-              if (blob) resolve(blob);
-              else reject(new Error("Canvas compression failed"));
-            },
+            (blob) => { if (blob) resolve(blob); else reject(new Error("Canvas compression failed")); },
             "image/jpeg",
             0.8
           );
@@ -249,39 +379,26 @@ export default function AdminEventsPage() {
     });
   };
 
-  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const originalFile = e.target.files?.[0];
-    if (!originalFile) return;
-
-    setIsUploading(true);
-
-    try {
-      let fileToUpload: File | Blob = originalFile;
-
-      if (originalFile.size > 5 * 1024 * 1024) {
-        toast.info("Imagem grande, otimizando para o envio...");
-        fileToUpload = await compressImage(originalFile);
-      }
-
-      const formDataUpload = new FormData();
-      formDataUpload.append("file", fileToUpload, originalFile.name);
-
-      const response = await adminApi.uploadEventImage(formDataUpload);
-      setFormData((prev) => ({ ...prev, imageUrl: response.data.imageUrl }));
-      toast.success("Imagem enviada com sucesso!");
-    } catch (err) {
-      if (err instanceof ApiClientError) {
-        toast.error(err.message);
-      } else {
-        toast.error("Erro ao fazer upload da imagem");
-      }
-    } finally {
-      setIsUploading(false);
-      if (fileInputRef.current) {
-        fileInputRef.current.value = "";
-      }
-    }
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    // Revoke previous blob URL if any
+    if (previewUrl && previewUrl.startsWith("blob:")) URL.revokeObjectURL(previewUrl);
+    const localUrl = URL.createObjectURL(file);
+    setPendingFile(file);
+    setPreviewUrl(localUrl);
+    // Clear form imageUrl so we always use previewUrl as the display source
+    setFormData((prev) => ({ ...prev, imageUrl: "" }));
+    if (fileInputRef.current) fileInputRef.current.value = "";
   };
+
+  // ── Quick-pick period ──────────────────────────────────────────────────────
+
+  const applyPeriod = (fn: (s: string) => string) => {
+    setFormData((prev) => ({ ...prev, endDate: fn(prev.startDate || todayStr()) }));
+  };
+
+  // ── Status badge ───────────────────────────────────────────────────────────
 
   const getStatusBadge = (status: string) => {
     const variants: Record<string, string> = {
@@ -290,18 +407,15 @@ export default function AdminEventsPage() {
       closed: "bg-muted text-muted-foreground border-border",
       cancelled: "bg-rose-50 text-rose-600 border-rose-100 dark:border-rose-900/30 dark:bg-rose-900/20",
     };
-    const labels: Record<string, string> = {
-      active: "Ativo",
-      draft: "Rascunho",
-      closed: "Encerrado",
-      cancelled: "Cancelado",
-    };
+    const labels: Record<string, string> = { active: "Ativo", draft: "Rascunho", closed: "Encerrado", cancelled: "Cancelado" };
     return (
       <span className={`inline-flex items-center rounded-full border px-2.5 py-0.5 text-xs font-medium ${variants[status] || "bg-muted text-muted-foreground border-border"}`}>
         {labels[status] || status}
       </span>
     );
   };
+
+  // ── Table columns ──────────────────────────────────────────────────────────
 
   const columns: ColumnDef<Event>[] = [
     {
@@ -315,21 +429,19 @@ export default function AdminEventsPage() {
                 alt={event.title}
                 className="w-full h-full object-cover"
                 onError={(e) => {
-                  e.currentTarget.style.display = 'none';
-                  const placeholder = e.currentTarget.nextElementSibling as HTMLElement;
-                  if (placeholder) placeholder.style.display = 'flex';
+                  e.currentTarget.style.display = "none";
+                  const ph = e.currentTarget.nextElementSibling as HTMLElement;
+                  if (ph) ph.style.display = "flex";
                 }}
               />
             ) : null}
-            <div style={{ display: event.imageUrl ? 'none' : 'flex' }}>
+            <div style={{ display: event.imageUrl ? "none" : "flex" }}>
               <PlaceholderIcon size={40} />
             </div>
           </div>
           <div className="flex flex-col">
             <span className="font-medium text-sm leading-tight max-w-[300px] sm:max-w-md truncate">{event.title}</span>
-            <span className="text-xs text-muted-foreground line-clamp-1 max-w-[300px] sm:max-w-md">
-              {event.description}
-            </span>
+            <span className="text-xs text-muted-foreground line-clamp-1 max-w-[300px] sm:max-w-md">{event.description}</span>
           </div>
         </div>
       ),
@@ -342,14 +454,8 @@ export default function AdminEventsPage() {
         </span>
       ),
     },
-    {
-      header: "Status",
-      cell: (event: any) => getStatusBadge(event.status),
-    },
-    {
-      header: "Mercados",
-      cell: (event: any) => <span className="text-sm">{event.marketsCount || 0}</span>,
-    },
+    { header: "Status", cell: (event: any) => getStatusBadge(event.status) },
+    { header: "Mercados", cell: (event: any) => <span className="text-sm">{event.marketsCount || 0}</span> },
     {
       header: "Data",
       cell: (event: any) => (
@@ -392,9 +498,14 @@ export default function AdminEventsPage() {
     },
   ];
 
+  // ── Render ─────────────────────────────────────────────────────────────────
+
+  const isDialogOpen = showCreateDialog || !!editEvent;
+
   return (
     <Suspense fallback={<Loading />}>
       <div className="space-y-6">
+        {/* Header */}
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <div>
             <h1 className="text-2xl font-bold tracking-tight">Eventos</h1>
@@ -402,13 +513,13 @@ export default function AdminEventsPage() {
               Gerencie os eventos, adicione descrições e controle status.
             </p>
           </div>
-          <Button onClick={() => setShowCreateDialog(true)}>
+          <Button onClick={openCreateDialog}>
             <Plus className="mr-2 h-4 w-4" />
             Novo Evento
           </Button>
         </div>
 
-        {/* ── Filters ──────────────────────────────────────── */}
+        {/* Filters */}
         <div className="flex flex-col sm:flex-row items-center gap-4">
           <div className="relative flex-1 w-full sm:max-w-md">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
@@ -435,6 +546,7 @@ export default function AdminEventsPage() {
           </div>
         </div>
 
+        {/* Table */}
         <div className="w-full">
           <DataTable
             data={events}
@@ -465,174 +577,162 @@ export default function AdminEventsPage() {
           />
         </div>
 
-        {/* Create/Edit Dialog */}
-        <Dialog
-          open={showCreateDialog || !!editEvent}
-          onOpenChange={() => {
-            setShowCreateDialog(false);
-            setEditEvent(null);
-            resetForm();
-          }}
-        >
-          <DialogContent className="max-w-lg">
-            <DialogHeader>
-              <DialogTitle>{editEvent ? "Editar Evento" : "Novo Evento"}</DialogTitle>
-              <DialogDescription>
-                {editEvent
-                  ? "Edite as informacoes do evento"
-                  : "Preencha as informacoes do novo evento"}
+        {/* ── Create / Edit Dialog ──────────────────────────────────────────── */}
+        <Dialog open={isDialogOpen} onOpenChange={closeDialog}>
+          <DialogContent className="max-w-lg p-0 overflow-hidden rounded-2xl gap-0">
+            {/* Image hero — no padding, full width */}
+            <div className="px-6 pt-6 pb-0">
+              <ImageHero
+                imageUrl={previewUrl}
+                isUploading={false}
+                onClick={() => fileInputRef.current?.click()}
+                onClear={previewUrl ? () => {
+                  if (previewUrl.startsWith("blob:")) URL.revokeObjectURL(previewUrl);
+                  setPreviewUrl("");
+                  setPendingFile(null);
+                  setFormData((p) => ({ ...p, imageUrl: "" }));
+                } : undefined}
+              />
+              <input
+                type="file"
+                ref={fileInputRef}
+                className="hidden"
+                accept="image/*"
+                onChange={handleFileChange}
+              />
+            </div>
+
+            {/* Header */}
+            <DialogHeader className="px-6 pt-4 pb-0">
+              <DialogTitle className="text-lg font-semibold">
+                {editEvent ? "Editar Evento" : "Novo Evento"}
+              </DialogTitle>
+              <DialogDescription className="text-sm text-muted-foreground">
+                {editEvent ? "Edite as informações do evento." : "Preencha as informações do novo evento."}
               </DialogDescription>
             </DialogHeader>
 
-            <div className="space-y-4">
-              <div className="space-y-2">
-                <Label htmlFor="title">Titulo</Label>
+            {/* Form body */}
+            <div className="px-6 py-4 space-y-4">
+              {/* Título */}
+              <div className="space-y-1.5">
+                <Label htmlFor="title" className="text-sm font-medium">Título</Label>
                 <Input
                   id="title"
                   value={formData.title}
                   onChange={(e) => setFormData({ ...formData, title: e.target.value })}
-                  placeholder="Ex: Eleicoes 2026"
+                  placeholder="Ex: Eleições 2026"
+                  className="rounded-lg"
                 />
               </div>
 
-              <div className="space-y-2">
-                <Label htmlFor="description">Descricao</Label>
+              {/* Descrição */}
+              <div className="space-y-1.5">
+                <Label htmlFor="description" className="text-sm font-medium">Descrição</Label>
                 <Textarea
                   id="description"
                   value={formData.description}
                   onChange={(e) => setFormData({ ...formData, description: e.target.value })}
                   placeholder="Descreva o evento..."
-                  rows={3}
+                  rows={2}
+                  className="rounded-lg resize-none"
                 />
               </div>
 
-              <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label htmlFor="category">Categoria</Label>
-                  <Select
-                    value={formData.category}
-                    onValueChange={(value) => setFormData({ ...formData, category: value })}
-                  >
-                    <SelectTrigger>
-                      <SelectValue placeholder="Selecione" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {categories.map((cat) => (
-                        <SelectItem key={cat.id} value={cat.slug}>{cat.name}</SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-
-                <div className="space-y-2">
-                  <Label>Imagem do Evento</Label>
-                  <div className="flex items-center gap-3">
-                    <div
-                      className="w-10 h-10 rounded border flex items-center justify-center bg-muted overflow-hidden relative group cursor-pointer"
-                      onClick={() => fileInputRef.current?.click()}
-                    >
-                      {formData.imageUrl ? (
-                        <img
-                          src={formData.imageUrl}
-                          alt="Preview"
-                          className="w-full h-full object-cover"
-                        />
-                      ) : (
-                        <ImageIcon className="w-5 h-5 text-muted-foreground" />
-                      )}
-                      {isUploading && (
-                        <div className="absolute inset-0 bg-background/50 flex items-center justify-center">
-                          <Loader2 className="w-4 h-4 animate-spin" />
-                        </div>
-                      )}
-                    </div>
-                    <Button
-                      type="button"
-                      variant="outline"
-                      size="sm"
-                      onClick={() => fileInputRef.current?.click()}
-                      disabled={isUploading}
-                      className="h-10 grow"
-                    >
-                      {isUploading ? "Enviando..." : "Subir arquivo"}
-                    </Button>
-                    <input
-                      type="file"
-                      ref={fileInputRef}
-                      className="hidden"
-                      accept="image/*"
-                      onChange={handleFileChange}
-                    />
-                  </div>
-                  {formData.imageUrl && (
-                    <p className="text-[10px] text-muted-foreground truncate">
-                      {formData.imageUrl.split('/').pop()}
-                    </p>
-                  )}
-                </div>
+              {/* Categoria */}
+              <div className="space-y-1.5">
+                <Label className="text-sm font-medium">Categoria</Label>
+                <Select
+                  value={formData.category}
+                  onValueChange={(value) => setFormData({ ...formData, category: value })}
+                >
+                  <SelectTrigger className="rounded-lg">
+                    <SelectValue placeholder="Selecione a categoria" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {categories.map((cat) => (
+                      <SelectItem key={cat.id} value={cat.slug}>{cat.name}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
               </div>
 
-              <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label htmlFor="startDate">Data de Inicio</Label>
+              {/* Datas */}
+              <div className="grid grid-cols-2 gap-3">
+                <div className="space-y-1.5">
+                  <Label htmlFor="startDate" className="text-sm font-medium">Data de Início</Label>
                   <Input
                     id="startDate"
                     type="date"
                     value={formData.startDate}
                     onChange={(e) => setFormData({ ...formData, startDate: e.target.value })}
+                    className="rounded-lg"
                   />
                 </div>
-
-                <div className="space-y-2">
-                  <Label htmlFor="endDate">Data de Fim</Label>
+                <div className="space-y-1.5">
+                  <Label htmlFor="endDate" className="text-sm font-medium">Data de Fim</Label>
                   <Input
                     id="endDate"
                     type="date"
                     value={formData.endDate}
                     onChange={(e) => setFormData({ ...formData, endDate: e.target.value })}
+                    className="rounded-lg"
                   />
                 </div>
               </div>
 
-              <div className="space-y-2">
-                <Label htmlFor="resolveRules">Regras e Detalhes de Resolução</Label>
+              {/* Quick-pick pills */}
+              <div className="flex items-center gap-1.5 flex-wrap">
+                <span className="text-[11px] text-muted-foreground font-medium mr-0.5">Duração:</span>
+                {PERIOD_PILLS.map((pill) => (
+                  <button
+                    key={pill.label}
+                    type="button"
+                    onClick={() => applyPeriod(pill.fn)}
+                    className="px-2.5 py-1 rounded-full border border-border text-[11px] font-medium text-muted-foreground hover:border-primary hover:text-primary hover:bg-primary/5 transition-colors"
+                  >
+                    {pill.label}
+                  </button>
+                ))}
+              </div>
+
+              {/* Regras */}
+              <div className="space-y-1.5">
+                <Label htmlFor="resolveRules" className="text-sm font-medium">Regras e Resolução</Label>
                 <Textarea
                   id="resolveRules"
                   value={formData.resolveRules}
                   onChange={(e) => setFormData({ ...formData, resolveRules: e.target.value })}
-                  placeholder="Descreva as regras para a resolução de todos os mercados deste evento..."
+                  placeholder="Descreva as regras para resolução dos mercados deste evento..."
                   rows={2}
+                  className="rounded-lg resize-none"
                 />
               </div>
             </div>
 
-            <DialogFooter>
-              <Button
-                variant="outline"
-                onClick={() => {
-                  setShowCreateDialog(false);
-                  setEditEvent(null);
-                  resetForm();
-                }}
-              >
+            {/* Footer */}
+            <div className="flex items-center justify-end gap-2 px-6 py-4 border-t border-border bg-muted/20">
+              <Button variant="outline" onClick={closeDialog} className="rounded-lg">
                 Cancelar
               </Button>
               <Button
                 onClick={editEvent ? handleUpdate : handleCreate}
                 disabled={formLoading || !formData.title}
+                className="rounded-lg min-w-[90px]"
               >
                 {formLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                {editEvent ? "Salvar" : "Criar"}
+                {editEvent ? "Salvar" : "Criar Evento"}
               </Button>
-            </DialogFooter>
+            </div>
           </DialogContent>
         </Dialog>
 
+        {/* Cancel confirm */}
         <ConfirmDialog
           open={!!deleteEvent}
           onOpenChange={() => setDeleteEvent(null)}
           title="Cancelar Evento"
-          description={`Tem certeza que deseja cancelar o evento "${deleteEvent?.title}"? Todos os mercados associados serao cancelados e os valores investidos serao devolvidos 100% aos usuarios. Esta acao nao pode ser desfeita.`}
+          description={`Tem certeza que deseja cancelar o evento "${deleteEvent?.title}"? Todos os mercados associados serão cancelados e os valores investidos serão devolvidos 100% aos usuários. Esta ação não pode ser desfeita.`}
           confirmText="Confirmar Cancelamento"
           variant="destructive"
           onConfirm={handleDelete}

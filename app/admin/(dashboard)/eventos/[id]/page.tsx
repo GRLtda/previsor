@@ -148,7 +148,7 @@ export default function AdminEventDetailsPage() {
 
     // ── Image file selection helpers (deferred — upload only on submit) ──────
     const pickFile = (
-        fileRef: React.RefObject<HTMLInputElement>,
+        fileRef: React.RefObject<HTMLInputElement | null>,
         setPending: (f: File | null) => void,
         setPreview: (url: string) => void,
         currentPreview: string
@@ -312,12 +312,14 @@ export default function AdminEventDetailsPage() {
             draft: "secondary",
             closed: "outline",
             cancelled: "destructive",
+            archived: "outline",
         };
         const labels: Record<string, string> = {
             active: "Ativo",
             draft: "Rascunho",
             closed: "Encerrado",
             cancelled: "Cancelado",
+            archived: "Arquivado",
         };
         return <Badge variant={variants[status] || "outline"}>{labels[status] || status}</Badge>;
     };
@@ -410,7 +412,7 @@ export default function AdminEventDetailsPage() {
                             event.status === 'draft' ? 'bg-white/20 text-white' :
                                 'bg-white/20 text-white'
                             }`}>{{
-                                active: 'Ativo', draft: 'Rascunho', closed: 'Encerrado', cancelled: 'Cancelado'
+                                active: 'Ativo', draft: 'Rascunho', closed: 'Encerrado', cancelled: 'Cancelado', archived: 'Arquivado'
                             }[event.status] || event.status}</span>
                         {event.category && (
                             <span className="text-[11px] font-medium px-2 py-0.5 rounded-full bg-white/20 text-white">{event.category}</span>

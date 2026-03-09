@@ -32,6 +32,14 @@ import { ApiClientError } from "@/lib/api/client";
 import type { Event } from "@/lib/types";
 import { PlaceholderIcon } from "@/components/ui/placeholder-icon";
 
+function toLocalDatetimeString(isoDate: string): string {
+    if (!isoDate) return "";
+    const d = new Date(isoDate);
+    if (isNaN(d.getTime())) return "";
+    const pad = (n: number) => String(n).padStart(2, "0");
+    return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
+}
+
 export default function AdminEventDetailsPage() {
     const { id } = useParams() as { id: string };
     const router = useRouter();
@@ -123,8 +131,8 @@ export default function AdminEventDetailsPage() {
                 title: event.title || "",
                 description: event.description || "",
                 category: event.category || "",
-                startsAt: event.startsAt ? new Date(event.startsAt).toISOString().slice(0, 16) : "",
-                endsAt: event.endsAt ? new Date(event.endsAt).toISOString().slice(0, 16) : "",
+                startsAt: event.startsAt ? toLocalDatetimeString(event.startsAt) : "",
+                endsAt: event.endsAt ? toLocalDatetimeString(event.endsAt) : "",
                 resolveRules: event.resolveRules || "",
                 imageUrl: event.imageUrl || ""
             });
@@ -213,9 +221,9 @@ export default function AdminEventDetailsPage() {
         setEditMarketData({
             id: market.id,
             statement: market.statement || "",
-            opensAt: market.opensAt ? new Date(market.opensAt).toISOString().slice(0, 16) : "",
-            closesAt: market.closesAt ? new Date(market.closesAt).toISOString().slice(0, 16) : "",
-            resolvesAt: market.resolvesAt ? new Date(market.resolvesAt).toISOString().slice(0, 16) : "",
+            opensAt: market.opensAt ? toLocalDatetimeString(market.opensAt) : "",
+            closesAt: market.closesAt ? toLocalDatetimeString(market.closesAt) : "",
+            resolvesAt: market.resolvesAt ? toLocalDatetimeString(market.resolvesAt) : "",
             resolveRules: market.resolveRules || "",
             imageUrl: market.imageUrl || "",
             feeBps: market.feeBps ?? 200,

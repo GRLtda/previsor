@@ -49,20 +49,25 @@ import { Suspense } from "react";
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
+function localDateStr(d: Date) {
+  const pad = (n: number) => String(n).padStart(2, "0");
+  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
+}
+
 function todayStr() {
-  return new Date().toISOString().split("T")[0];
+  return localDateStr(new Date());
 }
 
 function addDays(base: string, days: number) {
-  const d = new Date(base);
+  const d = new Date(base + "T12:00:00");
   d.setDate(d.getDate() + days);
-  return d.toISOString().split("T")[0];
+  return localDateStr(d);
 }
 
 function addMonths(base: string, months: number) {
-  const d = new Date(base);
+  const d = new Date(base + "T12:00:00");
   d.setMonth(d.getMonth() + months);
-  return d.toISOString().split("T")[0];
+  return localDateStr(d);
 }
 
 function toDatetimeLocal(dateStr: string) {

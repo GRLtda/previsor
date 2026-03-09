@@ -49,20 +49,25 @@ import { DataTable, ColumnDef } from "@/components/shared/data-table";
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
+function localDateStr(d: Date) {
+  const pad = (n: number) => String(n).padStart(2, "0");
+  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
+}
+
 function todayStr() {
-  return new Date().toISOString().split("T")[0];
+  return localDateStr(new Date());
 }
 
 function addDays(base: string, days: number) {
-  const d = new Date(base);
+  const d = new Date(base + "T12:00:00");
   d.setDate(d.getDate() + days);
-  return d.toISOString().split("T")[0];
+  return localDateStr(d);
 }
 
 function addMonths(base: string, months: number) {
-  const d = new Date(base);
+  const d = new Date(base + "T12:00:00");
   d.setMonth(d.getMonth() + months);
-  return d.toISOString().split("T")[0];
+  return localDateStr(d);
 }
 
 const PERIOD_PILLS = [
@@ -220,7 +225,7 @@ export default function AdminEventsPage() {
       const uploadedUrl = await uploadPendingFile();
       const createRes = await adminApi.createEvent({
         title: formData.title,
-        slug: formData.title.toLowerCase().replace(/\s+/g, "-"),
+        slug: formData.title.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().replace(/[^a-z0-9\s-]/g, "").trim().replace(/\s+/g, "-").replace(/-+/g, "-"),
         description: formData.description,
         category: formData.category,
         startsAt: formData.startDate ? new Date(formData.startDate + "T00:00").toISOString() : new Date().toISOString(),
@@ -298,8 +303,8 @@ export default function AdminEventsPage() {
       description: event.description || "",
       category: event.category || "",
       imageUrl: event.imageUrl || "",
-      startDate: event.startsAt?.split("T")[0] || today,
-      endDate: event.endsAt?.split("T")[0] || addMonths(today, 1),
+      startDate: event.startsAt ? localDateStr(new Date(event.startsAt)) : today,
+      endDate: event.endsAt ? localDateStr(new Date(event.endsAt)) : addMonths(today, 1),
       resolveRules: event.resolveRules || "",
     });
     setPendingFile(null);

@@ -84,8 +84,8 @@ export function DepositModal({ isOpen, onOpenChange }: DepositModalProps) {
     }
 
     const handleAmountSubmit = async () => {
-        if (amountNumber < 11) {
-            setError('Valor mínimo: R$ 11,00')
+        if (amountNumber < 10) {
+            setError('Valor mínimo: R$ 10,00')
             return
         }
 
@@ -105,7 +105,7 @@ export function DepositModal({ isOpen, onOpenChange }: DepositModalProps) {
             if (err instanceof ApiClientError) {
                 switch (err.code) {
                     case 'DEPOSIT_MIN_AMOUNT':
-                        setError('Valor mínimo para depósito é R$ 11,00')
+                        setError('Valor mínimo para depósito é R$ 10,00')
                         break
                     case 'DEPOSIT_MAX_AMOUNT':
                         setError('Valor máximo para depósito excedido')
@@ -246,7 +246,7 @@ export function DepositModal({ isOpen, onOpenChange }: DepositModalProps) {
                             </div>
 
                             {/* Amount to Receive Display (Summary Box) */}
-                            {amountNumber >= 11 && (
+                            {amountNumber >= 10 && (
                                 <div className="w-full bg-black/5 dark:bg-white/5 rounded-[16px] p-4 mb-8 space-y-2.5 animate-in fade-in slide-in-from-top-1 duration-200">
                                     <div className="flex justify-between text-[13px] font-semibold text-black/60 dark:text-white/60">
                                         <span>Valor do depósito:</span>
@@ -268,10 +268,10 @@ export function DepositModal({ isOpen, onOpenChange }: DepositModalProps) {
                             {/* Submit Button */}
                             <button
                                 onClick={handleAmountSubmit}
-                                disabled={amountNumber < 11 || isLoading}
+                                disabled={amountNumber < 10 || isLoading}
                                 className={cn(
                                     "w-full py-3.5 rounded-xl font-bold text-[15px] transition-all flex justify-center items-center outline-none",
-                                    amountNumber >= 11 && !isLoading
+                                    amountNumber >= 10 && !isLoading
                                         ? "text-white bg-[#2A75FF] hover:bg-[#1C60E6] active:bg-[#154BC0]"
                                         : "text-black/40 dark:text-white/40 bg-black/5 dark:bg-white/5 cursor-not-allowed"
                                 )}

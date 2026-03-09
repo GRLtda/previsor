@@ -392,9 +392,9 @@ export default function EventDetailPage({ params }: PageProps) {
               </div>
 
               {/* Green and Red Progress Bar */}
-              <div className="flex h-[14px] sm:h-[18px] w-full gap-1 overflow-hidden mt-2 mb-8 rounded-[6px]">
-                <div className="bg-[#22c55e] h-full" style={{ width: `${event.markets[0].probYes}%`, borderRadius: '6px' }} />
-                <div className="bg-[#ef4444] h-full" style={{ width: `${event.markets[0].probNo}%`, borderRadius: '6px' }} />
+              <div className="flex h-2 w-full overflow-hidden mt-2 mb-8 rounded-full bg-muted/20">
+                <div className="bg-[#22c55e] h-full" style={{ width: `${event.markets[0].probYes}%` }} />
+                <div className="bg-[#ef4444] h-full" style={{ width: `${event.markets[0].probNo}%` }} />
               </div>
 
               {/* The Bet buttons for Mobile (shows prediction panel sheet) */}
@@ -484,7 +484,7 @@ export default function EventDetailPage({ params }: PageProps) {
             {event.markets && event.markets.length > 0 && (
               <div className="mt-4 rounded-xl border border-border/40 bg-card/50 p-4 lg:mt-6 lg:p-5">
                 <MultiProbabilityChart
-                  markets={event.markets}
+                  markets={[...event.markets].sort((a, b) => b.probYes - a.probYes)}
                 />
               </div>
             )}
@@ -500,14 +500,16 @@ export default function EventDetailPage({ params }: PageProps) {
                   </div>
                 ) : (
                   <div className="flex flex-col rounded-xl border border-border/40 bg-card/50 px-2 sm:px-4 py-2">
-                    {event.markets.map((market) => (
-                      <MarketRow
-                        key={market.id}
-                        market={market}
-                        onYesClick={() => handleSelectPrediction(market, 'YES')}
-                        onNoClick={() => handleSelectPrediction(market, 'NO')}
-                      />
-                    ))}
+                    {[...event.markets]
+                      .sort((a, b) => b.probYes - a.probYes)
+                      .map((market) => (
+                        <MarketRow
+                          key={market.id}
+                          market={market}
+                          onYesClick={() => handleSelectPrediction(market, 'YES')}
+                          onNoClick={() => handleSelectPrediction(market, 'NO')}
+                        />
+                      ))}
                   </div>
                 )}
               </div>

@@ -225,7 +225,7 @@ export function ProbabilityChart({
                             </linearGradient>
                         </defs>
                         <Area
-                            type="stepAfter"
+                            type="monotone"
                             dataKey="probYes"
                             stroke={CHART_GREEN}
                             strokeWidth={1.5}
@@ -350,7 +350,7 @@ export function ProbabilityChart({
                         />
 
                         <Area
-                            type="stepAfter"
+                            type="monotone"
                             dataKey="probYes"
                             stroke={CHART_GREEN}
                             strokeWidth={2}

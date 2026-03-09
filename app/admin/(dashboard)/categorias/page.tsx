@@ -22,6 +22,7 @@ import {
     Plus,
     Edit2,
     Trash2,
+    Scale,
 } from "lucide-react";
 import { adminApi } from "@/lib/api/client";
 import type { Category } from "@/lib/types";

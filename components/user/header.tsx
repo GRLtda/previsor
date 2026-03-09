@@ -20,7 +20,8 @@ import {
   Moon,
   Sun,
   Plus,
-  Share2
+  Share2,
+  Scale
 } from 'lucide-react'
 import { Avatar, AvatarFallback } from '@/components/ui/avatar'
 import { UserAvatar } from '@/components/shared/user-avatar'

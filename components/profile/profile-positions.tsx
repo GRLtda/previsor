@@ -89,7 +89,7 @@ export function ProfilePositions({
 
         try {
             const result = await userApi.closePosition(selectedPosition.id)
-            const proceeds = result?.data?.sale?.proceeds ?? 0
+            const proceeds = result?.data?.sale?.netProceeds ?? 0
             toast.success(
                 `Posição encerrada! Você recebeu ${formatCurrency(proceeds)}`
             )
@@ -135,7 +135,7 @@ export function ProfilePositions({
         let currentValue = 0;
         let effectiveCurrentPrice = 0;
 
-        if (pos.currentSellValue !== undefined) {
+        if (pos.currentSellValue != null) {
             currentValue = Math.round(pos.currentSellValue * 100); // Backend sends Reais, convert to centavos
             effectiveCurrentPrice = pos.currentSellPrice ? Math.round(pos.currentSellPrice * 100) : 0;
         } else {

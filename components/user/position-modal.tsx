@@ -89,9 +89,13 @@ export function PositionModal({ market, open, onOpenChange, onSuccess, defaultSi
     }
   }
 
-  // Calculate potential payout using Engine (Parimutuel Logic)
-  /* Use qYes/qNo/liquidityB from Market for LMSR calculation */
-  const estimate = marketEngine.calculatePayout(amountCents, {
+  // Calculate potential payout using LMSR engine.
+  // Deduct buy fee before passing to engine (fee goes to house, not into AMM).
+  const feeBps = market.feeBps ?? 200;
+  const buyFee = Math.floor(amountCents * feeBps / 10000);
+  const netIntoLMSR = amountCents - buyFee;
+
+  const estimate = marketEngine.calculatePayout(netIntoLMSR, {
     qYes: market.qYes,
     qNo: market.qNo,
     liquidityB: market.liquidityB

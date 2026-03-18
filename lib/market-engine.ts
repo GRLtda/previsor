@@ -57,7 +57,7 @@ export class MarketEngine {
      * Calculate current share prices based on LMSR state
      */
     calculateCurrentPrices(market: MarketState) {
-        const b = market.liquidityB || 1000;
+        const b = market.liquidityB || 10000;
         const probYes = this.getSpotPrice(market.qYes, market.qNo, b);
         const probNo = this.getSpotPrice(market.qNo, market.qYes, b);
 
@@ -70,10 +70,11 @@ export class MarketEngine {
     }
 
     /**
-     * Calculate estimated payout for a given amount (LMSR Model)
+     * Calculate estimated payout for a given net amount (LMSR Model).
+     * Pass the net amount after buy fee deduction for accurate estimates.
      */
     calculatePayout(
-        amount: number, // in centavos
+        amount: number, // in centavos (net into LMSR after buy fee)
         market: MarketState,
         side: 'YES' | 'NO'
     ): { payout: number; odds: number; shares: number; avgPriceCentavos: number; priceImpact: number } {
@@ -81,21 +82,18 @@ export class MarketEngine {
             return { payout: 0, odds: 0, shares: 0, avgPriceCentavos: 0, priceImpact: 0 };
         }
 
-        const b = market.liquidityB || 1000;
+        const b = market.liquidityB || 10000;
         const qTarget = side === 'YES' ? market.qYes : market.qNo;
         const qOther = side === 'YES' ? market.qNo : market.qYes;
 
         const shares = this.calculateBuyShares(amount, qTarget, qOther, b);
-        const payout = shares * 100; // 1 share = 100 centavos payout (if integer shares? No shares are float here)
-        // Wait, payout is usually "Amount Returned". 
-        // If shares are units of "R$1 payout". Payout = shares * 100 (centavos).
+        const payout = shares * 100; // 1 share = R$1.00 (100 centavos) if position wins
 
         const avgPrice = shares > 0 ? amount / shares : 0;
         const odds = avgPrice > 0 ? 100 / avgPrice : 0; // Decimal odds (e.g. 2.0)
 
         // Price Impact
         const initialSpot = this.getSpotPrice(qTarget, qOther, b);
-        // New spot
         const newQTarget = qTarget + shares;
         const finalSpot = this.getSpotPrice(newQTarget, qOther, b);
 
@@ -116,13 +114,11 @@ export class MarketEngine {
      * Get Net Invested Amount (TVL - Initial Subsidy)
      */
     getNetInvested(market: MarketState): number {
-        const b = market.liquidityB || 1000;
+        const b = market.liquidityB || 10000;
         const costCurrent = this.getCost(market.qYes, market.qNo, b);
         const costInitial = b * Math.log(2);
         return Math.max(0, Math.floor(costCurrent - costInitial));
     }
 }
-
-export const marketEngine = new MarketEngine();
 
 export const marketEngine = new MarketEngine();

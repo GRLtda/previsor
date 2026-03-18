@@ -497,7 +497,7 @@ export const userApi = {
       success: true
       data: {
         position: { id: string; marketId: string; side: string; remainingShares: number; remainingAmount: number; status: string }
-        sale: { sharesSold: number; proceeds: number; avgPrice: number; priceImpact: number }
+        sale: { sharesSold: number; grossProceeds: number; exitFee: number; netProceeds: number; avgPrice: number; priceImpact: number }
         newBalance: number
         market: { id: string; qYes: number; qNo: number; liquidityB: number; probYes: number; probNo: number }
       }

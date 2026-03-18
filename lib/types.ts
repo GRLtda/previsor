@@ -115,12 +115,13 @@ export interface ActivityItem {
     firstName: string
     avatarUrl: string | null
   }
+  eventId?: string
   side: 'YES' | 'NO'
-  shares: number
+  shares: number       // positive = buy, negative = sell
   avgPrice: number
   amount: number
   marketStatement: string
-  eventImageUrl: string | null
+  marketImageUrl: string | null
   createdAt: string
 }
 
@@ -157,8 +158,14 @@ export interface Position {
   shares: number
   avgPrice: number
   currentPrice?: number // Current market price per share (for live value calculation)
-  currentSellValue?: number // Accurate real-time sell value from backend
-  currentSellPrice?: number // Accurate real-time sell price from backend
+  currentSellValue?: number | null // Accurate real-time sell value from backend (reais)
+  currentSellPrice?: number | null // Accurate real-time sell price from backend (reais)
+  grossSellValue?: number | null   // LMSR sell value before fees (reais)
+  exitFee?: number | null          // Always null (no exit fee)
+  unrealizedPL?: number | null     // Unrealized P&L in centavos (active positions)
+  unrealizedPLPct?: number | null  // Unrealized P&L percentage
+  realizedPL?: number | null       // Realized P&L in centavos (settled positions)
+  realizedPLPct?: number | null    // Realized P&L percentage
   status: 'active' | 'settled' | 'refunded' | 'open'
   payoutAmount: number | null
   createdAt: string

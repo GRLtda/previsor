@@ -46,6 +46,7 @@ import type { Market, Event } from "@/lib/types";
 import { ConfirmDialog } from "@/components/shared/confirm-dialog";
 import Link from "next/link";
 import { Suspense } from "react";
+import { useRouter } from "next/navigation";
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
@@ -191,6 +192,7 @@ function ImageHeroSm({ imageUrl, isUploading, onClick, onClear }: ImageHeroSmPro
 // ── Main Page ─────────────────────────────────────────────────────────────────
 
 export default function AdminMarketsPage() {
+  const router = useRouter();
   const [markets, setMarkets] = useState<Market[]>([]);
   const [events, setEvents] = useState<Event[]>([]);
   const [loading, setLoading] = useState(true);
@@ -228,7 +230,7 @@ export default function AdminMarketsPage() {
     setLoading(true);
     try {
       const { userApi } = await import("@/lib/api/client");
-      const eventsRes = await userApi.getEvents({ status: "active", limit: 100 });
+      const eventsRes = await userApi.getEvents({ limit: 100 });
       setEvents(eventsRes.events || []);
 
       const allMarkets: Market[] = [];
@@ -405,11 +407,12 @@ export default function AdminMarketsPage() {
   const getStatusBadge = (status: string) => {
     const variants: Record<string, string> = {
       open: "bg-emerald-50 text-emerald-600 border-emerald-100 dark:border-emerald-900/30 dark:bg-emerald-900/20",
-      closed: "bg-amber-50 text-amber-600 border-amber-100 dark:border-amber-900/30 dark:bg-amber-900/20",
+      draft: "bg-amber-50 text-amber-600 border-amber-100 dark:border-amber-900/30 dark:bg-amber-900/20",
+      closed: "bg-amber-100 text-amber-700 border-amber-200 dark:border-amber-900/40 dark:bg-amber-900/30",
       resolved: "bg-blue-50 text-blue-600 border-blue-100 dark:border-blue-900/30 dark:bg-blue-900/20",
       cancelled: "bg-rose-50 text-rose-600 border-rose-100 dark:border-rose-900/30 dark:bg-rose-900/20",
     };
-    const labels: Record<string, string> = { open: "Aberto", closed: "Fechado", resolved: "Resolvido", cancelled: "Cancelado" };
+    const labels: Record<string, string> = { open: "Aberto", draft: "Rascunho", closed: "Fechado", resolved: "Resolvido", cancelled: "Cancelado" };
     return (
       <span className={`inline-flex items-center rounded-full border px-2.5 py-0.5 text-xs font-medium ${variants[status] || "bg-muted text-muted-foreground border-border"}`}>
         {labels[status] || status}
@@ -425,8 +428,27 @@ export default function AdminMarketsPage() {
     {
       header: "Mercado",
       cell: (market: any) => (
-        <div>
-          <p className="font-medium text-sm max-w-[300px] sm:max-w-md line-clamp-2">{market.statement}</p>
+        <div className="flex items-center gap-3 py-1">
+          <div className="w-10 h-10 shrink-0 rounded-lg overflow-hidden bg-muted flex items-center justify-center border">
+            {market.imageUrl ? (
+              <img
+                src={market.imageUrl}
+                alt={market.statement}
+                className="w-full h-full object-cover"
+                onError={(e) => {
+                  e.currentTarget.style.display = "none";
+                  const ph = e.currentTarget.nextElementSibling as HTMLElement;
+                  if (ph) ph.style.display = "flex";
+                }}
+              />
+            ) : null}
+            <div style={{ display: market.imageUrl ? "none" : "flex" }}>
+              <TrendingUp className="h-5 w-5 text-muted-foreground" />
+            </div>
+          </div>
+          <div className="flex flex-col">
+            <span className="font-medium text-sm leading-tight max-w-[300px] sm:max-w-md line-clamp-2">{market.statement}</span>
+          </div>
         </div>
       ),
     },
@@ -529,6 +551,7 @@ export default function AdminMarketsPage() {
               <SelectContent>
                 <SelectItem value="all">Todos os Status</SelectItem>
                 <SelectItem value="open">Aberto</SelectItem>
+                <SelectItem value="draft">Rascunho</SelectItem>
                 <SelectItem value="closed">Fechado</SelectItem>
                 <SelectItem value="resolved">Resolvido</SelectItem>
                 <SelectItem value="cancelled">Cancelado</SelectItem>
@@ -544,6 +567,7 @@ export default function AdminMarketsPage() {
             columns={columns}
             keyExtractor={(market) => market.id}
             selectable={true}
+            onRowClick={(market) => router.push(`/admin/mercados/${market.id}`)}
             selectedIds={selectedMarkets}
             onSelectionChange={setSelectedMarkets}
             isLoading={loading}

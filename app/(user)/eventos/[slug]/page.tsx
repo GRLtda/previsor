@@ -21,6 +21,11 @@ import { PlaceholderIcon } from '@/components/ui/placeholder-icon'
 import { MarkdownContent } from '@/components/ui/markdown-content'
 import { ActivityFeed } from '@/components/events/activity-feed'
 import { DiscussionChat } from '@/components/events/discussion-chat'
+import { BtcPriceChart } from '@/components/quick-market/btc-price-chart'
+import { QuickRoundTimer } from '@/components/quick-market/quick-round-timer'
+import { RoundHistoryBadges } from '@/components/quick-market/round-history-badges'
+import { userApi as quickApi } from '@/lib/api/client'
+import type { QuickRound, BtcPriceTick } from '@/lib/types'
 
 interface PageProps {
   params: Promise<{ slug: string }>
@@ -54,6 +59,12 @@ export default function EventDetailPage({ params }: PageProps) {
   const [imageError, setImageError] = useState(false)
   const [activeTab, setActiveTab] = useState<'activity' | 'chat'>('chat')
 
+  // Quick market state
+  const [quickRound, setQuickRound] = useState<QuickRound | null>(null)
+  const [quickHistory, setQuickHistory] = useState<QuickRound[]>([])
+  const [btcPriceHistory, setBtcPriceHistory] = useState<BtcPriceTick[]>([])
+  const [currentBtcPrice, setCurrentBtcPrice] = useState<number | null>(null)
+
   const searchParams = useSearchParams()
 
   useEffect(() => {
@@ -68,7 +79,10 @@ export default function EventDetailPage({ params }: PageProps) {
         const paramSide = searchParams.get('side') as 'YES' | 'NO' | null
 
         if (fetchedEvent.markets && fetchedEvent.markets.length > 0) {
-          let defaultMarket = fetchedEvent.markets[0]
+          // For quick events, prefer the current open market as default
+          const isQuick = (fetchedEvent as any).type === 'quick'
+          const openMarkets = isQuick ? fetchedEvent.markets.filter(m => m.status === 'open') : []
+          let defaultMarket = openMarkets.length > 0 ? openMarkets[openMarkets.length - 1] : fetchedEvent.markets[0]
 
           if (paramMarketId) {
             const found = fetchedEvent.markets.find(m => m.id === paramMarketId)
@@ -105,6 +119,150 @@ export default function EventDetailPage({ params }: PageProps) {
     }
     fetchEvent()
   }, [slug, router, searchParams])
+
+  // Fetch quick market data (round info, BTC price history)
+  useEffect(() => {
+    if (!event || event.type !== 'quick') return
+    let mounted = true
+
+    async function fetchQuickData() {
+      try {
+        const [currentRes, historyRes, priceRes] = await Promise.all([
+          quickApi.getQuickMarketCurrent(event!.id),
+          quickApi.getQuickMarketHistory(event!.id, 10),
+          quickApi.getBtcPrice(event!.id),
+        ])
+
+        if (!mounted) return
+
+        if (currentRes.data) {
+          setQuickRound(currentRes.data.round)
+          if (currentRes.data.currentPrice != null) {
+            setCurrentBtcPrice(currentRes.data.currentPrice)
+          }
+        }
+        if (historyRes.data?.rounds) {
+          setQuickHistory(historyRes.data.rounds)
+        }
+        if (priceRes.data) {
+          setBtcPriceHistory(priceRes.data.history || [])
+          if (priceRes.data.currentPrice != null) {
+            setCurrentBtcPrice(priceRes.data.currentPrice)
+          }
+        }
+      } catch {
+        // Ignore — quick data is supplementary
+      }
+    }
+
+    fetchQuickData()
+    // Refresh quick data every 10s
+    const interval = setInterval(fetchQuickData, 10000)
+    return () => { mounted = false; clearInterval(interval) }
+  }, [event?.id, event?.type])
+
+  // Auto-refresh when current round expires (fallback if WS event is missed)
+  useEffect(() => {
+    if (!event || event.type !== 'quick' || !quickRound) return
+
+    const endsAt = new Date(quickRound.endsAt).getTime()
+    const now = Date.now()
+    const delay = endsAt - now
+
+    if (delay <= 0) return // already expired, handled elsewhere
+
+    // Wait for round to end, then poll every 3s until a new round appears
+    const timeout = setTimeout(() => {
+      let attempts = 0
+      const poll = setInterval(async () => {
+        attempts++
+        try {
+          const [evRes, curRes, histRes] = await Promise.all([
+            userApi.getEvent(slug),
+            quickApi.getQuickMarketCurrent(event.id),
+            quickApi.getQuickMarketHistory(event.id, 10),
+          ])
+          const newRound = curRes.data?.round
+          // Stop when a new open round appears (different id than the expired one)
+          if (newRound && newRound.id !== quickRound.id && newRound.roundStatus === 'open') {
+            clearInterval(poll)
+            setEvent(evRes)
+            setQuickRound(newRound)
+            if (curRes.data?.currentPrice != null) setCurrentBtcPrice(curRes.data.currentPrice)
+            if (histRes.data?.rounds) setQuickHistory(histRes.data.rounds)
+            // Switch selected market to new open round
+            const openMkt = evRes.markets?.filter(m => m.status === 'open').slice(-1)[0]
+            if (openMkt) setSelectedMarket(openMkt)
+          } else if (attempts >= 10) {
+            clearInterval(poll)
+          }
+        } catch { /* ignore */ }
+      }, 3000)
+      return () => clearInterval(poll)
+    }, Math.max(0, delay) + 500) // 500ms grace after round ends
+
+    return () => clearTimeout(timeout)
+  }, [quickRound?.id, quickRound?.endsAt, event?.id, event?.type, slug])
+
+  // Listen for real-time BTC price updates
+  useEffect(() => {
+    if (!event || event.type !== 'quick') return
+
+    const handleBtcPrice = (e: any) => {
+      const { price } = e.detail
+      if (typeof price === 'number') {
+        setCurrentBtcPrice(price)
+      }
+    }
+
+    const handleRoundStart = (e: any) => {
+      const detail = e.detail
+      setQuickRound({
+        id: detail.roundId,
+        marketId: detail.marketId,
+        roundNumber: detail.roundNumber,
+        roundStatus: 'open',
+        openPrice: detail.openPrice,
+        startsAt: detail.startsAt,
+        endsAt: detail.endsAt,
+        assetSymbol: 'BTCUSDT',
+      })
+    }
+
+    const handleRoundResolved = () => {
+      // Re-fetch event + quick data to get new round/market
+      userApi.getEvent(slug).then(fetchedEvent => {
+        setEvent(fetchedEvent)
+        const isQuick = (fetchedEvent as any).type === 'quick'
+        if (isQuick && fetchedEvent.markets) {
+          const openMkts = fetchedEvent.markets.filter(m => m.status === 'open')
+          const newDefault = openMkts.length > 0 ? openMkts[openMkts.length - 1] : null
+          if (newDefault) setSelectedMarket(newDefault)
+        }
+      }).catch(() => {})
+      quickApi.getQuickMarketCurrent(event!.id).then(res => {
+        if (res.data) {
+          setQuickRound(res.data.round)
+          if (res.data.currentPrice != null) setCurrentBtcPrice(res.data.currentPrice)
+        }
+      }).catch(() => {})
+      quickApi.getQuickMarketHistory(event!.id, 10).then(res => {
+        if (res.data?.rounds) setQuickHistory(res.data.rounds)
+      }).catch(() => {})
+    }
+
+    document.addEventListener('btc-price-update', handleBtcPrice)
+    document.addEventListener('quick-round-start', handleRoundStart)
+    document.addEventListener('quick-round-resolved', handleRoundResolved)
+    document.addEventListener('quick-round-annulled', handleRoundResolved)
+
+    return () => {
+      document.removeEventListener('btc-price-update', handleBtcPrice)
+      document.removeEventListener('quick-round-start', handleRoundStart)
+      document.removeEventListener('quick-round-resolved', handleRoundResolved)
+      document.removeEventListener('quick-round-annulled', handleRoundResolved)
+    }
+  }, [event?.id, event?.type])
 
   // ESC hotkey to go back to events list
   useEffect(() => {
@@ -214,8 +372,18 @@ export default function EventDetailPage({ params }: PageProps) {
 
   /* Volume calculation to be implemented for LMSR. Using 0 for now or liquidityB as placeholder? */
   const totalVolume = 0 // event.markets?.reduce((acc, m) => acc + (m.liquidityB || 0), 0) || 0
-  const closestMarketClose = event.markets?.length
-    ? new Date(Math.min(...event.markets.map(m => new Date(m.closesAt).getTime())))
+
+  // For quick events, show only the current open round as the active market
+  const displayMarkets = event.type === 'quick'
+    ? (() => {
+        const allMkts = event.markets || []
+        const open = allMkts.filter(m => m.status === 'open')
+        return open.length > 0 ? open.slice(-1) : allMkts.slice(-1)
+      })()
+    : (event.markets || [])
+
+  const closestMarketClose = displayMarkets.length
+    ? new Date(Math.min(...displayMarkets.map(m => new Date(m.closesAt).getTime())))
     : new Date(event.endsAt)
 
   return (
@@ -349,15 +517,70 @@ export default function EventDetailPage({ params }: PageProps) {
           </div>
         </div>
 
-        {event.markets && event.markets.length === 1 ? (
+        {displayMarkets.length === 1 ? (
           <>
-            {/* Probability Chart for Single Market */}
-            <div className="mt-4 rounded-xl border border-border/40 bg-card/50 p-4 lg:mt-6 lg:p-5">
-              <ProbabilityChart
-                marketId={event.markets[0].id}
-                currentProbYes={event.markets[0].probYes}
-              />
-            </div>
+            {/* Quick Market: BTC Price Chart + Round Info */}
+            {event.type === 'quick' && quickRound && (
+              <div className="mt-4 rounded-xl border border-border/40 bg-card/50 p-4 lg:mt-6 lg:p-5">
+                {/* Round header: number, timer, history */}
+                <div className="flex items-center justify-between mb-3">
+                  <div className="flex items-center gap-3">
+                    <span className="flex items-center gap-1.5 text-xs font-semibold text-emerald-400">
+                      <span className="relative flex h-2 w-2">
+                        <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75" />
+                        <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-400" />
+                      </span>
+                      AO VIVO
+                    </span>
+                    <span className="text-xs text-[#606E85] dark:text-[#A1A7BB]">
+                      Rodada #{quickRound.roundNumber}
+                    </span>
+                  </div>
+                  <div className="flex items-center gap-3">
+                    <RoundHistoryBadges rounds={quickHistory} />
+                    <QuickRoundTimer endsAt={quickRound.endsAt} size="sm" />
+                  </div>
+                </div>
+
+                {/* Price info row */}
+                <div className="flex items-center justify-between mb-3 px-1">
+                  <div className="flex flex-col">
+                    <span className="text-[10px] text-[#606E85] dark:text-[#A1A7BB] uppercase">Preço Inicial</span>
+                    <span className="text-sm font-mono font-bold dark:text-white">
+                      {quickRound.openPrice?.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL', minimumFractionDigits: 2 })}
+                    </span>
+                  </div>
+                  {currentBtcPrice != null && (
+                    <div className="flex flex-col items-end">
+                      <span className="text-[10px] text-[#606E85] dark:text-[#A1A7BB] uppercase">Preço Atual</span>
+                      <span className={cn(
+                        'text-sm font-mono font-bold',
+                        currentBtcPrice >= quickRound.openPrice ? 'text-[#22c55e]' : 'text-[#ef4444]'
+                      )}>
+                        {currentBtcPrice.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL', minimumFractionDigits: 2 })}
+                      </span>
+                    </div>
+                  )}
+                </div>
+
+                {/* BTC Chart */}
+                <BtcPriceChart
+                  openPrice={quickRound.openPrice}
+                  initialHistory={btcPriceHistory}
+                  className="h-[200px] sm:h-[260px]"
+                />
+              </div>
+            )}
+
+            {/* Probability Chart for Single Market (hide for quick markets that have BTC chart) */}
+            {event.type !== 'quick' && (
+              <div className="mt-4 rounded-xl border border-border/40 bg-card/50 p-4 lg:mt-6 lg:p-5">
+                <ProbabilityChart
+                  marketId={displayMarkets[0].id}
+                  currentProbYes={displayMarkets[0].probYes}
+                />
+              </div>
+            )}
 
             <div className="mt-4 rounded-xl border border-border/40 bg-card/50 p-6 lg:mt-6">
               <div className="flex justify-between items-end w-full mb-3 px-1">
@@ -367,10 +590,10 @@ export default function EventDetailPage({ params }: PageProps) {
                       <path d="M6.99935 12.8332C10.2077 12.8332 12.8327 10.2082 12.8327 6.99984C12.8327 3.7915 10.2077 1.1665 6.99935 1.1665C3.79102 1.1665 1.16602 3.7915 1.16602 6.99984C1.16602 10.2082 3.79102 12.8332 6.99935 12.8332Z" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
                       <path d="M4.52051 6.99995L6.17134 8.65079L9.47884 5.34912" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
                     </svg>
-                    Sim
+                    {event.type === 'quick' ? 'Sobe' : 'Sim'}
                   </div>
                   <span className="text-[32px] sm:text-[40px] font-bold dark:text-white leading-none tracking-tight">
-                    {Math.round(event.markets[0].probYes)}%
+                    {Math.round(displayMarkets[0].probYes)}%
                   </span>
                 </div>
 
@@ -378,7 +601,7 @@ export default function EventDetailPage({ params }: PageProps) {
 
                 <div className="flex flex-col gap-1 items-end">
                   <div className="flex items-center gap-2 text-[#ef4444] font-semibold">
-                    Não
+                    {event.type === 'quick' ? 'Desce' : 'Não'}
                     <svg width="18" height="18" viewBox="0 0 14 14" fill="none" xmlns="http://www.w3.org/2000/svg">
                       <path d="M6.99935 12.8332C10.2077 12.8332 12.8327 10.2082 12.8327 6.99984C12.8327 3.7915 10.2077 1.1665 6.99935 1.1665C3.79102 1.1665 1.16602 3.7915 1.16602 6.99984C1.16602 10.2082 3.79102 12.8332 6.99935 12.8332Z" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
                       <path d="M5.34863 8.65079L8.6503 5.34912" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
@@ -386,53 +609,53 @@ export default function EventDetailPage({ params }: PageProps) {
                     </svg>
                   </div>
                   <span className="text-[32px] sm:text-[40px] font-bold dark:text-white leading-none tracking-tight">
-                    {Math.round(event.markets[0].probNo)}%
+                    {Math.round(displayMarkets[0].probNo)}%
                   </span>
                 </div>
               </div>
 
               {/* Green and Red Progress Bar */}
               <div className="flex h-2 w-full overflow-hidden mt-2 mb-8 rounded-full bg-muted/20">
-                <div className="bg-[#22c55e] h-full" style={{ width: `${event.markets[0].probYes}%` }} />
-                <div className="bg-[#ef4444] h-full" style={{ width: `${event.markets[0].probNo}%` }} />
+                <div className="bg-[#22c55e] h-full" style={{ width: `${displayMarkets[0].probYes}%` }} />
+                <div className="bg-[#ef4444] h-full" style={{ width: `${displayMarkets[0].probNo}%` }} />
               </div>
 
               {/* The Bet buttons for Mobile (shows prediction panel sheet) */}
               <div className="grid grid-cols-2 gap-3 mb-8 lg:hidden">
                 <button
-                  disabled={event.markets[0].status !== 'open'}
-                  onClick={() => handleSelectPrediction(event.markets![0], 'YES')}
+                  disabled={displayMarkets[0].status !== 'open'}
+                  onClick={() => handleSelectPrediction(displayMarkets[0], 'YES')}
                   className={cn(
                     "w-full flex justify-center items-center py-4 rounded-xl border font-bold text-sm transition-colors",
-                    event.markets[0].status === 'open'
+                    displayMarkets[0].status === 'open'
                       ? "bg-[#22c55e]/10 text-[#22c55e] border-[#22c55e]/20 hover:bg-[#22c55e]/20"
                       : "bg-muted text-muted-foreground border-border/40 opacity-50 cursor-not-allowed"
                   )}
                 >
-                  Sim
+                  {event.type === 'quick' ? 'Sobe' : 'Sim'}
                 </button>
                 <button
-                  disabled={event.markets[0].status !== 'open'}
-                  onClick={() => handleSelectPrediction(event.markets![0], 'NO')}
+                  disabled={displayMarkets[0].status !== 'open'}
+                  onClick={() => handleSelectPrediction(displayMarkets[0], 'NO')}
                   className={cn(
                     "w-full flex justify-center items-center py-4 rounded-xl border font-bold text-sm transition-colors",
-                    event.markets[0].status === 'open'
+                    displayMarkets[0].status === 'open'
                       ? "bg-[#ef4444]/10 text-[#ef4444] border-[#ef4444]/20 hover:bg-[#ef4444]/20"
                       : "bg-muted text-muted-foreground border-border/40 opacity-50 cursor-not-allowed"
                   )}
                 >
-                  Não
+                  {event.type === 'quick' ? 'Desce' : 'Não'}
                 </button>
               </div>
 
               {/* The Bet buttons for Desktop (updates selected side on the prediction panel) */}
               <div className="hidden lg:grid grid-cols-2 gap-4 mb-8">
                 <button
-                  disabled={event.markets[0].status !== 'open'}
-                  onClick={() => handleSelectPrediction(event.markets![0], 'YES')}
+                  disabled={displayMarkets[0].status !== 'open'}
+                  onClick={() => handleSelectPrediction(displayMarkets[0], 'YES')}
                   className={cn(
                     "w-full flex justify-center items-center py-4 rounded-xl border transition-all duration-200 font-bold text-[15px]",
-                    event.markets[0].status === 'open'
+                    displayMarkets[0].status === 'open'
                       ? (selectedSide === 'YES'
                         ? 'bg-[#22c55e] border-[#22c55e] text-white shadow-md shadow-[#22c55e]/20'
                         : 'bg-[#22c55e]/10 border-[#22c55e]/20 text-[#22c55e] hover:bg-[#22c55e]/20')
@@ -444,16 +667,16 @@ export default function EventDetailPage({ params }: PageProps) {
                       <path d="M6.99935 12.8332C10.2077 12.8332 12.8327 10.2082 12.8327 6.99984C12.8327 3.7915 10.2077 1.1665 6.99935 1.1665C3.79102 1.1665 1.16602 3.7915 1.16602 6.99984C1.16602 10.2082 3.79102 12.8332 6.99935 12.8332Z" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
                       <path d="M4.52051 6.99995L6.17134 8.65079L9.47884 5.34912" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
                     </svg>
-                    Sim
+                    {event.type === 'quick' ? 'Sobe' : 'Sim'}
                   </div>
                 </button>
 
                 <button
-                  disabled={event.markets[0].status !== 'open'}
-                  onClick={() => handleSelectPrediction(event.markets![0], 'NO')}
+                  disabled={displayMarkets[0].status !== 'open'}
+                  onClick={() => handleSelectPrediction(displayMarkets[0], 'NO')}
                   className={cn(
                     "w-full flex justify-center items-center py-4 rounded-xl border transition-all duration-200 font-bold text-[15px]",
-                    event.markets[0].status === 'open'
+                    displayMarkets[0].status === 'open'
                       ? (selectedSide === 'NO'
                         ? 'bg-[#ef4444] border-[#ef4444] text-white shadow-md shadow-[#ef4444]/20'
                         : 'bg-[#ef4444]/10 border-[#ef4444]/20 text-[#ef4444] hover:bg-[#ef4444]/20')
@@ -466,14 +689,20 @@ export default function EventDetailPage({ params }: PageProps) {
                       <path d="M5.34863 8.65079L8.6503 5.34912" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
                       <path d="M8.6503 8.65079L5.34863 5.34912" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
                     </svg>
-                    Não
+                    {event.type === 'quick' ? 'Desce' : 'Não'}
                   </div>
                 </button>
               </div>
 
               <div className="flex flex-col items-center justify-center mt-6 mb-2">
-                <span className="text-xs sm:text-[13px] font-medium text-[#606E85] mb-4">O mercado fechará em</span>
-                <CountdownTimer targetDate={closestMarketClose} />
+                <span className="text-xs sm:text-[13px] font-medium text-[#606E85] mb-4">
+                  {event.type === 'quick' ? 'A rodada encerra em' : 'O mercado fechará em'}
+                </span>
+                <CountdownTimer
+                  targetDate={event.type === 'quick' && quickRound
+                    ? new Date(quickRound.endsAt)
+                    : closestMarketClose}
+                />
               </div>
 
             </div>
@@ -481,10 +710,10 @@ export default function EventDetailPage({ params }: PageProps) {
         ) : (
           <>
             {/* Probability Chart */}
-            {event.markets && event.markets.length > 0 && (
+            {displayMarkets.length > 0 && (
               <div className="mt-4 rounded-xl border border-border/40 bg-card/50 p-4 lg:mt-6 lg:p-5">
                 <MultiProbabilityChart
-                  markets={[...event.markets].sort((a, b) => b.probYes - a.probYes)}
+                  markets={[...displayMarkets].sort((a, b) => b.probYes - a.probYes)}
                 />
               </div>
             )}
@@ -492,7 +721,7 @@ export default function EventDetailPage({ params }: PageProps) {
             {/* Markets Grid */}
             <div className="mt-4 lg:mt-6">
               <div className="size-full overflow-hidden rounded-lg pb-1 lg:mt-0 lg:overflow-visible lg:pb-0">
-                {!event.markets || event.markets.length === 0 ? (
+                {displayMarkets.length === 0 ? (
                   <div className="py-12 text-center rounded-2xl bg-black/5 dark:bg-white/5">
                     <p className="text-muted-foreground">
                       Nenhum mercado disponível para este evento ainda.
@@ -500,7 +729,7 @@ export default function EventDetailPage({ params }: PageProps) {
                   </div>
                 ) : (
                   <div className="flex flex-col rounded-xl border border-border/40 bg-card/50 px-2 sm:px-4 py-2">
-                    {[...event.markets]
+                    {[...displayMarkets]
                       .sort((a, b) => b.probYes - a.probYes)
                       .map((market) => (
                         <MarketRow
@@ -600,10 +829,10 @@ export default function EventDetailPage({ params }: PageProps) {
       </div >
 
       {/* Prediction Panel - Desktop Sidebar (ALWAYS visible, uses first market as default) */}
-      {event.markets && event.markets.length > 0 && (
+      {displayMarkets.length > 0 && (
         <div className="hidden lg:block sticky top-[72px] self-start">
           <PredictionPanel
-            market={selectedMarket || event.markets[0]}
+            market={selectedMarket || displayMarkets[0]}
             side={selectedSide}
             onSuccess={(updatedMarket) => {
               handleMarketUpdate(updatedMarket)

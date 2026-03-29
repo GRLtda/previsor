@@ -8,7 +8,6 @@ import { EventCard } from '@/components/user/event-card'
 import { Skeleton } from '@/components/ui/skeleton'
 import { toast } from 'sonner'
 import { BannerSlider } from '@/components/user/banner-slider'
-import { DynamicIcon } from '@/components/ui/dynamic-icon'
 import type { Category } from '@/lib/types'
 
 const LIMIT = 12

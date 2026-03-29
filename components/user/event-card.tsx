@@ -32,7 +32,13 @@ function formatDate(dateStr: string): string {
 
 export function EventCard({ event, isFavorite: initialIsFavorite = false, onFavoriteChange }: EventCardProps) {
   const router = useRouter()
-  const markets = event.markets || []
+  // For quick events, show only the current open market (latest round)
+  const allMarkets = event.markets || []
+  const markets = event.type === 'quick'
+    ? (allMarkets.filter(m => m.status === 'open').slice(-1).length > 0
+      ? allMarkets.filter(m => m.status === 'open').slice(-1)
+      : allMarkets.slice(-1))
+    : allMarkets
   const hasMarkets = markets.length > 0
   const endDate = event.endsAt ? formatDate(event.endsAt) : null
   const { openAuthModal } = useAuthModal()
@@ -95,10 +101,19 @@ export function EventCard({ event, isFavorite: initialIsFavorite = false, onFavo
           </div>
 
           {/* Title */}
-          <span className="flex flex-1">
+          <span className="flex flex-1 flex-col">
             <span className="text-sm font-semibold dark:text-white line-clamp-2">
               {event.title}
             </span>
+            {event.type === 'quick' && (
+              <span className="flex items-center gap-1 mt-0.5">
+                <span className="relative flex h-1.5 w-1.5">
+                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75" />
+                  <span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-emerald-400" />
+                </span>
+                <span className="text-[10px] font-semibold text-emerald-400">AO VIVO</span>
+              </span>
+            )}
           </span>
 
           {/* Actions */}
@@ -160,7 +175,7 @@ export function EventCard({ event, isFavorite: initialIsFavorite = false, onFavo
                     <path d="M6.99935 12.8332C10.2077 12.8332 12.8327 10.2082 12.8327 6.99984C12.8327 3.7915 10.2077 1.1665 6.99935 1.1665C3.79102 1.1665 1.16602 3.7915 1.16602 6.99984C1.16602 10.2082 3.79102 12.8332 6.99935 12.8332Z" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round" strokeLinejoin="round" />
                     <path d="M4.52051 6.99995L6.17134 8.65079L9.47884 5.34912" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round" strokeLinejoin="round" />
                   </svg>
-                  Sim - {calcMultiplier(markets[0].probYes)}
+                  {event.type === 'quick' ? 'Sobe' : 'Sim'} - {calcMultiplier(markets[0].probYes)}
                 </button>
                 <span className="text-[11px] font-bold text-black dark:text-white">
                   R$10.00 <span className="text-[#606E85] dark:text-[#A1A7BB] font-normal px-0.5">→</span> <span className="text-[#22c55e]">R${(10 * (100 / (markets[0].probYes || 1))).toFixed(2)}</span>
@@ -182,7 +197,7 @@ export function EventCard({ event, isFavorite: initialIsFavorite = false, onFavo
                     <path d="M5.34863 8.65079L8.6503 5.34912" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round" strokeLinejoin="round" />
                     <path d="M8.6503 8.65079L5.34863 5.34912" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round" strokeLinejoin="round" />
                   </svg>
-                  Não - {calcMultiplier(markets[0].probNo)}
+                  {event.type === 'quick' ? 'Desce' : 'Não'} - {calcMultiplier(markets[0].probNo)}
                 </button>
                 <span className="text-[11px] font-bold text-black dark:text-white">
                   R$10.00 <span className="text-[#606E85] dark:text-[#A1A7BB] font-normal px-0.5">→</span> <span className="text-[#22c55e]">R${(10 * (100 / (markets[0].probNo || 1))).toFixed(2)}</span>

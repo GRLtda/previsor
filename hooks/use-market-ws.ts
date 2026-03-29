@@ -80,6 +80,22 @@ export function useMarketWs({ enabled }: MarketWsOptions) {
                         // Dispatch a custom event for new comments
                         const customEvent = new CustomEvent('comment-update', { detail: msg.data })
                         document.dispatchEvent(customEvent)
+                    } else if (msg.type === 'BTC_PRICE_UPDATE' && msg.data?.price) {
+                        // Dispatch BTC price update for quick markets
+                        const customEvent = new CustomEvent('btc-price-update', { detail: msg.data })
+                        document.dispatchEvent(customEvent)
+                    } else if (msg.type === 'QUICK_ROUND_START' && msg.data?.marketId) {
+                        // Dispatch quick round start event
+                        const customEvent = new CustomEvent('quick-round-start', { detail: msg.data })
+                        document.dispatchEvent(customEvent)
+                    } else if (msg.type === 'QUICK_ROUND_RESOLVED' && msg.data?.marketId) {
+                        // Dispatch quick round resolved event
+                        const customEvent = new CustomEvent('quick-round-resolved', { detail: msg.data })
+                        document.dispatchEvent(customEvent)
+                    } else if (msg.type === 'QUICK_ROUND_ANNULLED' && msg.data?.marketId) {
+                        // Dispatch quick round annulled event
+                        const customEvent = new CustomEvent('quick-round-annulled', { detail: msg.data })
+                        document.dispatchEvent(customEvent)
                     }
                 } catch {
                     // Ignore malformed messages
@@ -174,4 +190,50 @@ export function useCommentRealTime(onUpdate: (data: any) => void) {
         document.addEventListener('comment-update', handleUpdate)
         return () => document.removeEventListener('comment-update', handleUpdate)
     }, [onUpdate])
+}
+
+/**
+ * Hook to listen for real-time BTC price updates
+ */
+export function useBtcPriceRealTime(onUpdate: (data: { price: number; source: string; timestamp: string }) => void) {
+    useEffect(() => {
+        const handleUpdate = (event: Event) => {
+            const customEvent = event as CustomEvent
+            onUpdate(customEvent.detail)
+        }
+
+        document.addEventListener('btc-price-update', handleUpdate)
+        return () => document.removeEventListener('btc-price-update', handleUpdate)
+    }, [onUpdate])
+}
+
+/**
+ * Hook to listen for quick round lifecycle events (start, resolved, annulled)
+ */
+export function useQuickRoundRealTime(callbacks: {
+    onRoundStart?: (data: any) => void
+    onRoundResolved?: (data: any) => void
+    onRoundAnnulled?: (data: any) => void
+}) {
+    useEffect(() => {
+        const handleStart = (event: Event) => {
+            callbacks.onRoundStart?.((event as CustomEvent).detail)
+        }
+        const handleResolved = (event: Event) => {
+            callbacks.onRoundResolved?.((event as CustomEvent).detail)
+        }
+        const handleAnnulled = (event: Event) => {
+            callbacks.onRoundAnnulled?.((event as CustomEvent).detail)
+        }
+
+        document.addEventListener('quick-round-start', handleStart)
+        document.addEventListener('quick-round-resolved', handleResolved)
+        document.addEventListener('quick-round-annulled', handleAnnulled)
+
+        return () => {
+            document.removeEventListener('quick-round-start', handleStart)
+            document.removeEventListener('quick-round-resolved', handleResolved)
+            document.removeEventListener('quick-round-annulled', handleAnnulled)
+        }
+    }, [callbacks])
 }

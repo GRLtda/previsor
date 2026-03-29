@@ -514,6 +514,26 @@ export const userApi = {
       { params }
     ),
 
+  // Quick Markets (Mercados Rápidos)
+  getQuickMarketCurrent: (eventId: string) =>
+    baseFetch<{ success: true; data: import('@/lib/types').QuickMarketCurrentResponse }>(
+      'user',
+      `/v1/quick-markets/${eventId}/current`
+    ),
+
+  getQuickMarketHistory: (eventId: string, limit: number = 10) =>
+    baseFetch<{ success: true; data: { rounds: import('@/lib/types').QuickRound[] } }>(
+      'user',
+      `/v1/quick-markets/${eventId}/history`,
+      { params: { limit } }
+    ),
+
+  getBtcPrice: (eventId: string) =>
+    baseFetch<{ success: true; data: import('@/lib/types').BtcPriceResponse }>(
+      'user',
+      `/v1/quick-markets/${eventId}/price`
+    ),
+
   // Wallet
   getWallet: () =>
     baseFetch<{ success: true; data: { wallet: import('@/lib/types').Wallet } }>(

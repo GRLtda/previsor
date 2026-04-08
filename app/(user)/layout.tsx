@@ -1,6 +1,6 @@
 'use client'
 
-import React from "react"
+import React, { Suspense } from "react"
 
 import { AuthProvider } from '@/contexts/auth-context'
 import { AuthModalProvider } from '@/contexts/auth-modal-context'
@@ -13,7 +13,9 @@ export default function UserLayout({ children }: { children: React.ReactNode }) 
   return (
     <AuthProvider>
       <AuthModalProvider>
-        <AffiliateTracker />
+        <Suspense fallback={null}>
+          <AffiliateTracker />
+        </Suspense>
         <div className="flex flex-col min-h-screen bg-background">
           <UserHeader />
           <main className="flex-1 pb-10">{children}</main>

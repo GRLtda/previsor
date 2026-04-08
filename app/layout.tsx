@@ -1,11 +1,12 @@
 import React from "react"
 import type { Metadata, Viewport } from 'next'
-import { Inter } from 'next/font/google'
 import Script from 'next/script'
 import { Analytics } from '@vercel/analytics/next'
+import '@fontsource/sora/400.css'
+import '@fontsource/sora/500.css'
+import '@fontsource/sora/600.css'
+import '@fontsource/sora/700.css'
 import './globals.css'
-
-const inter = Inter({ subsets: ['latin'], variable: '--font-sans' })
 
 
 export const metadata: Metadata = {
@@ -62,7 +63,7 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="pt-BR">
-      <body className={`font-sans antialiased ${inter.variable}`}>
+      <body className="font-sans antialiased">
         {process.env.NODE_ENV === 'development' && (
           <Script
             src="//unpkg.com/react-grab/dist/index.global.js"

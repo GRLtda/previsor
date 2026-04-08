@@ -605,6 +605,8 @@ export default function EventDetailPage({ params }: PageProps) {
           <PredictionPanel
             market={selectedMarket || event.markets[0]}
             side={selectedSide}
+            isMultiMarket={event.markets.length > 1}
+            onSideChange={(side) => setSelectedSide(side)}
             onSuccess={(updatedMarket) => {
               handleMarketUpdate(updatedMarket)
             }}
@@ -617,6 +619,8 @@ export default function EventDetailPage({ params }: PageProps) {
         market={selectedMarket}
         side={selectedSide}
         open={mobileSheetOpen && !!selectedMarket}
+        isMultiMarket={event.markets && event.markets.length > 1}
+        onSideChange={(side) => setSelectedSide(side)}
         onClose={() => setMobileSheetOpen(false)}
         onSuccess={(updatedMarket) => {
           handleMarketUpdate(updatedMarket)

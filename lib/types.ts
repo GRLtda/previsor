@@ -112,8 +112,10 @@ export interface Market {
 export interface ActivityItem {
   id: string
   user: {
+    userId: string
     firstName: string
     avatarUrl: string | null
+    nickname?: string | null
   }
   eventId?: string
   side: 'YES' | 'NO'

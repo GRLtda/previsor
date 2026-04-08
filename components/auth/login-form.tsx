@@ -49,20 +49,20 @@ export function LoginForm({ onSuccess, onRegisterClick, onOtpRequired, onForgotP
     }
 
     return (
-        <div className="space-y-6">
-            <div className="space-y-2 text-center pb-2">
-                <h2 className="text-2xl font-bold tracking-tight dark:text-white">Bem vindo de volta!</h2>
-                <p className="text-[13px] font-medium text-muted-foreground/80">
-                    Conecte-se para acompanhar seus prêmios,<br />depósitos e muito mais.
+        <div className="space-y-5">
+            <div className="space-y-1 text-left">
+                <h2 className="text-xl font-semibold tracking-tight text-black dark:text-white">Bem vindo de volta</h2>
+                <p className="text-[13px] text-[#8A8C99]">
+                    Conecte-se para acompanhar seus prêmios e depósitos.
                 </p>
             </div>
 
-            <form onSubmit={handleSubmit} className="space-y-5 text-left">
-                <div className="space-y-2">
-                    <Label htmlFor="email" className="text-[13px] font-semibold">Email</Label>
+            <form onSubmit={handleSubmit} className="space-y-3.5 text-left">
+                <div className="space-y-1.5">
+                    <Label htmlFor="email" className="text-[12px] font-medium text-[#8A8C99]">Email</Label>
                     <div className="relative">
-                        <div className="absolute inset-y-0 left-0 flex items-center pl-3.5 pointer-events-none text-muted-foreground">
-                            <Mail className="h-4 w-4 opacity-70" />
+                        <div className="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none text-[#8A8C99]">
+                            <Mail className="h-[15px] w-[15px]" />
                         </div>
                         <Input
                             id="email"
@@ -72,69 +72,73 @@ export function LoginForm({ onSuccess, onRegisterClick, onOtpRequired, onForgotP
                             onChange={(e) => setEmail(e.target.value)}
                             required
                             autoComplete="email"
-                            className="h-12 pl-10 bg-black/5 dark:bg-[#12121a] border-border dark:border-white/5 placeholder:text-muted-foreground/50 rounded-xl"
+                            className="h-11 pl-9 text-[13px] bg-black/[3%] dark:bg-white/[4%] border-black/[8%] dark:border-white/[8%] placeholder:text-black/25 dark:placeholder:text-white/20 rounded-xl focus-visible:ring-1 focus-visible:ring-black/15 dark:focus-visible:ring-white/15 transition-colors"
                         />
                     </div>
                 </div>
 
-                <div className="space-y-2">
+                <div className="space-y-1.5">
                     <div className="flex items-center justify-between">
-                        <Label htmlFor="password" className="text-[13px] font-semibold">Digite sua senha</Label>
+                        <Label htmlFor="password" className="text-[12px] font-medium text-[#8A8C99]">Senha</Label>
                         <button
                             type="button"
                             onClick={onForgotPasswordClick}
-                            className="text-[11px] text-brand hover:underline font-semibold"
+                            className="text-[11px] text-[#8A8C99] hover:text-black dark:hover:text-white transition-colors"
                         >
-                            Esqueceu a senha?
+                            Esqueceu?
                         </button>
                     </div>
                     <div className="relative">
-                        <div className="absolute inset-y-0 left-0 flex items-center pl-3.5 pointer-events-none text-muted-foreground">
-                            <Lock className="h-4 w-4 opacity-70" />
+                        <div className="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none text-[#8A8C99]">
+                            <Lock className="h-[15px] w-[15px]" />
                         </div>
                         <Input
                             id="password"
                             type={showPassword ? 'text' : 'password'}
-                            placeholder="Insira sua senha..."
+                            placeholder="••••••••"
                             value={password}
                             onChange={(e) => setPassword(e.target.value)}
                             required
                             autoComplete="current-password"
-                            className="h-12 pl-10 pr-20 bg-black/5 dark:bg-[#12121a] border-border dark:border-white/5 placeholder:text-muted-foreground/50 rounded-xl"
+                            className="h-11 pl-9 pr-10 text-[13px] bg-black/[3%] dark:bg-white/[4%] border-black/[8%] dark:border-white/[8%] placeholder:text-black/25 dark:placeholder:text-white/20 rounded-xl focus-visible:ring-1 focus-visible:ring-black/15 dark:focus-visible:ring-white/15 transition-colors"
                         />
                         <button
                             type="button"
                             onClick={() => setShowPassword(!showPassword)}
-                            className="absolute right-4 top-1/2 -translate-y-1/2 text-[12px] font-semibold text-brand hover:text-brand/80 transition-colors"
+                            className="absolute right-3 top-1/2 -translate-y-1/2 text-[#8A8C99] hover:text-black dark:hover:text-white transition-colors p-0.5"
                         >
-                            Mostrar
+                            {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                         </button>
                     </div>
                 </div>
 
-                <div className="pt-2">
-                    <Button type="submit" className="w-full h-12 font-bold text-[15px] shadow-sm tracking-wide rounded-xl bg-brand text-white hover:brightness-110" disabled={isLoading}>
+                <div className="pt-1.5">
+                    <Button
+                        type="submit"
+                        className="w-full h-11 font-semibold text-[14px] rounded-xl bg-black dark:bg-white text-white dark:text-black hover:bg-black/85 dark:hover:bg-white/90 transition-all"
+                        disabled={isLoading}
+                    >
                         {isLoading ? (
                             <>
                                 <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                                 Entrando...
                             </>
-                        ) : 'ENTRAR'}
+                        ) : 'Entrar'}
                     </Button>
                 </div>
             </form>
 
-            <div className="relative flex items-center py-2">
-                <div className="flex-grow border-t border-border dark:border-white/5"></div>
-                <span className="flex-shrink-0 mx-4 text-xs font-bold text-muted-foreground dark:text-white/40 uppercase">OU</span>
-                <div className="flex-grow border-t border-border dark:border-white/5"></div>
+            <div className="relative flex items-center">
+                <div className="flex-grow border-t border-black/[6%] dark:border-white/[6%]"></div>
+                <span className="flex-shrink-0 mx-4 text-[10px] font-medium text-[#8A8C99] uppercase tracking-wider">ou</span>
+                <div className="flex-grow border-t border-black/[6%] dark:border-white/[6%]"></div>
             </div>
 
             <div className="text-center text-[13px]">
-                <span className="text-muted-foreground font-medium">Ainda não tem uma conta? </span>
+                <span className="text-[#8A8C99]">Não tem uma conta? </span>
                 <button
                     onClick={onRegisterClick}
-                    className="font-bold text-brand hover:underline transition-colors focus:outline-none"
+                    className="font-semibold text-black dark:text-white hover:underline transition-colors focus:outline-none"
                 >
                     Registrar
                 </button>

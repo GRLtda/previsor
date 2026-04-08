@@ -16,6 +16,8 @@ interface MobilePredictionSheetProps {
     open: boolean
     onClose: () => void
     onSuccess?: (market: Market) => void
+    isMultiMarket?: boolean
+    onSideChange?: (side: 'YES' | 'NO') => void
 }
 
 interface Quote {
@@ -35,7 +37,7 @@ interface SellQuote {
     priceImpact: number
 }
 
-export function MobilePredictionSheet({ market, side, open, onClose, onSuccess }: MobilePredictionSheetProps) {
+export function MobilePredictionSheet({ market, side, open, onClose, onSuccess, isMultiMarket, onSideChange }: MobilePredictionSheetProps) {
     const router = useRouter()
     const { isAuthenticated, isOtpVerified, user } = useAuth()
     const { openAuthModal } = useAuthModal()
@@ -53,7 +55,8 @@ export function MobilePredictionSheet({ market, side, open, onClose, onSuccess }
     // ── SELL state ────────────────────────────────────────────────────
     const [userPosition, setUserPosition] = useState<Position | null>(null)
     const [isLoadingPosition, setIsLoadingPosition] = useState(false)
-    const [sellShares, setSellShares] = useState<number>(0)
+    const [sellSharesInput, setSellSharesInput] = useState<string>('')
+    const sellShares = Number.parseFloat(sellSharesInput || '0')
     const [sellQuote, setSellQuote] = useState<SellQuote | null>(null)
     const [isLoadingSellQuote, setIsLoadingSellQuote] = useState(false)
     const [isSelling, setIsSelling] = useState(false)
@@ -68,7 +71,7 @@ export function MobilePredictionSheet({ market, side, open, onClose, onSuccess }
     useEffect(() => {
         setQuote(null)
         setSellQuote(null)
-        setSellShares(0)
+        setSellSharesInput('')
     }, [market?.id, side])
 
     // ── Reset mode when sheet closes ──────────────────────────────────
@@ -207,7 +210,7 @@ export function MobilePredictionSheet({ market, side, open, onClose, onSuccess }
             // Re-fetch position to update state for partial sales
             await fetchUserPosition()
 
-            setSellShares(0)
+            setSellSharesInput('')
             setSellQuote(null)
             setShowSellSuccess(true)
 
@@ -241,7 +244,7 @@ export function MobilePredictionSheet({ market, side, open, onClose, onSuccess }
     const handleReturn = () => {
         setAmount('')
         setQuote(null)
-        setSellShares(0)
+        setSellSharesInput('')
         setSellQuote(null)
         setShowSuccess(false)
         setShowSellSuccess(false)
@@ -250,17 +253,39 @@ export function MobilePredictionSheet({ market, side, open, onClose, onSuccess }
 
     const setSellPercent = (pct: number) => {
         if (!userPosition) return
-        setSellShares(Math.floor(userPosition.shares * pct))
+        const val = userPosition.shares * pct
+        if (pct === 1.0) {
+            setSellSharesInput(val.toString()) // give exact precision to backend
+        } else {
+            setSellSharesInput((Math.floor(val * 100) / 100).toString()) // floor to 2 digits max
+        }
     }
 
     const handleSellSharesChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-        if (!userPosition) return
-        const val = e.target.value.replace(/[^0-9.]/g, '')
+        let val = e.target.value.replace(/[^0-9.]/g, '')
+
+        // Prevent multiple dots
+        const parts = val.split('.')
+        if (parts.length > 2) {
+            val = parts[0] + '.' + parts.slice(1).join('')
+        }
+
+        // Limit to 2 decimals visually
+        if (val.includes('.')) {
+            const [intPart, decPart] = val.split('.')
+            if (decPart && decPart.length > 2) {
+                val = `${intPart}.${decPart.slice(0, 2)}`
+            }
+        }
+
+        const maxSharesStr = (userPosition?.shares || 0).toFixed(2)
+        const maxShares = Number.parseFloat(maxSharesStr)
         const num = Number.parseFloat(val || '0')
-        if (num > userPosition.shares) {
-            setSellShares(userPosition.shares)
+
+        if (num > maxShares) {
+            setSellSharesInput(maxSharesStr)
         } else {
-            setSellShares(num)
+            setSellSharesInput(val)
         }
     }
 
@@ -289,38 +314,29 @@ export function MobilePredictionSheet({ market, side, open, onClose, onSuccess }
                                 <div className="flex size-full flex-col rounded-2xl">
 
                                     {/* Header with Close */}
-                                    <div className="relative flex w-full items-center justify-between">
-                                        <div className="flex items-center gap-1 flex-1 rounded-lg border border-black/10 p-2.5 text-xs font-semibold dark:border-white/5 dark:text-white overflow-hidden">
-                                            <span className="shrink-0">Sua Previsão:</span>
-                                            <span className={cn(
-                                                "flex items-center gap-[2px] min-w-0",
-                                                isYes ? "text-[#00B471]" : "text-[#EE5F67]"
-                                            )}>
-                                                {isYes ? (
-                                                    <svg className="shrink-0" width="12" height="12" viewBox="0 0 12 12" fill="none" xmlns="http://www.w3.org/2000/svg">
-                                                        <path d="M6 11C8.75 11 11 8.75 11 6C11 3.25 8.75 1 6 1C3.25 1 1 3.25 1 6C1 8.75 3.25 11 6 11Z" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" />
-                                                        <path d="M3.875 5.99996L5.29 7.41496L8.125 4.58496" stroke="currentColor" strokeWidth="1.03571" strokeLinecap="round" strokeLinejoin="round" />
-                                                    </svg>
-                                                ) : (
-                                                    <svg className="shrink-0" width="12" height="12" viewBox="0 0 12 12" fill="none" xmlns="http://www.w3.org/2000/svg">
-                                                        <path d="M6 11C8.75 11 11 8.75 11 6C11 3.25 8.75 1 6 1C3.25 1 1 3.25 1 6C1 8.75 3.25 11 6 11Z" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" />
-                                                        <path d="M4.58496 7.41496L7.41496 4.58496" stroke="currentColor" strokeWidth="1.03571" strokeLinecap="round" strokeLinejoin="round" />
-                                                        <path d="M7.41496 7.41496L4.58496 4.58496" stroke="currentColor" strokeWidth="0.776786" strokeLinecap="round" strokeLinejoin="round" />
-                                                    </svg>
+                                    <div className={`relative flex w-full items-center ${isMultiMarket ? 'justify-between mb-3' : 'justify-end mb-1'}`}>
+                                        {isMultiMarket && (
+                                            <div className="flex items-center gap-3 flex-1 pr-4 min-w-0">
+                                                {market.imageUrl && (
+                                                    <div className="shrink-0 overflow-hidden rounded-[8px] bg-muted flex items-center justify-center size-9">
+                                                        <img src={market.imageUrl} alt={market.statement} className="size-full object-cover" />
+                                                    </div>
                                                 )}
-                                                <span className="truncate">{market.statement}</span>
-                                            </span>
-                                        </div>
+                                                <span className="text-[17px] font-bold dark:text-white truncate">
+                                                    {market.statement}
+                                                </span>
+                                            </div>
+                                        )}
                                         <button
                                             onClick={onClose}
-                                            className="flex size-9 shrink-0 ml-2 items-center justify-center rounded-full bg-black/5 hover:bg-black/10 dark:bg-white/5 dark:hover:bg-white/10"
+                                            className="flex size-9 shrink-0 ml-auto items-center justify-center rounded-full bg-black/5 hover:bg-black/10 dark:bg-white/5 dark:hover:bg-white/10"
                                         >
                                             <X className="size-4 text-[#606E85]" />
                                         </button>
                                     </div>
 
                                     {/* ── Buy / Sell Tabs ── */}
-                                    <div className="flex mt-3 rounded-lg bg-black/5 dark:bg-white/5 p-0.5">
+                                    <div className="flex mt-1 rounded-lg bg-black/5 dark:bg-white/5 p-0.5">
                                         <button
                                             onClick={() => setTradeMode('buy')}
                                             className={cn(
@@ -345,6 +361,34 @@ export function MobilePredictionSheet({ market, side, open, onClose, onSuccess }
                                         </button>
                                     </div>
 
+                                    {/* ── Sim / Não Selectors ── */}
+                                    <div className="flex gap-2 w-full mt-4">
+                                        <button
+                                            onClick={() => onSideChange?.('YES')}
+                                            className={cn(
+                                                "flex-1 py-2.5 px-4 rounded-[10px] font-bold text-[15px] transition-all flex items-center justify-between border",
+                                                side === 'YES' 
+                                                    ? "bg-[#00B471] border-[#00B471] text-white" 
+                                                    : "bg-transparent border-black/10 dark:border-white/10 text-foreground hover:bg-black/5 dark:hover:bg-white/5"
+                                            )}
+                                        >
+                                            <span>Sim</span>
+                                            <span className={side === 'YES' ? "text-white/80" : "text-[#606E85] dark:text-[#A1A7BB]"}>{Math.round(market.probYes)}%</span>
+                                        </button>
+                                        <button
+                                            onClick={() => onSideChange?.('NO')}
+                                            className={cn(
+                                                "flex-1 py-2.5 px-4 rounded-[10px] font-bold text-[15px] transition-all flex items-center justify-between border",
+                                                side === 'NO' 
+                                                    ? "bg-[#EE5F67] border-[#EE5F67] text-white" 
+                                                    : "bg-transparent border-black/10 dark:border-white/10 text-foreground hover:bg-black/5 dark:hover:bg-white/5"
+                                            )}
+                                        >
+                                            <span>Não</span>
+                                            <span className={side === 'NO' ? "text-white/80" : "text-[#606E85] dark:text-[#A1A7BB]"}>{Math.round(market.probNo)}%</span>
+                                        </button>
+                                    </div>
+
                                     {/* ════════════════════════════════════
                                          BUY MODE
                                     ════════════════════════════════════ */}
@@ -356,25 +400,28 @@ export function MobilePredictionSheet({ market, side, open, onClose, onSuccess }
                                         </div>
 
                                             {/* Amount Input */}
-                                            <div className="mt-4 flex w-full flex-col items-center bg-transparent">
-                                                <div className="relative my-3 flex h-14 w-full items-center justify-center rounded-lg p-3 text-lg font-semibold">
-                                                    <div className="flex w-full flex-col items-center justify-center">
-                                                        <div className="relative flex w-full items-center justify-center">
-                                                            <input
-                                                                className="w-full max-w-full text-center bg-transparent font-bold placeholder:text-[#606E85]/30 dark:placeholder:text-white/30 dark:text-white text-[#0C131F]"
-                                                                placeholder="R$0"
-                                                                aria-label="input amount"
-                                                                inputMode="decimal"
-                                                                autoComplete="off"
-                                                                spellCheck="false"
-                                                                pattern="[0-9.,]*"
-                                                                type="text"
-                                                                value={amount ? `R$${amount}` : ''}
-                                                                onChange={handleInputChange}
-                                                                style={{ fontSize: '3rem' }}
-                                                            />
-                                                        </div>
-                                                    </div>
+                                            {/* Amount Input & Balance */}
+                                            <div className="mt-5 mb-1 flex w-full items-center justify-between">
+                                                <div className="flex flex-col">
+                                                    <span className="text-xl font-bold text-foreground dark:text-white">Valor</span>
+                                                    <span className="text-[13px] font-medium text-[#606E85] dark:text-[#A1A7BB] mt-0.5 whitespace-nowrap">
+                                                        Saldo R${balanceFormatted}
+                                                    </span>
+                                                </div>
+                                                <div className="flex flex-col items-end w-1/2">
+                                                    <input
+                                                        className="w-full text-right bg-transparent font-bold placeholder:text-[#606E85]/30 dark:placeholder:text-white/20 dark:text-white text-[#0C131F] outline-none"
+                                                        placeholder="R$0"
+                                                        aria-label="input amount"
+                                                        inputMode="decimal"
+                                                        autoComplete="off"
+                                                        spellCheck="false"
+                                                        pattern="[0-9.,]*"
+                                                        type="text"
+                                                        value={amount ? `R$${amount}` : ''}
+                                                        onChange={handleInputChange}
+                                                        style={{ fontSize: '2.5rem', lineHeight: '1' }}
+                                                    />
                                                 </div>
                                             </div>
 
@@ -435,20 +482,7 @@ export function MobilePredictionSheet({ market, side, open, onClose, onSuccess }
                                                 </div>
                                             </div>
 
-                                            {/* Balance Display - Mobile */}
-                                            <div className="mt-4 flex min-h-[38px] w-full flex-row items-center justify-between rounded-[10px] border border-black/10 px-[13px] dark:border-white/10">
-                                                <span className="flex items-center text-[13px] font-medium text-[#606E85] dark:text-[#A1A7BB]">
-                                                    <svg width="14" height="14" viewBox="0 0 14 14" fill="none" xmlns="http://www.w3.org/2000/svg" className="mr-[6px] size-[18px]">
-                                                        <path d="M8.66254 2.30416V4.52083H7.78754V2.30416C7.78754 2.14666 7.64754 2.07083 7.55421 2.07083C7.52504 2.07083 7.49587 2.07666 7.46671 2.08833L2.84087 3.8325C2.53171 3.94917 2.33337 4.24083 2.33337 4.57333V4.96416C1.80254 5.36083 1.45837 5.99666 1.45837 6.71417V4.57333C1.45837 3.87916 1.88421 3.26083 2.53171 3.01583L7.16337 1.26583C7.29171 1.21916 7.42587 1.19583 7.55421 1.19583C8.13754 1.19583 8.66254 1.66833 8.66254 2.30416Z" fill="#606E85" />
-                                                        <path d="M12.5417 8.45833V9.04166C12.5417 9.19916 12.4192 9.3275 12.2559 9.33333H11.4042C11.0951 9.33333 10.8151 9.10583 10.7917 8.8025C10.7742 8.62166 10.8442 8.4525 10.9609 8.33583C11.0659 8.225 11.2117 8.16666 11.3692 8.16666H12.2501C12.4192 8.1725 12.5417 8.30083 12.5417 8.45833Z" fill="#606E85" />
-                                                        <path d="M11.3634 7.55417H11.9584C12.2792 7.55417 12.5417 7.29167 12.5417 6.97084V6.71417C12.5417 5.50667 11.5559 4.52084 10.3484 4.52084H3.65171C3.15587 4.52084 2.70087 4.68417 2.33337 4.96417C1.80254 5.36084 1.45837 5.99667 1.45837 6.71417V10.64C1.45837 11.8475 2.44421 12.8333 3.65171 12.8333H10.3484C11.5559 12.8333 12.5417 11.8475 12.5417 10.64V10.5292C12.5417 10.2083 12.2792 9.94584 11.9584 9.94584H11.4509C10.8909 9.94584 10.3542 9.60167 10.2084 9.05917C10.0859 8.61584 10.2317 8.19 10.5234 7.90417C10.7392 7.6825 11.0367 7.55417 11.3634 7.55417ZM8.16671 7.4375H4.08337C3.84421 7.4375 3.64587 7.23917 3.64587 7C3.64587 6.76084 3.84421 6.5625 4.08337 6.5625H8.16671C8.40587 6.5625 8.60421 6.76084 8.60421 7C8.60421 7.23917 8.40587 7.4375 8.16671 7.4375Z" fill="#606E85" />
-                                                    </svg>
-                                                    Saldo
-                                                </span>
-                                                <span className="text-[13px] font-medium text-[#606E85] dark:text-[#A1A7BB]">
-                                                    R${balanceFormatted}
-                                                </span>
-                                            </div>
+
 
                                             {/* Submit Button */}
                                             {!isAuthenticated ? (
@@ -473,7 +507,7 @@ export function MobilePredictionSheet({ market, side, open, onClose, onSuccess }
                                                 >
                                                     {isLoading ? 'Processando...' :
                                                         amountCents > balance ? 'Depositar' :
-                                                            `${isYes ? 'Sim' : 'Não'} R$ ${amount || '0'}`}
+                                                            `Comprar ${isYes ? 'Sim' : 'Não'}`}
                                                 </button>
                                             )}
                                         </>
@@ -501,29 +535,21 @@ export function MobilePredictionSheet({ market, side, open, onClose, onSuccess }
                                                         Entrar
                                                     </button>
                                                 </div>
-                                            ) : !userPosition ? (
-                                                <div className="flex flex-col items-center justify-center py-10 gap-2">
-                                                    <svg width="40" height="40" viewBox="0 0 24 24" fill="none" className="text-[#606E85] dark:text-[#A1A7BB] opacity-40">
-                                                        <path d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
-                                                    </svg>
-                                                    <span className="text-sm text-[#606E85] dark:text-[#A1A7BB] text-center">
-                                                        Você não tem posição ativa em {isYes ? 'Sim' : 'Não'} neste mercado
-                                                    </span>
-                                                </div>
                                             ) : (
                                                 <>
 
 
-                                                    {/* Quotas label */}
-                                                    <div className="mx-auto mb-2 mt-3 flex w-fit items-center justify-center rounded-lg bg-black/5 px-3 py-1.5 text-xs font-medium dark:bg-white/5 dark:text-white">
-                                                        Contratos
-                                                    </div>
-
-                                                    {/* Sell shares input (large) */}
-                                                    <div className="mt-4 flex w-full flex-col items-center bg-transparent">
-                                                        <div className="relative my-1 flex h-14 w-full items-center justify-center rounded-lg bg-transparent p-3 text-lg font-semibold">
+                                                    {/* Contratos Input & Disp */}
+                                                    <div className="mt-5 mb-5 flex w-full items-center justify-between">
+                                                        <div className="flex flex-col">
+                                                            <span className="text-xl font-bold text-foreground dark:text-white">Contratos</span>
+                                                            <span className="text-[13px] font-medium text-[#606E85] dark:text-[#A1A7BB] mt-0.5 whitespace-nowrap">
+                                                                Disp. {(userPosition?.shares || 0).toFixed(2)}
+                                                            </span>
+                                                        </div>
+                                                        <div className="flex flex-col items-end w-1/2">
                                                             <input
-                                                                className="w-full max-w-full text-center bg-transparent font-bold placeholder:text-[#606E85]/30 dark:placeholder:text-white/30 dark:text-white text-[#0C131F]"
+                                                                className="w-full text-right bg-transparent font-bold placeholder:text-[#606E85]/30 dark:placeholder:text-white/20 dark:text-white text-[#0C131F] outline-none"
                                                                 placeholder="0"
                                                                 aria-label="input shares"
                                                                 inputMode="decimal"
@@ -531,24 +557,11 @@ export function MobilePredictionSheet({ market, side, open, onClose, onSuccess }
                                                                 spellCheck="false"
                                                                 pattern="[0-9.]*"
                                                                 type="text"
-                                                                value={sellShares > 0 ? sellShares.toString() : ''}
+                                                                value={sellSharesInput}
                                                                 onChange={handleSellSharesChange}
-                                                                style={{ fontSize: '3rem' }}
+                                                                style={{ fontSize: '2.5rem', lineHeight: '1' }}
                                                             />
                                                         </div>
-                                                    </div>
-
-                                                    {/* Available Contracts Display (aligned with Buy mode Balance - Mobile style) */}
-                                                    <div className="mb-4 flex min-h-[38px] w-full flex-row items-center justify-between rounded-[10px] border border-black/10 px-[13px] dark:border-white/10">
-                                                        <span className="flex items-center text-[13px] font-medium text-[#606E85] dark:text-[#A1A7BB]">
-                                                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" className="mr-[6px] size-[18px]">
-                                                                <path d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
-                                                            </svg>
-                                                            Contratos
-                                                        </span>
-                                                        <span className="text-[13px] font-medium text-[#606E85] dark:text-[#A1A7BB]">
-                                                            {userPosition.shares.toFixed(2)}
-                                                        </span>
                                                     </div>
 
                                                     <div className="w-full items-center justify-between gap-x-[7px] flex">
@@ -556,20 +569,23 @@ export function MobilePredictionSheet({ market, side, open, onClose, onSuccess }
                                                             { label: '25%', pct: 0.25 },
                                                             { label: '50%', pct: 0.50 },
                                                             { label: 'MAX', pct: 1.0 },
-                                                        ].map(({ label, pct }) => (
-                                                            <button
-                                                                key={label}
-                                                                onClick={() => setSellPercent(pct)}
-                                                                className={cn(
-                                                                    "flex w-full h-full max-h-[32px] items-center transition-all duration-100 justify-center rounded-md border border-black/10 dark:border-white/10 py-2 text-xs font-medium dark:text-white bg-black/5 dark:bg-transparent hover:bg-black/10 dark:hover:bg-white/5",
-                                                                    sellShares === Math.floor(userPosition!.shares * pct)
-                                                                        ? "border-[#606E85]/40 bg-black/10 dark:bg-white/10"
-                                                                        : ""
-                                                                )}
-                                                            >
-                                                                {label}
-                                                            </button>
-                                                        ))}
+                                                        ].map(({ label, pct }) => {
+                                                            const checkVal = pct === 1.0 ? userPosition?.shares?.toString() : Math.floor((userPosition?.shares || 0) * pct * 100) / 100;
+                                                            return (
+                                                                <button
+                                                                    key={label}
+                                                                    onClick={userPosition ? () => setSellPercent(pct) : undefined}
+                                                                    className={cn(
+                                                                        "flex w-full h-full max-h-[32px] items-center transition-all duration-100 justify-center rounded-md border border-black/10 dark:border-white/10 py-2 text-xs font-medium dark:text-white bg-black/5 dark:bg-transparent hover:bg-black/10 dark:hover:bg-white/5",
+                                                                        userPosition && sellSharesInput === checkVal?.toString()
+                                                                            ? "border-[#606E85]/40 bg-black/10 dark:bg-white/10"
+                                                                            : ""
+                                                                    )}
+                                                                >
+                                                                    {label}
+                                                                </button>
+                                                            );
+                                                        })}
                                                     </div>
 
                                                     {/* Sell Quote */}

@@ -71,6 +71,7 @@ export function AffiliateDashboardPage() {
       const res = await userApi.getAffiliateReferrals({ limit: 100, offset: 0 })
       setReferrals(res.data.referrals)
     } catch (error) {
+      if (error instanceof ApiClientError && error.status === 404) return
       console.error('Error fetching referrals', error)
     }
   }
@@ -80,6 +81,7 @@ export function AffiliateDashboardPage() {
       const res = await userApi.getAffiliateWithdrawals({ limit: 100, offset: 0 })
       setWithdrawals(res.data.withdrawals)
     } catch (error) {
+      if (error instanceof ApiClientError && error.status === 404) return
       console.error('Error fetching withdrawals', error)
     }
   }
@@ -97,16 +99,7 @@ export function AffiliateDashboardPage() {
     }
   }
 
-  useEffect(() => {
-    if (missingProfile) {
-      document.body.style.overflow = 'hidden'
-    } else {
-      document.body.style.overflow = 'unset'
-    }
-    return () => {
-      document.body.style.overflow = 'unset'
-    }
-  }, [missingProfile])
+  // Body overflow is handled by the Radix Dialog natively
 
   useEffect(() => {
     if (!isLoadingAuth && !isAuthenticated) {
@@ -138,18 +131,20 @@ export function AffiliateDashboardPage() {
       await userApi.enrollAffiliate({ referral_code: customAlias.trim() })
 
       try {
+        // Backend auto-creates a default campaign on enroll — delete it first
         const campaignsResult = await userApi.getAffiliateCampaigns()
-        const defaultCamp = campaignsResult.data?.campaigns?.[0]
+        const existingCampaigns = campaignsResult.data?.campaigns || []
 
-        const newCamp = await userApi.createAffiliateCampaign({
+        for (const camp of existingCampaigns) {
+          await userApi.deleteAffiliateCampaign(camp.id)
+        }
+
+        // Now create the single campaign with the user's chosen slug
+        await userApi.createAffiliateCampaign({
           name: 'Link Principal',
           slug: customAlias.trim(),
           landing_path: '/',
         })
-
-        if (defaultCamp && defaultCamp.id !== newCamp.data.id) {
-          await userApi.deleteAffiliateCampaign(defaultCamp.id)
-        }
       } catch (error) {
         console.error('Error enforcing exact link constraint', error)
       }
@@ -243,65 +238,158 @@ export function AffiliateDashboardPage() {
   if (!isAuthenticated) return null
  
   if (missingProfile) {
+    // Mock bar heights for the fake chart (deterministic)
+    const mockBars = [25, 38, 32, 45, 40, 55, 48, 60, 52, 68, 58, 72, 65, 78, 70, 82, 75, 85, 80, 90]
     return (
-      <div className="max-w-[1240px] mx-auto space-y-8 px-4 py-8">
-        <div className="flex flex-col gap-1.5">
-          <h1 className="text-2xl font-bold tracking-tight text-black dark:text-white">Portal de Afiliado</h1>
-          <p className="text-sm text-[#8A8C99]">Acompanhe seu desempenho em tempo real, gerencie campanhas e visualize suas comissões.</p>
-        </div>
-
-        <div className="relative">
-          <div className="opacity-20 blur-[2px] select-none pointer-events-none">
-            <div className="flex items-center gap-3 mb-8">
-              <Skeleton className="h-9 w-9 rounded-full" />
-              <Skeleton className="h-5 w-32" />
-              <Skeleton className="h-4 w-12 rounded-full ml-1" />
-            </div>
-            <Skeleton className="h-[480px] sm:h-[500px] w-full rounded-[24px] mb-8" />
+      <>
+        {/* Mock dashboard background — looks real, non-interactive */}
+        <div className="max-w-[1240px] mx-auto space-y-8 px-4 py-8 select-none pointer-events-none">
+          <div className="flex flex-col gap-1.5">
+            <h1 className="text-2xl font-bold tracking-tight text-black dark:text-white">Portal de Afiliado</h1>
+            <p className="text-sm text-[#8A8C99]">Acompanhe seu desempenho em tempo real, gerencie campanhas e visualize suas comissões.</p>
           </div>
 
-          <div className="absolute inset-0 z-10 flex items-center justify-center p-4 bg-background/30 backdrop-blur-[2px] rounded-[24px]">
-            <Card className="relative z-20 w-full max-w-[425px] overflow-hidden rounded-3xl border border-black/10 dark:border-white/10 bg-card shadow-[0_20px_50px_rgba(0,0,0,0.5)] animate-in zoom-in-95 duration-300 p-6">
-              <DialogHeader className="text-left">
-                <DialogTitle className="text-2xl">Boas-vindas a afiliados</DialogTitle>
-                <DialogDescription>
-                  Ative seu perfil para gerar seu link e comece a ganhar comissões hoje mesmo.
-                </DialogDescription>
-              </DialogHeader>
+          <div className="flex items-center gap-3">
+            <Avatar className="h-9 w-9 ring-1 ring-border shadow-sm">
+              <AvatarImage src={user?.avatar_url || undefined} />
+              <AvatarFallback>{user?.nickname?.substring(0, 2)?.toUpperCase() || 'AF'}</AvatarFallback>
+            </Avatar>
+            <span className="font-mono text-[15px] font-medium tracking-wide text-foreground">
+              {user?.nickname || 'seunome'}
+            </span>
+            <span className="ml-2 text-[10px] font-bold px-2 py-0.5 rounded uppercase bg-gray-500/10 text-gray-500">
+              Inativo
+            </span>
+          </div>
 
-              <div className="space-y-4 py-6">
-                <div className="space-y-2">
-                  <Label className="text-sm font-medium">Crie o seu link principal</Label>
-                  <div className="flex rounded-xl overflow-hidden border border-black/10 dark:border-white/10 bg-black/5 dark:bg-white/5 h-11">
-                    <div className="flex h-11 items-center justify-center bg-muted/40 px-3 text-xs font-medium text-muted-foreground border-r border-black/10 dark:border-white/10 select-none whitespace-nowrap">
-                      previzor.com/
-                    </div>
-                    <Input
-                      value={customAlias}
-                      onChange={(e) => setCustomAlias(e.target.value.toLowerCase().replace(/[^a-z0-9-_]/g, ''))}
-                      placeholder="seunome"
-                      className="border-0 bg-transparent h-11 ring-0 focus-visible:ring-0 focus-visible:ring-offset-0 rounded-none shadow-none text-sm font-medium"
-                      maxLength={20}
-                    />
+          <Card className="rounded-[24px] overflow-hidden border bg-card/40 backdrop-blur-sm shadow-sm">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 px-4 sm:px-6 pt-5 pb-4 sm:pb-2 border-b border-border/10">
+              <h2 className="text-sm font-semibold text-black dark:text-[#f0f0f0]">Desempenho</h2>
+              <div className="flex bg-black/5 dark:bg-white/5 p-1 rounded-xl gap-1 w-full sm:w-auto">
+                {['Hoje', '7D', '30D', 'Tudo'].map((label) => (
+                  <div
+                    key={label}
+                    className={cn(
+                      "px-3 py-1 text-[11px] font-bold rounded-lg flex-1 sm:flex-none whitespace-nowrap text-center",
+                      label === '7D'
+                        ? "bg-white dark:bg-zinc-800 text-black dark:text-white shadow-sm"
+                        : "text-[#8A8C99]"
+                    )}
+                  >
+                    {label}
+                  </div>
+                ))}
+              </div>
+            </div>
+            <div className="grid grid-cols-1 sm:grid-cols-3 border-b border-border/50">
+              <div className="px-4 sm:px-6 py-4 sm:py-5 border-b-2 border-transparent">
+                <div className="text-[12px] sm:text-[13px] font-medium text-muted-foreground mb-1">Cadastros</div>
+                <div className="text-2xl sm:text-3xl font-semibold tracking-tight">0</div>
+              </div>
+              <div className="px-4 sm:px-6 py-4 sm:py-5 border-b-2 border-transparent">
+                <div className="text-[12px] sm:text-[13px] font-medium text-muted-foreground mb-1">Traders ativos</div>
+                <div className="text-2xl sm:text-3xl font-semibold tracking-tight">0</div>
+              </div>
+              <div className="px-4 sm:px-6 py-4 sm:py-5 border-b-2 border-foreground">
+                <div className="flex items-center gap-2 text-[12px] sm:text-[13px] font-medium text-muted-foreground mb-1">
+                  Ganhos <img src="/512.gif" alt="Coins" className="h-4 w-4 object-contain" />
+                </div>
+                <div className="text-2xl sm:text-3xl font-semibold tracking-tight">R$&nbsp;0,00</div>
+              </div>
+            </div>
+
+            {/* Mock chart area */}
+            <div className="px-4 sm:px-6 py-6 h-[340px] sm:h-[400px] flex items-end gap-[6px]">
+              {mockBars.map((h, i) => (
+                <div key={i} className="flex-1 rounded-t-sm bg-blue-500/15 dark:bg-blue-400/10" style={{ height: `${h}%` }} />
+              ))}
+            </div>
+          </Card>
+
+          <div className="w-full mt-5">
+            <div className="rounded-3xl border-black/10 bg-transparent dark:border-white/5 dark:bg-transparent lg:mt-4 xl:border xl:p-5">
+              <div className="w-full relative h-full">
+                <div className="relative flex h-auto lg:h-10 flex-col lg:flex-row items-start lg:items-center justify-between gap-4">
+                  <div className="relative flex items-baseline mb-0 w-full lg:w-fit justify-start gap-x-2.5 pb-2 lg:pb-0">
+                    {['Campanhas', 'Indicações', 'Saques'].map((tab, i) => (
+                      <div
+                        key={tab}
+                        className={cn(
+                          "flex relative text-sm items-center py-2.5 px-4 h-fit w-fit rounded-xl font-medium",
+                          i === 0
+                            ? "dark:bg-white bg-black text-white dark:text-black"
+                            : "text-[#8A8C99] border border-black/10 dark:bg-white/5"
+                        )}
+                      >
+                        {tab}
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
+                <div className="w-full h-full p-0 mt-3">
+                  <div className="overflow-x-auto min-h-[200px] w-full rounded-lg">
+                    <table className="h-full min-w-full divide-y divide-black/10 dark:divide-white/5">
+                      <thead>
+                        <tr>
+                          <th className="whitespace-nowrap px-4 sm:px-6 py-3 text-left text-xs font-normal border-b border-black/10 text-[#8A8C99] dark:border-white/5 lg:px-4">Campanha</th>
+                          <th className="whitespace-nowrap px-4 sm:px-6 py-3 text-left text-xs font-normal border-b border-black/10 text-[#8A8C99] dark:border-white/5 lg:px-4">Cadastros</th>
+                          <th className="whitespace-nowrap px-4 sm:px-6 py-3 text-right text-xs font-normal border-b border-black/10 text-[#8A8C99] dark:border-white/5 lg:px-4">Ganhos</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        <tr>
+                          <td colSpan={3} className="py-20 text-center text-[#8A8C99] text-sm">Nenhuma campanha encontrada</td>
+                        </tr>
+                      </tbody>
+                    </table>
                   </div>
                 </div>
               </div>
-
-              <DialogFooter>
-                <Button
-                  size="lg"
-                  className="w-full h-12 rounded-xl font-bold text-[15px] bg-black dark:bg-white text-white dark:text-black"
-                  onClick={handleEnroll}
-                  disabled={enrolling || customAlias.trim().length < 3}
-                >
-                  {enrolling && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                  Ativar e Gerar Link
-                </Button>
-              </DialogFooter>
-            </Card>
+            </div>
           </div>
         </div>
-      </div>
+
+        {/* Enrollment Dialog — rendered in portal, header/sub-header stay fully interactive */}
+        <Dialog open={true}>
+          <DialogContent className="sm:max-w-[425px] rounded-3xl p-6 border-black/10 dark:border-white/10" onInteractOutside={(e) => e.preventDefault()} showCloseButton={false}>
+            <DialogHeader>
+              <DialogTitle className="text-2xl">Boas-vindas a afiliados</DialogTitle>
+              <DialogDescription>
+                Ative seu perfil para gerar seu link e comece a ganhar comissões hoje mesmo.
+              </DialogDescription>
+            </DialogHeader>
+            <div className="space-y-4 py-4">
+              <div className="space-y-2">
+                <Label className="text-sm font-medium">Crie o seu link principal</Label>
+                <div className="flex rounded-xl overflow-hidden border border-black/10 dark:border-white/10 bg-black/5 dark:bg-white/5 h-11">
+                  <div className="flex h-11 items-center justify-center bg-muted/40 px-3 text-xs font-medium text-muted-foreground border-r border-black/10 dark:border-white/10 select-none whitespace-nowrap">
+                    previzor.com/
+                  </div>
+                  <Input
+                    value={customAlias}
+                    onChange={(e) => setCustomAlias(e.target.value.toLowerCase().replace(/[^a-z0-9-_]/g, ''))}
+                    placeholder="seunome"
+                    className="border-0 bg-transparent h-11 ring-0 focus-visible:ring-0 focus-visible:ring-offset-0 rounded-none shadow-none text-sm font-medium"
+                    maxLength={20}
+                  />
+                </div>
+              </div>
+            </div>
+            <DialogFooter>
+              <Button
+                size="lg"
+                className="w-full h-12 rounded-xl font-bold text-[15px] bg-black dark:bg-white text-white dark:text-black"
+                onClick={handleEnroll}
+                disabled={enrolling || customAlias.trim().length < 3}
+              >
+                {enrolling && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                Ativar e Gerar Link
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+      </>
     )
   }
 

@@ -50,8 +50,9 @@ export function SubHeader() {
         return () => { mounted = false }
     }, [])
 
-    // Only show SubHeader on home page, eventos list page, and afiliado page
-    const shouldShow = pathname === '/' || pathname === '/eventos' || pathname === '/afiliado'
+    // Define paths where SubHeader should NOT be shown
+    const excludedPaths = ['/auth', '/termos', '/privacidade', '/reset-password', '/u/']
+    const shouldShow = !excludedPaths.some(path => pathname.startsWith(path))
 
     if (!shouldShow) {
         return null

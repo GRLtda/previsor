@@ -5,6 +5,7 @@ import { userApi } from '@/lib/api/client'
 import type { ActivityItem } from '@/lib/types'
 import { Loader2 } from 'lucide-react'
 import { useActivityRealTime } from '@/hooks/use-market-ws'
+import Link from 'next/link'
 
 interface ActivityFeedProps {
     eventId: string
@@ -103,7 +104,10 @@ export function ActivityFeed({ eventId }: ActivityFeedProps) {
                     <div className="flex justify-between px-0 py-4 text-sm font-medium lg:flex-row lg:items-center">
                         <div className="flex items-center gap-x-3">
                             {/* Avatar */}
-                            <div className="flex size-[40px] min-w-[40px] items-center justify-center rounded-full bg-black/10 dark:bg-white/10 overflow-hidden">
+                            <Link 
+                                href={item.user.nickname ? `/@${item.user.nickname}` : `/profile/${item.user.userId}`}
+                                className="flex size-[40px] min-w-[40px] items-center justify-center rounded-full bg-black/10 dark:bg-white/10 overflow-hidden hover:opacity-80 transition-opacity"
+                            >
                                 {item.user.avatarUrl ? (
                                     <img
                                         src={item.user.avatarUrl}
@@ -115,12 +119,17 @@ export function ActivityFeed({ eventId }: ActivityFeedProps) {
                                         {item.user.firstName.charAt(0).toUpperCase()}
                                     </span>
                                 )}
-                            </div>
+                            </Link>
 
                             <div className="flex flex-col">
                                 <p className="flex flex-col items-start gap-x-1 text-[13px] font-medium dark:text-white lg:items-start lg:text-sm">
                                     <span className="flex items-center gap-1 flex-wrap">
-                                        <span className="font-semibold">{item.user.firstName}</span>
+                                        <Link 
+                                            href={item.user.nickname ? `/@${item.user.nickname}` : `/profile/${item.user.userId}`}
+                                            className="font-semibold hover:text-blue-500 dark:hover:text-blue-400 transition-colors"
+                                        >
+                                            {item.user.firstName}
+                                        </Link>
                                         <span className="text-[#606E85] dark:text-[#A1A7BB]">
                                             {item.shares < 0 ? 'vendeu' : 'comprou'}
                                         </span>

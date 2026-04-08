@@ -15,6 +15,8 @@ interface PredictionPanelProps {
     market: Market
     side: 'YES' | 'NO'
     onSuccess?: (market: Market) => void
+    isMultiMarket?: boolean
+    onSideChange?: (side: 'YES' | 'NO') => void
 }
 
 interface Quote {
@@ -35,7 +37,7 @@ interface SellQuote {
     slippageWarning: boolean
 }
 
-export function PredictionPanel({ market, side, onSuccess }: PredictionPanelProps) {
+export function PredictionPanel({ market, side, onSuccess, isMultiMarket, onSideChange }: PredictionPanelProps) {
     const router = useRouter()
     const { isAuthenticated, isOtpVerified, user } = useAuth()
     const { openAuthModal } = useAuthModal()
@@ -54,7 +56,8 @@ export function PredictionPanel({ market, side, onSuccess }: PredictionPanelProp
     // ── SELL state ────────────────────────────────────────────────────
     const [userPosition, setUserPosition] = useState<Position | null>(null)
     const [isLoadingPosition, setIsLoadingPosition] = useState(false)
-    const [sellShares, setSellShares] = useState<number>(0)
+    const [sellSharesInput, setSellSharesInput] = useState<string>('')
+    const sellShares = Number.parseFloat(sellSharesInput || '0')
     const [sellQuote, setSellQuote] = useState<SellQuote | null>(null)
     const [isLoadingSellQuote, setIsLoadingSellQuote] = useState(false)
     const [isSelling, setIsSelling] = useState(false)
@@ -68,7 +71,7 @@ export function PredictionPanel({ market, side, onSuccess }: PredictionPanelProp
     useEffect(() => {
         setQuote(null)
         setSellQuote(null)
-        setSellShares(0)
+        setSellSharesInput('')
     }, [market.id, side])
 
     // ── Fetch user position for sell tab ─────────────────────────────
@@ -195,7 +198,7 @@ export function PredictionPanel({ market, side, onSuccess }: PredictionPanelProp
             // Re-fetch position to update state for partial sales
             await fetchUserPosition()
             
-            setSellShares(0)
+            setSellSharesInput('')
             setSellQuote(null)
             setShowSellSuccess(true)
             
@@ -231,24 +234,45 @@ export function PredictionPanel({ market, side, onSuccess }: PredictionPanelProp
         setShowSellSuccess(false)
         setAmount('')
         setQuote(null)
-        setSellShares(0)
+        setSellSharesInput('')
         setSellQuote(null)
     }
 
     const setSellPercent = (pct: number) => {
         if (!userPosition) return
-        const shares = Math.floor(userPosition.shares * pct)
-        setSellShares(shares)
+        const val = userPosition.shares * pct
+        if (pct === 1.0) {
+            setSellSharesInput(val.toString()) // give exact precision to backend
+        } else {
+            setSellSharesInput((Math.floor(val * 100) / 100).toString()) // floor to 2 digits max
+        }
     }
 
     const handleSellSharesChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-        if (!userPosition) return
-        const val = e.target.value.replace(/[^0-9.]/g, '')
+        let val = e.target.value.replace(/[^0-9.]/g, '')
+
+        // Prevent multiple dots
+        const parts = val.split('.')
+        if (parts.length > 2) {
+            val = parts[0] + '.' + parts.slice(1).join('')
+        }
+
+        // Limit to 2 decimals visually
+        if (val.includes('.')) {
+            const [intPart, decPart] = val.split('.')
+            if (decPart && decPart.length > 2) {
+                val = `${intPart}.${decPart.slice(0, 2)}`
+            }
+        }
+
+        const maxSharesStr = (userPosition?.shares || 0).toFixed(2)
+        const maxShares = Number.parseFloat(maxSharesStr)
         const num = Number.parseFloat(val || '0')
-        if (num > userPosition.shares) {
-            setSellShares(userPosition.shares)
+
+        if (num > maxShares) {
+            setSellSharesInput(maxSharesStr)
         } else {
-            setSellShares(num)
+            setSellSharesInput(val)
         }
     }
 
@@ -344,32 +368,23 @@ export function PredictionPanel({ market, side, onSuccess }: PredictionPanelProp
                             <div className="flex size-full flex-col rounded-2xl">
 
                                 {/* ── Header ── */}
-                                <div className="relative flex w-full items-center">
-                                    <div className="flex items-center gap-1 w-full rounded-lg bg-black/5 dark:bg-white/5 p-2.5 text-xs font-semibold dark:text-white overflow-hidden">
-                                        <span className="shrink-0">Sua Previsão:</span>
-                                        <span className={cn(
-                                            "flex items-center gap-[2px] min-w-0",
-                                            isYes ? "text-[#00B471]" : "text-[#EE5F67]"
-                                        )}>
-                                            {isYes ? (
-                                                <svg className="shrink-0" width="12" height="12" viewBox="0 0 12 12" fill="none" xmlns="http://www.w3.org/2000/svg">
-                                                    <path d="M6 11C8.75 11 11 8.75 11 6C11 3.25 8.75 1 6 1C3.25 1 1 3.25 1 6C1 8.75 3.25 11 6 11Z" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" />
-                                                    <path d="M3.875 5.99996L5.29 7.41496L8.125 4.58496" stroke="currentColor" strokeWidth="1.03571" strokeLinecap="round" strokeLinejoin="round" />
-                                                </svg>
-                                            ) : (
-                                                <svg className="shrink-0" width="12" height="12" viewBox="0 0 12 12" fill="none" xmlns="http://www.w3.org/2000/svg">
-                                                    <path d="M6 11C8.75 11 11 8.75 11 6C11 3.25 8.75 1 6 1C3.25 1 1 3.25 1 6C1 8.75 3.25 11 6 11Z" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" />
-                                                    <path d="M4.58496 7.41496L7.41496 4.58496" stroke="currentColor" strokeWidth="1.03571" strokeLinecap="round" strokeLinejoin="round" />
-                                                    <path d="M7.41496 7.41496L4.58496 4.58496" stroke="currentColor" strokeWidth="0.776786" strokeLinecap="round" strokeLinejoin="round" />
-                                                </svg>
+                                {isMultiMarket && (
+                                    <div className="relative flex w-full items-center mb-3">
+                                        <div className="flex items-center gap-3 w-full">
+                                            {market.imageUrl && (
+                                                <div className="shrink-0 overflow-hidden rounded-[8px] bg-muted flex items-center justify-center size-9">
+                                                    <img src={market.imageUrl} alt={market.statement} className="size-full object-cover" />
+                                                </div>
                                             )}
-                                            <span className="truncate">{market.statement}</span>
-                                        </span>
+                                            <span className="text-[17px] font-bold dark:text-white truncate">
+                                                {market.statement}
+                                            </span>
+                                        </div>
                                     </div>
-                                </div>
+                                )}
 
                                 {/* ── Buy / Sell Tabs ── */}
-                                <div className="flex mt-3 rounded-lg bg-black/5 dark:bg-white/5 p-0.5">
+                                <div className="flex mt-1 rounded-lg bg-black/5 dark:bg-white/5 p-0.5">
                                     <button
                                         onClick={() => setTradeMode('buy')}
                                         className={cn(
@@ -394,43 +409,62 @@ export function PredictionPanel({ market, side, onSuccess }: PredictionPanelProp
                                     </button>
                                 </div>
 
+                                {/* ── Sim / Não Selectors ── */}
+                                <div className="flex gap-2 w-full mt-4">
+                                    <button
+                                        onClick={() => onSideChange?.('YES')}
+                                        className={cn(
+                                            "flex-1 py-2.5 px-4 rounded-[10px] font-bold text-[15px] transition-all flex items-center justify-between border",
+                                            side === 'YES' 
+                                                ? "bg-[#00B471] border-[#00B471] text-white" 
+                                                : "bg-transparent border-black/10 dark:border-white/10 text-foreground hover:bg-black/5 dark:hover:bg-white/5"
+                                        )}
+                                    >
+                                        <span>Sim</span>
+                                        <span className={side === 'YES' ? "text-white/80" : "text-[#606E85] dark:text-[#A1A7BB]"}>{Math.round(market.probYes)}%</span>
+                                    </button>
+                                    <button
+                                        onClick={() => onSideChange?.('NO')}
+                                        className={cn(
+                                            "flex-1 py-2.5 px-4 rounded-[10px] font-bold text-[15px] transition-all flex items-center justify-between border",
+                                            side === 'NO' 
+                                                ? "bg-[#EE5F67] border-[#EE5F67] text-white" 
+                                                : "bg-transparent border-black/10 dark:border-white/10 text-foreground hover:bg-black/5 dark:hover:bg-white/5"
+                                        )}
+                                    >
+                                        <span>Não</span>
+                                        <span className={side === 'NO' ? "text-white/80" : "text-[#606E85] dark:text-[#A1A7BB]"}>{Math.round(market.probNo)}%</span>
+                                    </button>
+                                </div>
+
                                 {/* ════════════════════════════════════
                                      BUY MODE
                                 ════════════════════════════════════ */}
                                 {tradeMode === 'buy' && (
                                     <>
-                                        <div className="mx-auto mb-2 mt-3 flex w-fit items-center justify-center rounded-lg bg-black/5 px-3 py-1.5 text-xs font-medium dark:bg-white/5 dark:text-white">
-                                            Informar Valor
-                                        </div>
-
-                                        {/* Amount Input */}
-                                        <div className="mt-3 flex w-full flex-col items-center bg-transparent">
-                                            <div className="relative my-1 flex h-14 w-full items-center justify-center rounded-lg bg-transparent p-3 text-lg font-semibold">
-                                                <div className="flex w-full flex-col items-center justify-center">
-                                                    <div className="relative flex w-full items-center justify-center">
-                                                        <input
-                                                            className="w-full max-w-full text-center bg-transparent font-bold placeholder:text-[#606E85]/30 dark:placeholder:text-white/30 dark:text-white text-[#0C131F]"
-                                                            placeholder="R$0"
-                                                            aria-label="input amount"
-                                                            inputMode="decimal"
-                                                            autoComplete="off"
-                                                            spellCheck="false"
-                                                            pattern="[0-9.,]*"
-                                                            type="text"
-                                                            value={amount ? `R$${amount}` : ''}
-                                                            onChange={handleInputChange}
-                                                            style={{ fontSize: '3rem' }}
-                                                        />
-                                                    </div>
-                                                </div>
+                                        {/* Amount Input & Balance */}
+                                        <div className="mt-5 mb-1 flex w-full items-center justify-between">
+                                            <div className="flex flex-col">
+                                                <span className="text-xl font-bold text-foreground dark:text-white">Valor</span>
+                                                <span className="text-[13px] font-medium text-[#606E85] dark:text-[#A1A7BB] mt-0.5 whitespace-nowrap">
+                                                    Saldo R${balanceFormatted}
+                                                </span>
                                             </div>
-                                        </div>
-
-                                        {/* Balance Display */}
-                                        <div className="flex items-center justify-center">
-                                            <span className="whitespace-nowrap text-[13px] font-medium dark:text-white">
-                                                <span className="text-[#606E85] dark:text-[#A1A7BB]">Saldo :</span> R${balanceFormatted}
-                                            </span>
+                                            <div className="flex flex-col items-end w-1/2">
+                                                <input
+                                                    className="w-full text-right bg-transparent font-bold placeholder:text-[#606E85]/30 dark:placeholder:text-white/20 dark:text-white text-[#0C131F] outline-none"
+                                                    placeholder="R$0"
+                                                    aria-label="input amount"
+                                                    inputMode="decimal"
+                                                    autoComplete="off"
+                                                    spellCheck="false"
+                                                    pattern="[0-9.,]*"
+                                                    type="text"
+                                                    value={amount ? `R$${amount}` : ''}
+                                                    onChange={handleInputChange}
+                                                    style={{ fontSize: '2.5rem', lineHeight: '1' }}
+                                                />
+                                            </div>
                                         </div>
 
                                         {/* Quote Preview */}
@@ -514,7 +548,7 @@ export function PredictionPanel({ market, side, onSuccess }: PredictionPanelProp
                                                 {isLoading ? 'Processando...' :
                                                     !isMarketOpen ? 'Mercado Encerrado' :
                                                         amountCents > balance ? 'Depositar' :
-                                                            `${isYes ? 'Sim' : 'Não'} R$ ${amount || '0'}`}
+                                                            `Comprar ${isYes ? 'Sim' : 'Não'}`}
                                             </button>
                                         )}
                                     </>
@@ -542,28 +576,19 @@ export function PredictionPanel({ market, side, onSuccess }: PredictionPanelProp
                                                     Entrar
                                                 </button>
                                             </div>
-                                        ) : !userPosition ? (
-                                            <div className="flex flex-col items-center justify-center py-10 gap-2">
-                                                <svg width="40" height="40" viewBox="0 0 24 24" fill="none" className="text-[#606E85] dark:text-[#A1A7BB] opacity-40">
-                                                    <path d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
-                                                </svg>
-                                                <span className="text-sm text-[#606E85] dark:text-[#A1A7BB] text-center">
-                                                    Você não tem posição ativa em {isYes ? 'Sim' : 'Não'} neste mercado
-                                                </span>
-                                            </div>
                                         ) : (
                                             <>
-
-
-                                                <div className="mx-auto mb-2 mt-3 flex w-fit items-center justify-center rounded-lg bg-black/5 px-3 py-1.5 text-xs font-medium dark:bg-white/5 dark:text-white">
-                                                    Contratos
-                                                </div>
-
-                                                {/* Sell shares input (large) */}
-                                                <div className="mt-4 flex w-full flex-col items-center bg-transparent">
-                                                    <div className="relative my-1 flex h-14 w-full items-center justify-center rounded-lg bg-transparent p-3 text-lg font-semibold">
+                                                {/* Contratos Input & Disp */}
+                                                <div className="mt-5 mb-5 flex w-full items-center justify-between">
+                                                    <div className="flex flex-col">
+                                                        <span className="text-xl font-bold text-foreground dark:text-white">Contratos</span>
+                                                        <span className="text-[13px] font-medium text-[#606E85] dark:text-[#A1A7BB] mt-0.5 whitespace-nowrap">
+                                                            Disp. {(userPosition?.shares || 0).toFixed(2)}
+                                                        </span>
+                                                    </div>
+                                                    <div className="flex flex-col items-end w-1/2">
                                                         <input
-                                                            className="w-full max-w-full text-center bg-transparent font-bold placeholder:text-[#606E85]/30 dark:placeholder:text-white/30 dark:text-white text-[#0C131F]"
+                                                            className="w-full text-right bg-transparent font-bold placeholder:text-[#606E85]/30 dark:placeholder:text-white/20 dark:text-white text-[#0C131F] outline-none"
                                                             placeholder="0"
                                                             aria-label="input shares"
                                                             inputMode="decimal"
@@ -571,18 +596,11 @@ export function PredictionPanel({ market, side, onSuccess }: PredictionPanelProp
                                                             spellCheck="false"
                                                             pattern="[0-9.]*"
                                                             type="text"
-                                                            value={sellShares > 0 ? sellShares.toString() : ''}
+                                                            value={sellSharesInput}
                                                             onChange={handleSellSharesChange}
-                                                            style={{ fontSize: '3rem' }}
+                                                            style={{ fontSize: '2.5rem', lineHeight: '1' }}
                                                         />
                                                     </div>
-                                                </div>
-
-                                                {/* Available Contracts Display (aligned with Buy mode Balance) */}
-                                                <div className="flex items-center justify-center mb-4">
-                                                    <span className="whitespace-nowrap text-[13px] font-medium dark:text-white">
-                                                        <span className="text-[#606E85] dark:text-[#A1A7BB]">Contratos :</span> {userPosition.shares.toFixed(2)}
-                                                    </span>
                                                 </div>
 
                                                 <div className="w-full items-center justify-between gap-x-[7px] flex">
@@ -593,10 +611,10 @@ export function PredictionPanel({ market, side, onSuccess }: PredictionPanelProp
                                                     ].map(({ label, pct }) => (
                                                         <button
                                                             key={label}
-                                                            onClick={() => setSellPercent(pct)}
+                                                            onClick={userPosition ? () => setSellPercent(pct) : undefined}
                                                             className={cn(
                                                                 "flex w-full h-full max-h-[32px] items-center transition-all duration-100 justify-center rounded-md border py-2 text-xs font-medium dark:text-white",
-                                                                sellShares === Math.floor(userPosition.shares * pct)
+                                                                userPosition && sellShares === Math.floor((userPosition?.shares || 0) * pct)
                                                                     ? "border-[#606E85]/40 bg-black/10 dark:bg-white/10"
                                                                     : "border-black/10 dark:border-white/10 hover:bg-black/5 dark:hover:bg-white/5"
                                                             )}

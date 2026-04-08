@@ -457,7 +457,7 @@ export function UserHeader() {
                           gapClassName="bg-[#0B0B0F]" // Blend with header background
                         />
                         <span className="text-sm font-semibold text-black dark:text-white hidden sm:block">
-                          {user?.full_name?.split(' ')[0] || 'Usuário'}
+                          {user?.nickname || user?.full_name?.split(' ')[0] || 'Usuário'}
                         </span>
                         <div className="flex h-[20px] w-[20px] items-center justify-center">
                           <svg width="10" height="10" viewBox="0 0 12 12" fill="none" xmlns="http://www.w3.org/2000/svg" className="dark:text-white text-black opacity-70">
@@ -483,7 +483,7 @@ export function UserHeader() {
                         <div className="flex flex-col justify-center">
                           <div className="mb-1 flex items-center justify-start gap-2">
                             <span className="text-base font-semibold leading-none text-black dark:text-white">
-                              {user?.full_name?.split(' ')[0] || 'Usuário'}
+                              {user?.nickname || user?.full_name?.split(' ')[0] || 'Usuário'}
                             </span>
                           </div>
                           <button
@@ -521,6 +521,13 @@ export function UserHeader() {
                         >
                           <UserIcon className="size-5 text-black/50 dark:text-white/50" />
                           <span>Perfil</span>
+                        </DropdownMenuItem>
+                        <DropdownMenuItem
+                          onClick={() => router.push('/afiliado')}
+                          className="flex h-11 w-full items-center gap-3 rounded-xl px-4 text-sm font-medium text-black dark:text-white cursor-pointer hover:bg-black/5 dark:hover:bg-white/5 focus:bg-black/5 dark:focus:bg-white/5 outline-none transition-colors"
+                        >
+                          <Share2 className="size-5 text-black/50 dark:text-white/50" />
+                          <span>Afiliado</span>
                         </DropdownMenuItem>
 
 

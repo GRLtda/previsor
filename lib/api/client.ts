@@ -136,7 +136,11 @@ async function refreshUserToken(): Promise<boolean> {
 
     const data = await response.json()
     if (data.success) {
-      setTokens('user', data.data)
+      const currentlyVerified = isOtpVerified()
+      setTokens('user', { 
+        ...data.data,
+        verified_otp: currentlyVerified ? true : data.data.verified_otp
+      })
       return true
     }
     return false
@@ -556,6 +560,67 @@ export const userApi = {
       { params }
     ),
 
+  // Affiliate program
+  registerAffiliateClick: (data: {
+    slug: string
+    landing_path?: string
+    referrer_url?: string
+  }) =>
+    baseFetch<{ success: true; data: { click_id: string; campaign_slug: string; attribution_model: 'first_click' | 'last_click' | 'logged_in'; attribution_window_days: number; expires_at: string } }>(
+      'user',
+      '/v1/affiliate/clicks',
+      { method: 'POST', body: data }
+    ),
+
+  enrollAffiliate: (data?: { display_name?: string; referral_code?: string }) =>
+    baseFetch<{ success: true; data: { id: string; status: string; referral_code: string; display_name: string; created_at: string } }>(
+      'user',
+      '/v1/affiliate/me/enroll',
+      { method: 'POST', body: data || {} }
+    ),
+
+  getAffiliateDashboard: (params?: { period?: 'today' | '7d' | '30d' | 'total'; chart_metric?: 'earnings' | 'registrations' | 'active_players' }) =>
+    baseFetch<{ success: true; data: import('@/lib/types').AffiliateDashboard }>(
+      'user',
+      '/v1/affiliate/me/dashboard',
+      { params }
+    ),
+
+  getAffiliateCampaigns: (params?: { status?: string }) =>
+    baseFetch<{ success: true; data: { campaigns: import('@/lib/types').AffiliateCampaign[] } }>(
+      'user',
+      '/v1/affiliate/me/campaigns',
+      { params }
+    ),
+
+  createAffiliateCampaign: (data: { name: string; slug?: string; landing_path: string }) =>
+    baseFetch<{ success: true; data: import('@/lib/types').AffiliateCampaign }>(
+      'user',
+      '/v1/affiliate/me/campaigns',
+      { method: 'POST', body: data }
+    ),
+
+  deleteAffiliateCampaign: (id: string) =>
+    baseFetch<{ success: true; data: { deleted: boolean } }>(
+      'user',
+      `/v1/affiliate/me/campaigns/${id}`,
+      { method: 'DELETE' }
+    ),
+
+  getAffiliateReferrals: (params?: { status?: string; campaign_id?: string; limit?: number; offset?: number }) =>
+    baseFetch<{ success: true; data: { referrals: import('@/lib/types').AffiliateReferral[]; limit: number; offset: number } }>(
+      'user',
+      '/v1/affiliate/me/referrals',
+      { params }
+    ),
+
+  getAffiliateWithdrawals: (params?: { status?: string; limit?: number; offset?: number }) =>
+    baseFetch<{ success: true; data: { withdrawals: import('@/lib/types').AffiliateWithdrawal[]; limit: number; offset: number } }>(
+      'user',
+      '/v1/affiliate/me/withdrawals',
+      { params }
+    ),
+
   // Favorites
   toggleFavorite: (eventId: string) =>
     baseFetch<{ success: true; data: { isFavorite: boolean; eventId: string } }>(
@@ -948,6 +1013,114 @@ export const adminApi = {
       'admin',
       `/withdrawals/${id}/approve`,
       { method: 'POST' }
+    ),
+
+  // Affiliate Program
+  getAffiliatesOverview: (params?: { date_from?: string; date_to?: string }) =>
+    baseFetch<{ success: true; data: import('@/lib/types').AdminAffiliateOverview }>(
+      'admin',
+      '/affiliates/overview',
+      { params }
+    ),
+
+  getAffiliates: (params?: { page?: number; per_page?: number; status?: string; search?: string; date_from?: string; date_to?: string }) =>
+    baseFetch<{
+      success: true
+      data: import('@/lib/types').AdminAffiliate[]
+      meta: import('@/lib/types').PaginationMeta
+      pagination: import('@/lib/types').PaginationMeta
+    }>(
+      'admin',
+      '/affiliates',
+      { params }
+    ),
+
+  getAffiliate: (id: string) =>
+    baseFetch<{ success: true; data: { affiliate: import('@/lib/types').AdminAffiliate } }>(
+      'admin',
+      `/affiliates/${id}`
+    ),
+
+  getAffiliateSummary: (id: string) =>
+    baseFetch<{ success: true; data: import('@/lib/types').AdminAffiliateSummary }>(
+      'admin',
+      `/affiliates/${id}/summary`
+    ),
+
+  getAffiliateReferrals: (id: string, params?: { page?: number; per_page?: number; status?: string; deposited?: boolean; active?: boolean; date_from?: string; date_to?: string }) =>
+    baseFetch<{
+      success: true
+      data: import('@/lib/types').AdminAffiliateReferralListItem[]
+      meta: import('@/lib/types').PaginationMeta
+      pagination: import('@/lib/types').PaginationMeta
+    }>(
+      'admin',
+      `/affiliates/${id}/referrals`,
+      { params }
+    ),
+
+  getAffiliateCommissions: (params?: { page?: number; per_page?: number; affiliate_id?: string; status?: string; source_type?: string; date_from?: string; date_to?: string }) =>
+    baseFetch<{
+      success: true
+      data: import('@/lib/types').AdminAffiliateCommission[]
+      meta: import('@/lib/types').PaginationMeta
+      pagination: import('@/lib/types').PaginationMeta
+    }>(
+      'admin',
+      '/affiliates/commissions',
+      { params }
+    ),
+
+  getAffiliateWithdrawals: (params?: { page?: number; per_page?: number; affiliate_id?: string; status?: string; date_from?: string; date_to?: string }) =>
+    baseFetch<{
+      success: true
+      data: import('@/lib/types').AdminAffiliateWithdrawal[]
+      meta: import('@/lib/types').PaginationMeta
+      pagination: import('@/lib/types').PaginationMeta
+    }>(
+      'admin',
+      '/affiliates/withdrawals',
+      { params }
+    ),
+
+  approveAffiliate: (id: string) =>
+    baseFetch<{ success: true; data: { affiliate_id: string; status: string } }>(
+      'admin',
+      `/affiliates/${id}/approve`,
+      { method: 'POST' }
+    ),
+
+  blockAffiliate: (id: string, reason?: string) =>
+    baseFetch<{ success: true; data: { affiliate_id: string; status: string; blocked_reason?: string | null } }>(
+      'admin',
+      `/affiliates/${id}/block`,
+      { method: 'POST', body: { reason } }
+    ),
+
+  getAffiliateRules: () =>
+    baseFetch<{ success: true; data: { rules: any[] } }>(
+      'admin',
+      '/affiliates/rules'
+    ),
+
+  upsertAffiliateRule: (data: {
+    id?: string
+    name: string
+    scope_type: 'global' | 'affiliate' | 'campaign'
+    scope_affiliate_id?: string
+    scope_campaign_id?: string
+    source_type: 'any' | 'market_buy_fee' | 'market_sell_fee' | 'deposit_fee' | 'withdraw_fee'
+    level: number
+    basis: 'revenue' | 'commission'
+    rate_bps: number
+    hold_days: number
+    priority: number
+    active: boolean
+  }) =>
+    baseFetch<{ success: true; data: any }>(
+      'admin',
+      '/affiliates/rules',
+      { method: 'POST', body: data }
     ),
 
   // Categories

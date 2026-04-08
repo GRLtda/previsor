@@ -50,8 +50,8 @@ export function SubHeader() {
         return () => { mounted = false }
     }, [])
 
-    // Only show SubHeader on home page and eventos list page
-    const shouldShow = pathname === '/' || pathname === '/eventos'
+    // Only show SubHeader on home page, eventos list page, and afiliado page
+    const shouldShow = pathname === '/' || pathname === '/eventos' || pathname === '/afiliado'
 
     if (!shouldShow) {
         return null

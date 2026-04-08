@@ -10,6 +10,7 @@ import { Loader2, User, Mail, Phone, Lock } from 'lucide-react'
 import { toast } from 'sonner'
 import { ApiClientError } from '@/lib/api/client'
 import Link from 'next/link'
+import { getStoredAffiliateTracking } from '@/lib/affiliate-tracking'
 
 interface RegisterFormProps {
     onSuccess: (email: string) => void
@@ -33,6 +34,7 @@ function formatPhone(value: string) {
 
 export function RegisterForm({ onSuccess, onLoginClick }: RegisterFormProps) {
     const { register } = useAuth()
+    const affiliateTracking = getStoredAffiliateTracking()
     const [formData, setFormData] = useState({
         cpf: '', // For now we keep CPF as asked in the backend, even though it's not in the image explicitly. Let's hide it behind Name or just assume Name is CPF if needed. Actually, let's just make it CPF visibly, or ask Name instead. Since backend needs cpf, let's keep it. But reference has "Nome Completo". Let's show both.
         name: '',
@@ -65,6 +67,12 @@ export function RegisterForm({ onSuccess, onLoginClick }: RegisterFormProps) {
                 phone: formData.phone.replace(/\D/g, ''),
                 password: formData.password,
                 accept_terms: true,
+                affiliate: affiliateTracking
+                    ? {
+                        click_id: affiliateTracking.click_id,
+                        campaign_slug: affiliateTracking.campaign_slug,
+                    }
+                    : undefined,
                 // full_name: formData.name, // assuming we might want to pass name if backend supported it, but we'll stick to what is there
             })
 
@@ -177,6 +185,8 @@ export function RegisterForm({ onSuccess, onLoginClick }: RegisterFormProps) {
                         Ao se registrar você concorda com nossos <Link href="/termos" target="_blank" className="font-bold text-black dark:text-white hover:underline">Termos de Uso</Link>
                     </p>
                 </div>
+
+
 
                 <div className="pt-2">
                     <Button type="submit" className="w-full h-12 font-bold text-[15px] shadow-sm tracking-wide rounded-xl bg-brand text-white hover:brightness-110" disabled={isLoading}>

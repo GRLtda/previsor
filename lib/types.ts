@@ -252,6 +252,185 @@ export interface Withdrawal {
   created_at: string
 }
 
+export interface AffiliateCampaign {
+  id: string
+  name: string
+  slug: string
+  link: string
+  landing_path?: string
+  status: 'active' | 'inactive' | 'archived'
+  created_at: string
+  clicks: number
+  registrations: number
+  active_players: number
+  gross_revenue: number
+  commission_generated: number
+  conversion_rate: number
+}
+
+export interface AffiliateReferral {
+  id: string
+  user_id: string
+  masked_identity: string
+  registered_at: string
+  campaign_name: string | null
+  campaign_slug: string | null
+  status: 'attributed' | 'active' | 'suspicious' | 'rejected'
+  deposited: boolean
+  active: boolean
+  total_deposit_amount: number
+  revenue_generated: number
+  commission_generated: number
+  last_event_at: string | null
+}
+
+export interface AffiliateWithdrawal {
+  id: string
+  requested_amount: number
+  approved_amount: number
+  fee_amount: number
+  net_amount: number
+  status: 'pending' | 'approved' | 'paid' | 'rejected' | 'cancelled' | 'blocked'
+  payment_method: string
+  payment_destination: Record<string, unknown>
+  admin_notes: string | null
+  rejection_reason: string | null
+  requested_at: string
+  reviewed_at: string | null
+  paid_at: string | null
+}
+
+export interface AffiliateDashboard {
+  profile: {
+    status: 'pending' | 'active' | 'blocked' | 'rejected' | 'suspended'
+    referral_code: string
+    display_name: string
+  }
+  balances: {
+    pending: number
+    paid: number
+  }
+  totals: {
+    total_registrations: number
+    total_active_players: number
+    total_commission_generated: number
+  }
+  chart: {
+    points: Array<{
+      day: string
+      registrations: number
+      active_players: number
+      earnings: number
+    }>
+  }
+  campaigns: Array<{
+    id: string
+    name: string
+    link: string
+    registrations: number
+    commission_generated: number
+  }>
+}
+
+export interface AdminAffiliate {
+  id: string
+  user_id: string
+  email: string
+  full_name: string
+  status: 'pending' | 'active' | 'blocked' | 'rejected' | 'suspended'
+  referral_code: string
+  display_name: string
+  balances: {
+    pending: number
+    available: number
+    processing: number
+    paid: number
+  }
+  total_revenue_generated: number
+  total_commission_generated: number
+  total_referrals: number
+  total_active_referrals: number
+  parent_affiliate_id: string | null
+  approved_at: string | null
+  blocked_reason: string | null
+  created_at: string
+}
+
+export interface AdminAffiliateCommission {
+  id: string
+  affiliate_id: string
+  affiliate_name: string
+  affiliate_email: string
+  referred_user_id: string | null
+  source_type: string
+  commission_type: string
+  level: number
+  basis_amount: number
+  rate_bps: number
+  amount: number
+  status: string
+  hold_until: string | null
+  available_at: string | null
+  created_at: string
+}
+
+export interface AdminAffiliateWithdrawal extends AffiliateWithdrawal {
+  affiliate_id: string
+  affiliate_name: string
+  affiliate_email: string
+}
+
+export interface AdminAffiliateOverview {
+  filters: {
+    date_from?: string
+    date_to?: string
+  }
+  totals: {
+    affiliates: number
+    referrals: number
+    active_referrals: number
+    deposited_amount: number
+    commission_generated: number
+    commission_paid: number
+    pending_withdrawals_count: number
+    pending_withdrawals_amount: number
+  }
+}
+
+export interface AdminAffiliateSummary {
+  affiliate: AdminAffiliate
+  summary: {
+    total_referrals: number
+    total_active_referrals: number
+    total_deposit_amount: number
+    total_positions_count: number
+    revenue_generated: number
+    total_commission_generated: number
+    total_commission_paid: number
+    balances: {
+      pending: number
+      available: number
+      processing: number
+      paid: number
+    }
+  }
+}
+
+export interface AdminAffiliateReferralListItem {
+  id: string
+  user_id: string
+  registered_at: string
+  status: string
+  deposited: boolean
+  total_deposit_amount: number
+  operations_count: number
+  active: boolean
+  revenue_generated: number
+  commission_generated: number
+  masked_identity?: string
+  campaign_slug?: string
+}
+
 // Admin Types
 export interface Admin {
   id: string

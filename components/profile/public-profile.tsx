@@ -41,6 +41,10 @@ export function PublicProfile({ identifier }: PublicProfileProps) {
 
     const [isLoading, setIsLoading] = useState(true)
     const [positions, setPositions] = useState<Position[]>([])
+    const [totalCount, setTotalCount] = useState(0)
+    const [currentPage, setCurrentPage] = useState(1)
+    const ITEMS_PER_PAGE = 10
+    
     const [copied, setCopied] = useState(false)
     const [viewMode, setViewMode] = useState<'portfolio' | 'favorites'>('portfolio')
     const [selectedCategory, setSelectedCategory] = useState<string | null>(null)
@@ -89,13 +93,18 @@ export function PublicProfile({ identifier }: PublicProfileProps) {
     const fetchProfileData = useCallback(async () => {
         setIsLoading(true)
         try {
-            const response = await userApi.getPublicProfile(identifier, { limit: 100 })
+            const apiStatus = activeActivityTab === 'positions' ? 'active' : 'settled'
+            const offset = (currentPage - 1) * ITEMS_PER_PAGE
+            const response = await userApi.getPublicProfile(identifier, { 
+                status: apiStatus,
+                limit: ITEMS_PER_PAGE,
+                offset: offset
+            })
             const data = response.data
 
             setProfileData({
                 userId: data.userId || identifier,
                 nickname: data.nickname ?? null,
-                // Use display_name from API (nickname or @uuid[:8])
                 displayName: data.display_name || (data.nickname ? `@${data.nickname}` : `@${(data.userId || identifier).replace(/-/g, '').substring(0, 8)}`),
                 walletAddress: data.userId || identifier,
                 joinedAt: data.created_at,
@@ -106,13 +115,14 @@ export function PublicProfile({ identifier }: PublicProfileProps) {
                 flags: data.flags ?? {},
             })
             setPositions(data.positions || [])
+            setTotalCount(data.totalCount || 0)
             setStats({
                 portfolioValue: data.stats?.portfolioValue || 0,
                 profitLoss: data.stats?.profitLoss || 0,
                 volume: data.stats?.volume || 0,
                 winRate: data.stats?.winRate || 0,
-                winCount: (data.stats as any)?.winCount || 0,
-                lossCount: (data.stats as any)?.lossCount || 0,
+                winCount: data.stats?.winCount || 0,
+                lossCount: data.stats?.lossCount || 0,
                 openPositions: data.stats?.openPositions || 0,
             })
         } catch (err) {
@@ -120,11 +130,16 @@ export function PublicProfile({ identifier }: PublicProfileProps) {
         } finally {
             setIsLoading(false)
         }
-    }, [identifier])
+    }, [identifier, activeActivityTab, currentPage])
 
     useEffect(() => {
         fetchProfileData()
     }, [fetchProfileData])
+
+    // Reset pagination when tab changes
+    useEffect(() => {
+        setCurrentPage(1)
+    }, [activeActivityTab])
 
     // Extract dominant colors from avatar
     useEffect(() => {
@@ -376,7 +391,7 @@ export function PublicProfile({ identifier }: PublicProfileProps) {
                 </aside>
 
                 {/* Right Content */}
-                <main className="flex w-full flex-col gap-5 lg:pl-5">
+                <main className="flex flex-1 min-w-0 flex-col gap-5 lg:pl-5">
                     {/* Portfolio Card (Flat Style) */}
                     <section className="relative z-10 w-full animate-fade-down overflow-hidden rounded-[24px] border border-black/10 bg-black/5 dark:border-white/10 dark:bg-white/5 p-6 min-h-[265px] transition-all duration-300">
                         <header className="relative z-10 flex w-full min-h-[125px] justify-between text-black dark:text-white flex-col lg:flex-row max-sm:min-h-0">
@@ -558,15 +573,18 @@ export function PublicProfile({ identifier }: PublicProfileProps) {
                                     <div className="absolute bottom-[-1px] left-0 h-[2px] w-full bg-black dark:bg-white" />
                                 )}
                             </button>
-                            <div className="ml-auto hidden max-w-[103px] object-contain opacity-80 lg:block text-muted-foreground font-semibold">
-                                <Logo width={100} height={32} />
+                            <div className="ml-auto hidden opacity-80 lg:block text-muted-foreground font-semibold shrink-0">
+                                <Logo width={100} height={30} />
                             </div>
                         </div>
 
                         {/* Pass public positions down to ProfilePositions */}
                         <div className="mt-4 w-full">
                             <ProfilePositions
-                                positions={activeActivityTab === 'positions' ? filteredPositions.filter(p => p.status === 'active') : filteredPositions.filter(p => p.status === 'settled')}
+                                positions={positions}
+                                totalCount={totalCount}
+                                currentPage={currentPage}
+                                onPageChange={setCurrentPage}
                                 isLoading={isLoading}
                                 isOwner={isOwner && activeActivityTab === 'positions'}
                                 onPositionClosed={fetchProfileData}

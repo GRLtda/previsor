@@ -18,6 +18,7 @@ import {
   AlertCircle,
   User,
   Plus,
+  Link2,
 } from 'lucide-react'
 import { toast } from 'sonner'
 
@@ -120,7 +121,7 @@ export default function AppDashboardPage() {
       )}
 
       {/* Quick Actions */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
         <Card>
           <CardHeader>
             <CardTitle className="text-lg flex items-center gap-2">
@@ -156,6 +157,24 @@ export default function AppDashboardPage() {
             <Link href="/eventos">
               <Button className="w-full gap-2">
                 Ver Eventos
+                <ArrowRight className="h-4 w-4" />
+              </Button>
+            </Link>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-lg flex items-center gap-2">
+              <Link2 className="h-5 w-5" />
+              Afiliados
+            </CardTitle>
+            <CardDescription>Crie links de indicacao e acompanhe ganhos</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <Link href="/afiliado">
+              <Button className="w-full gap-2">
+                Abrir Painel
                 <ArrowRight className="h-4 w-4" />
               </Button>
             </Link>

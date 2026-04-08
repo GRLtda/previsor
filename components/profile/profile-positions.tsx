@@ -19,6 +19,9 @@ import { Button } from '@/components/ui/button'
 
 interface ProfilePositionsProps {
     positions: Position[]
+    totalCount?: number
+    currentPage?: number
+    onPageChange?: (page: number) => void
     isLoading?: boolean
     isOwner?: boolean
     onPositionClosed?: () => void
@@ -27,6 +30,9 @@ interface ProfilePositionsProps {
 
 export function ProfilePositions({
     positions,
+    totalCount = 0,
+    currentPage = 1,
+    onPageChange,
     isLoading = false,
     isOwner = false,
     onPositionClosed,
@@ -35,32 +41,24 @@ export function ProfilePositions({
     const [search, setSearch] = useState('')
     const [statusFilter, setStatusFilter] = useState('all')
 
-    const [currentPage, setCurrentPage] = useState(1)
     const ITEMS_PER_PAGE = 10
 
-    useEffect(() => {
-        setCurrentPage(1)
-    }, [search, statusFilter, positions])
     const [closingPositionId, setClosingPositionId] = useState<string | null>(null)
     const [isClosing, setIsClosing] = useState(false)
     const [confirmDialogOpen, setConfirmDialogOpen] = useState(false)
     const [selectedPosition, setSelectedPosition] = useState<Position | null>(null)
 
+    // Client-side filtering for the CURRENT page results (search)
     const filteredPositions = positions.filter((pos) => {
         if (search && !pos.marketStatement?.toLowerCase().includes(search.toLowerCase())) {
             return false
         }
-        if (statusFilter !== 'all' && pos.status !== statusFilter) {
-            return false
-        }
+        // statusFilter is ignored here because we fetch by status from parent
         return true
     })
 
-    const totalPages = Math.ceil(filteredPositions.length / ITEMS_PER_PAGE)
-    const paginatedPositions = filteredPositions.slice(
-        (currentPage - 1) * ITEMS_PER_PAGE,
-        currentPage * ITEMS_PER_PAGE
-    )
+    const totalPages = Math.ceil(totalCount / ITEMS_PER_PAGE)
+    const paginatedPositions = filteredPositions
 
     const formatCurrency = (value: number) => {
         return `R$ ${(value / 100).toFixed(2).replace('.', ',')}`
@@ -198,7 +196,7 @@ export function ProfilePositions({
             </div>
 
             {/* Table */}
-            <div className="overflow-x-auto overflow-y-auto min-h-[300px] max-h-[calc(100%-80px)] lg:overflow-visible w-full rounded-lg pb-1 lg:pb-0 mt-4">
+            <div className="overflow-x-auto overflow-y-auto min-h-[300px] max-h-[calc(100%-80px)] w-full rounded-lg pb-1 lg:pb-0 mt-4 scrollbar-hide">
                 <table className="h-full min-w-full divide-y divide-[#E5E5E5] dark:divide-white/5">
                     <thead className="h-11 border-[#E5E5E5] dark:border-white/5 border-t-0">
                         <tr>
@@ -451,8 +449,8 @@ export function ProfilePositions({
             {totalPages > 1 && (
                 <div className="flex justify-center items-center gap-4 mt-6">
                     <button
-                        onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
-                        disabled={currentPage === 1}
+                        onClick={() => onPageChange?.(Math.max(1, currentPage - 1))}
+                        disabled={currentPage === 1 || isLoading}
                         className="flex h-9 items-center justify-center rounded-md border border-black/10 px-3 text-sm font-medium transition-colors hover:bg-black/5 disabled:opacity-50 dark:border-white/10 dark:hover:bg-white/5 text-black dark:text-white"
                     >
                         Anterior
@@ -461,8 +459,8 @@ export function ProfilePositions({
                         Página {currentPage} de {totalPages}
                     </span>
                     <button
-                        onClick={() => setCurrentPage(prev => Math.min(totalPages, prev + 1))}
-                        disabled={currentPage === totalPages}
+                        onClick={() => onPageChange?.(Math.min(totalPages, currentPage + 1))}
+                        disabled={currentPage === totalPages || isLoading}
                         className="flex h-9 items-center justify-center rounded-md border border-black/10 px-3 text-sm font-medium transition-colors hover:bg-black/5 disabled:opacity-50 dark:border-white/10 dark:hover:bg-white/5 text-black dark:text-white"
                     >
                         Próxima

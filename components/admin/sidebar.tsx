@@ -70,6 +70,7 @@ const menuSections: MenuSection[] = [
           { title: "Carteiras", href: "/admin/carteiras" },
           { title: "Depósitos", href: "/admin/depositos" },
           { title: "Saques", href: "/admin/saques" },
+          { title: "Afiliados", href: "/admin/afiliados" },
         ],
       },
     ],

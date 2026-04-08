@@ -26,6 +26,7 @@ interface AuthContextType {
     phone: string
     password: string
     accept_terms: boolean
+    affiliate?: { click_id?: string; campaign_slug?: string; referral_code?: string }
   }) => Promise<void>
   verifyOtp: (code: string) => Promise<void>
   resendOtp: () => Promise<{ expires_in: number }>
@@ -135,6 +136,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     phone: string
     password: string
     accept_terms: boolean
+    affiliate?: { click_id?: string; campaign_slug?: string; referral_code?: string }
   }) => {
     setError(null)
     try {

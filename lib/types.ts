@@ -102,6 +102,12 @@ export interface QuickRound {
 
 export interface QuickMarketCurrentResponse {
   round: QuickRound | null
+  event: {
+    id: string
+    slug: string
+    title: string
+    status: string
+  } | null
   market: {
     id: string
     status: string

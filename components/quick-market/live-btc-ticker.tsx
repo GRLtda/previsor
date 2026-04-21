@@ -30,7 +30,7 @@ export function LiveBtcTicker({ openPrice, initialPrice, live }: { openPrice: nu
             const target = targetRef.current
             let velocity = velocityRef.current
 
-            // SPRING (mais suave que gráfico)
+            // Spring smoothing for the live BTC readout.
             const stiffness = 120
             const damping = 0.8
 
@@ -54,21 +54,24 @@ export function LiveBtcTicker({ openPrice, initialPrice, live }: { openPrice: nu
 
     if (displayPrice == null) return null
 
+    const formattedPrice = displayPrice.toLocaleString('pt-BR', {
+        style: 'currency',
+        currency: 'USD',
+        minimumFractionDigits: 2,
+        maximumFractionDigits: 2,
+    })
+
     return (
         <div className="flex flex-col items-end">
             <span className="text-[10px] text-[#606E85] dark:text-[#A1A7BB] uppercase">
-                Preço Atual
+                Preco Atual (USD)
             </span>
 
             <span className={cn(
                 'text-sm font-mono font-bold',
                 displayPrice >= openPrice ? 'text-[#22c55e]' : 'text-[#ef4444]'
             )}>
-                {displayPrice.toLocaleString('pt-BR', {
-                    style: 'currency',
-                    currency: 'BRL',
-                    minimumFractionDigits: 2
-                })}
+                {formattedPrice}
             </span>
         </div>
     )

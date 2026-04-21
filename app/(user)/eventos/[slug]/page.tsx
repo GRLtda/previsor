@@ -33,6 +33,15 @@ interface PageProps {
   params: Promise<{ slug: string }>
 }
 
+function formatUsd(value: number): string {
+  return value.toLocaleString('pt-BR', {
+    style: 'currency',
+    currency: 'USD',
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  })
+}
+
 function formatVolume(amount: number): string {
   const value = amount / 100
   if (value >= 1000000) {
@@ -179,24 +188,20 @@ export default function EventDetailPage({ params }: PageProps) {
 
   const fetchLiveMarket = async () => {
     try {
-      const [fetchedEvent, eventRes, historyRes] = await Promise.all([
-        userApi.getEvent(slug),
-        quickApi.getQuickMarketEvent(event!.id),
-        quickApi.getQuickMarketHistory(10),
-      ])
-      
-      setEvent(fetchedEvent)
-      if (fetchedEvent.markets?.[0]) setSelectedMarket(fetchedEvent.markets[0])
-      
-      if (eventRes.data?.round) {
-        setQuickRound(eventRes.data.round)
-        if (eventRes.data.round.roundStatus === 'open') {
-          if (eventRes.data.currentPrice != null) setCurrentBtcPrice(eventRes.data.currentPrice)
-        } else if (eventRes.data.round.closePrice != null) {
-          setCurrentBtcPrice(eventRes.data.round.closePrice)
-        }
+      const currentRes = await quickApi.getQuickMarketCurrent()
+      const currentRound = currentRes.data?.round
+      const currentEvent = currentRes.data?.event
+
+      if (!currentRound || !currentEvent?.slug) {
+        toast.error('Nenhum mercado rapido ativo no momento.')
+        return
       }
-      if (historyRes.data?.rounds) setQuickHistory(historyRes.data.rounds)
+
+      const params = new URLSearchParams()
+      params.set('marketId', currentRound.marketId)
+      params.set('side', selectedSide)
+
+      router.push(`/eventos/${currentEvent.slug}?${params.toString()}`)
     } catch {
       toast.error('Erro ao buscar o mercado ao vivo.')
     }
@@ -537,7 +542,7 @@ export default function EventDetailPage({ params }: PageProps) {
                   <div className="flex flex-col">
                     <span className="text-[10px] text-[#606E85] dark:text-[#A1A7BB] uppercase">Preço Inicial</span>
                     <span className="text-sm font-mono font-bold dark:text-white">
-                      {quickRound.openPrice?.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL', minimumFractionDigits: 2 })}
+                      {quickRound.openPrice != null ? formatUsd(quickRound.openPrice) : '--'}
                     </span>
                   </div>
                   <LiveBtcTicker 
@@ -830,13 +835,13 @@ export default function EventDetailPage({ params }: PageProps) {
       {/* Prediction Panel - Desktop Sidebar (ALWAYS visible, uses first market as default) */}
       {displayMarkets.length > 0 && (
         <div className="hidden lg:block sticky top-[72px] self-start">
-          <PredictionPanel
-            market={selectedMarket || displayMarkets[0]}
-            side={selectedSide}
-            isMultiMarket={event.markets.length > 1}
-            onSideChange={(side) => setSelectedSide(side)}
-            onSuccess={(updatedMarket) => {
-              handleMarketUpdate(updatedMarket)
+            <PredictionPanel
+              market={selectedMarket || displayMarkets[0]}
+              side={selectedSide}
+              isMultiMarket={(event.markets?.length ?? 0) > 1}
+              onSideChange={(side) => setSelectedSide(side)}
+              onSuccess={(updatedMarket) => {
+                handleMarketUpdate(updatedMarket)
             }}
           />
         </div>

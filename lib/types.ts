@@ -72,6 +72,7 @@ export interface Event {
   description: string
   category: string
   status: 'draft' | 'active' | 'closed' | 'archived'
+  type?: 'standard' | 'quick'
   startsAt: string
   endsAt: string
   resolveRules: string
@@ -80,6 +81,51 @@ export interface Event {
   createdAt: string
   isFavorite?: boolean
   markets?: Market[]
+}
+
+// Quick Market Types (Mercados Rápidos)
+export interface QuickRound {
+  id: string
+  eventId?: string
+  marketId: string
+  roundNumber: number
+  roundStatus: 'pending' | 'open' | 'closing' | 'settled' | 'annulled'
+  openPrice: number
+  closePrice?: number | null
+  result?: 'YES' | 'NO' | 'ANNULLED' | null
+  annulReason?: string | null
+  startsAt: string
+  endsAt: string
+  assetSymbol: string
+  resolvedAt?: string | null
+}
+
+export interface QuickMarketCurrentResponse {
+  round: QuickRound | null
+  market: {
+    id: string
+    status: string
+    qYes: number
+    qNo: number
+    liquidityB: number
+    feeBps: number
+    probYes: number
+    probNo: number
+  } | null
+  currentPrice: number | null
+  message?: string
+}
+
+export interface BtcPriceTick {
+  price: number
+  timestamp: string
+}
+
+export interface BtcPriceResponse {
+  currentPrice: number | null
+  source: string | null
+  history: BtcPriceTick[]
+  isStreaming: boolean
 }
 
 export interface Market {

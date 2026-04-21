@@ -30,6 +30,11 @@ function formatDate(dateStr: string): string {
   return `${months[date.getMonth()]} ${date.getDate().toString().padStart(2, '0')}, ${date.getHours().toString().padStart(2, '0')}:${date.getMinutes().toString().padStart(2, '0')}`
 }
 
+function getQuickEventTitle(title: string, isQuick: boolean): string {
+  if (!isQuick) return title
+  return title.replace(/\s+#\d+\s*$/, '').trim()
+}
+
 export function EventCard({ event, isFavorite: initialIsFavorite = false, onFavoriteChange }: EventCardProps) {
   const router = useRouter()
   // For quick events, show only the current open market (latest round)
@@ -46,6 +51,10 @@ export function EventCard({ event, isFavorite: initialIsFavorite = false, onFavo
   const [isFavorite, setIsFavorite] = useState(initialIsFavorite)
   const [isLoading, setIsLoading] = useState(false)
   const [imageError, setImageError] = useState(false)
+  const displayTitle = getQuickEventTitle(event.title, event.type === 'quick')
+  const displayImageSrc = event.type === 'quick' && (!event.imageUrl || imageError)
+    ? '/assets/img/bitcoin-default.png'
+    : event.imageUrl
 
   const handleFavoriteClick = async (e: React.MouseEvent) => {
     e.preventDefault()
@@ -85,14 +94,14 @@ export function EventCard({ event, isFavorite: initialIsFavorite = false, onFavo
         <div className="flex gap-x-2.5 items-start">
           {/* Event Image */}
           <div className="size-[40px] min-w-[40px] max-w-[40px] rounded-lg overflow-hidden bg-muted flex items-center justify-center">
-            {event.imageUrl && !imageError ? (
+            {displayImageSrc ? (
               <img
-                alt={event.title}
+                alt={displayTitle}
                 loading="lazy"
                 width={40}
                 height={40}
                 className="size-full object-cover"
-                src={event.imageUrl}
+                src={displayImageSrc}
                 onError={() => setImageError(true)}
               />
             ) : (
@@ -103,7 +112,7 @@ export function EventCard({ event, isFavorite: initialIsFavorite = false, onFavo
           {/* Title */}
           <span className="flex flex-1 flex-col">
             <span className="text-sm font-semibold dark:text-white line-clamp-2">
-              {event.title}
+              {displayTitle}
             </span>
             {event.type === 'quick' && (
               <span className="flex items-center gap-1 mt-0.5">

@@ -53,6 +53,11 @@ function formatVolume(amount: number): string {
   return `R$${value.toFixed(2)}`
 }
 
+function getQuickEventTitle(title: string, isQuick: boolean): string {
+  if (!isQuick) return title
+  return title.replace(/\s+#\d+\s*$/, '').trim()
+}
+
 export default function EventDetailPage({ params }: PageProps) {
   useMarketWs({ enabled: true })
   const { slug } = use(params)
@@ -358,6 +363,10 @@ export default function EventDetailPage({ params }: PageProps) {
 
   /* Volume calculation to be implemented for LMSR. Using 0 for now or liquidityB as placeholder? */
   const totalVolume = 0 // event.markets?.reduce((acc, m) => acc + (m.liquidityB || 0), 0) || 0
+  const displayTitle = getQuickEventTitle(event.title, event.type === 'quick')
+  const displayImageSrc = event.type === 'quick' && (!event.imageUrl || imageError)
+    ? '/assets/img/bitcoin-default.png'
+    : event.imageUrl
 
   // For quick events, show only the current open round as the active market
   const displayMarkets = event.type === 'quick'
@@ -396,10 +405,10 @@ export default function EventDetailPage({ params }: PageProps) {
           <div className="hidden transform-gpu items-center gap-4 lg:flex">
             {/* Event Image */}
             <div className="size-20 rounded-2xl overflow-hidden bg-muted flex items-center justify-center">
-              {event.imageUrl && !imageError ? (
+              {displayImageSrc ? (
                 <img
-                  alt={event.title}
-                  src={event.imageUrl}
+                  alt={displayTitle}
+                  src={displayImageSrc}
                   className="size-full object-cover"
                   onError={() => setImageError(true)}
                 />
@@ -409,7 +418,7 @@ export default function EventDetailPage({ params }: PageProps) {
             </div>
             {/* Title */}
             <span className="flex items-center justify-center gap-3 font-semibold dark:text-white" style={{ fontSize: '30px' }}>
-              {event.title}
+              {displayTitle}
             </span>
           </div>
         </div>
@@ -482,10 +491,10 @@ export default function EventDetailPage({ params }: PageProps) {
         <div className="lg:hidden mt-4 mb-2 flex flex-col items-center">
           {/* Event Image / Icon */}
           <div className="size-16 sm:size-20 rounded-2xl overflow-hidden flex items-center justify-center mb-3">
-            {event.imageUrl && !imageError ? (
+            {displayImageSrc ? (
               <img
-                alt={event.title}
-                src={event.imageUrl}
+                alt={displayTitle}
+                src={displayImageSrc}
                 className="size-full object-cover"
                 onError={() => setImageError(true)}
               />
@@ -494,7 +503,7 @@ export default function EventDetailPage({ params }: PageProps) {
             )}
           </div>
           <h1 className="text-center font-bold text-xl sm:text-2xl dark:text-white px-2 mb-2 leading-tight">
-            {event.title}
+            {displayTitle}
           </h1>
           <div className="flex flex-col items-center justify-center gap-2">
             <span className="rounded-lg bg-black/5 dark:bg-white/5 px-3 py-1 text-xs sm:text-sm font-medium dark:text-[#A1A7BB]">
@@ -839,6 +848,7 @@ export default function EventDetailPage({ params }: PageProps) {
               market={selectedMarket || displayMarkets[0]}
               side={selectedSide}
               isMultiMarket={(event.markets?.length ?? 0) > 1}
+              isQuickMarket={event.type === 'quick'}
               onSideChange={(side) => setSelectedSide(side)}
               onSuccess={(updatedMarket) => {
                 handleMarketUpdate(updatedMarket)
@@ -853,6 +863,7 @@ export default function EventDetailPage({ params }: PageProps) {
         side={selectedSide}
         open={mobileSheetOpen && !!selectedMarket}
         isMultiMarket={event.markets && event.markets.length > 1}
+        isQuickMarket={event.type === 'quick'}
         onSideChange={(side) => setSelectedSide(side)}
         onClose={() => setMobileSheetOpen(false)}
         onSuccess={(updatedMarket) => {

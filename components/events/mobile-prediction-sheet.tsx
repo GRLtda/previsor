@@ -17,6 +17,7 @@ interface MobilePredictionSheetProps {
     onClose: () => void
     onSuccess?: (market: Market) => void
     isMultiMarket?: boolean
+    isQuickMarket?: boolean
     onSideChange?: (side: 'YES' | 'NO') => void
 }
 
@@ -37,7 +38,7 @@ interface SellQuote {
     priceImpact: number
 }
 
-export function MobilePredictionSheet({ market, side, open, onClose, onSuccess, isMultiMarket, onSideChange }: MobilePredictionSheetProps) {
+export function MobilePredictionSheet({ market, side, open, onClose, onSuccess, isMultiMarket, isQuickMarket, onSideChange }: MobilePredictionSheetProps) {
     const router = useRouter()
     const { isAuthenticated, isOtpVerified, user } = useAuth()
     const { openAuthModal } = useAuthModal()
@@ -290,6 +291,8 @@ export function MobilePredictionSheet({ market, side, open, onClose, onSuccess, 
     }
 
     const isYes = side === 'YES'
+    const yesLabel = isQuickMarket ? 'Sobe' : 'Sim'
+    const noLabel = isQuickMarket ? 'Desce' : 'Não'
     const buttonColor = isYes ? 'bg-[#00B471] hover:bg-[#00A366]' : 'bg-[#EE5F67] hover:bg-[#D6555D]'
     const buttonDisabled = isLoading || amountCents < 100
     const isMarketOpen = market.status === 'open'
@@ -372,7 +375,7 @@ export function MobilePredictionSheet({ market, side, open, onClose, onSuccess, 
                                                     : "bg-transparent border-black/10 dark:border-white/10 text-foreground hover:bg-black/5 dark:hover:bg-white/5"
                                             )}
                                         >
-                                            <span>Sim</span>
+                                            <span>{yesLabel}</span>
                                             <span className={side === 'YES' ? "text-white/80" : "text-[#606E85] dark:text-[#A1A7BB]"}>{Math.round(market.probYes)}%</span>
                                         </button>
                                         <button
@@ -384,7 +387,7 @@ export function MobilePredictionSheet({ market, side, open, onClose, onSuccess, 
                                                     : "bg-transparent border-black/10 dark:border-white/10 text-foreground hover:bg-black/5 dark:hover:bg-white/5"
                                             )}
                                         >
-                                            <span>Não</span>
+                                            <span>{noLabel}</span>
                                             <span className={side === 'NO' ? "text-white/80" : "text-[#606E85] dark:text-[#A1A7BB]"}>{Math.round(market.probNo)}%</span>
                                         </button>
                                     </div>
@@ -507,7 +510,7 @@ export function MobilePredictionSheet({ market, side, open, onClose, onSuccess, 
                                                 >
                                                     {isLoading ? 'Processando...' :
                                                         amountCents > balance ? 'Depositar' :
-                                                            `Comprar ${isYes ? 'Sim' : 'Não'}`}
+                                                            `Comprar ${isYes ? yesLabel : noLabel}`}
                                                 </button>
                                             )}
                                         </>
@@ -524,17 +527,56 @@ export function MobilePredictionSheet({ market, side, open, onClose, onSuccess, 
                                                     <span className="text-xs text-muted-foreground">Carregando posição...</span>
                                                 </div>
                                             ) : !isAuthenticated ? (
-                                                <div className="flex flex-col items-center justify-center py-10 gap-3">
-                                                    <span className="text-sm text-[#606E85] dark:text-[#A1A7BB] text-center">
-                                                        Faça login para ver suas posições
-                                                    </span>
+                                                <>
+                                                    <div className="mt-5 mb-5 flex w-full items-center justify-between opacity-60">
+                                                        <div className="flex flex-col">
+                                                            <span className="text-xl font-bold text-foreground dark:text-white">Contratos</span>
+                                                            <span className="text-[13px] font-medium text-[#606E85] dark:text-[#A1A7BB] mt-0.5 whitespace-nowrap">
+                                                                Disp. 0.00
+                                                            </span>
+                                                        </div>
+                                                        <div className="flex flex-col items-end w-1/2">
+                                                            <input
+                                                                className="w-full text-right bg-transparent font-bold placeholder:text-[#606E85]/30 dark:placeholder:text-white/20 dark:text-white text-[#0C131F] outline-none"
+                                                                placeholder="0"
+                                                                aria-label="input shares"
+                                                                inputMode="decimal"
+                                                                autoComplete="off"
+                                                                spellCheck="false"
+                                                                pattern="[0-9.]*"
+                                                                type="text"
+                                                                value=""
+                                                                readOnly
+                                                                disabled
+                                                                style={{ fontSize: '2.5rem', lineHeight: '1' }}
+                                                            />
+                                                        </div>
+                                                    </div>
+
+                                                    <div className="w-full items-center justify-between gap-x-[7px] flex opacity-60">
+                                                        {[
+                                                            { label: '25%', pct: 0.25 },
+                                                            { label: '50%', pct: 0.50 },
+                                                            { label: 'MAX', pct: 1.0 },
+                                                        ].map(({ label, pct }) => (
+                                                            <button
+                                                                key={label}
+                                                                disabled
+                                                                onClick={undefined}
+                                                                className="flex w-full h-full max-h-[32px] items-center transition-all duration-100 justify-center rounded-md border border-black/10 dark:border-white/10 py-2 text-xs font-medium dark:text-white bg-black/5 dark:bg-transparent cursor-not-allowed"
+                                                            >
+                                                                {label}
+                                                            </button>
+                                                        ))}
+                                                    </div>
+
                                                     <button
                                                         onClick={() => openAuthModal('LOGIN')}
-                                                        className="gap-x-2 flex items-center justify-center transition duration-200 ease-linear outline-none text-base py-2.5 px-5 h-full min-h-12 max-h-12 w-full rounded-[10px] border-transparent font-medium text-white bg-[#00B471] hover:bg-[#00A366]"
+                                                        className="gap-x-2 flex items-center justify-center transition duration-200 ease-linear outline-none text-base py-2.5 px-5 h-full min-h-12 mt-4 max-h-12 w-full rounded-[10px] border-transparent font-medium text-white bg-[#00B471] hover:bg-[#00A366]"
                                                     >
-                                                        Entrar
+                                                        Entre para vender
                                                     </button>
-                                                </div>
+                                                </>
                                             ) : (
                                                 <>
 
@@ -624,7 +666,7 @@ export function MobilePredictionSheet({ market, side, open, onClose, onSuccess, 
                                                     >
                                                         {isSelling ? 'Processando...' :
                                                             !isMarketOpen ? 'Mercado Encerrado' :
-                                                                `Vender ${isYes ? 'Sim' : 'Não'}`}
+                                                                `Vender ${isYes ? yesLabel : noLabel}`}
                                                     </button>
                                                 </>
                                             )}
@@ -684,7 +726,7 @@ export function MobilePredictionSheet({ market, side, open, onClose, onSuccess, 
                                                                 <path d="M7.41496 7.41496L4.58496 4.58496" stroke="currentColor" strokeWidth="0.776786" strokeLinecap="round" strokeLinejoin="round"></path>
                                                             </svg>
                                                         )}
-                                                        {isYes ? 'Sim' : 'Não'}
+                                                        {isYes ? yesLabel : noLabel}
                                                     </span>
                                                 </motion.span>
                                                 <motion.button

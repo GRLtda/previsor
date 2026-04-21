@@ -1,5 +1,6 @@
 import React from "react"
 import type { Metadata, Viewport } from 'next'
+import Script from 'next/script'
 import { Inter } from 'next/font/google'
 import { Analytics } from '@vercel/analytics/next'
 import './globals.css'
@@ -61,6 +62,13 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="pt-BR">
+      {process.env.NODE_ENV !== 'production' && (
+        <Script
+          src="//unpkg.com/react-grab/dist/index.global.js"
+          crossOrigin="anonymous"
+          strategy="beforeInteractive"
+        />
+      )}
       <body className={`font-sans antialiased ${inter.variable}`}>
         {children}
         <Analytics />

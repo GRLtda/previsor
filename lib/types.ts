@@ -86,6 +86,7 @@ export interface Event {
 // Quick Market Types (Mercados Rápidos)
 export interface QuickRound {
   id: string
+  eventId?: string
   marketId: string
   roundNumber: number
   roundStatus: 'pending' | 'open' | 'closing' | 'settled' | 'annulled'

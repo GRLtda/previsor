@@ -3,7 +3,7 @@
 import { useState } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
-import type { Event } from '@/lib/types'
+import type { Event, Market } from '@/lib/types'
 import { OutcomeRow } from '@/components/events/outcome-row'
 import { userApi, getTokens } from '@/lib/api/client'
 import { toast } from 'sonner'
@@ -16,13 +16,34 @@ interface EventCardProps {
   onFavoriteChange?: (eventId: string, isFavorite: boolean) => void
 }
 
-function calcMultiplier(prob: number): string {
-  if (prob <= 0) return '∞'
-  const mult = 100 / prob
-  if (mult >= 100) return '100.00x'
-  return `${mult.toFixed(2)}x`
+function getMarketVolume(market: Market | undefined): number {
+  if (!market) return 0
+
+  const candidates = [market.volume, market.totalVolume, market.total_volume]
+
+  for (const value of candidates) {
+    if (typeof value === 'number' && Number.isFinite(value) && value > 0) {
+      return value
+    }
+  }
+
+  return 0
 }
 
+function formatCompactVolume(amount: number): string {
+  const value = amount / 100
+  const flooredValue = Math.floor(value)
+
+  if (value >= 1000000) {
+    return `R$${Math.floor(value / 1000000)}m Vol.`
+  }
+
+  if (value >= 1000) {
+    return `R$${Math.floor(value / 1000)}k Vol.`
+  }
+
+  return `R$${flooredValue} Vol.`
+}
 
 function formatDate(dateStr: string): string {
   const date = new Date(dateStr)
@@ -37,7 +58,6 @@ function getQuickEventTitle(title: string, isQuick: boolean): string {
 
 export function EventCard({ event, isFavorite: initialIsFavorite = false, onFavoriteChange }: EventCardProps) {
   const router = useRouter()
-  // For quick events, show only the current open market (latest round)
   const allMarkets = event.markets || []
   const markets = event.type === 'quick'
     ? (allMarkets.filter(m => m.status === 'open').slice(-1).length > 0
@@ -55,12 +75,12 @@ export function EventCard({ event, isFavorite: initialIsFavorite = false, onFavo
   const displayImageSrc = event.type === 'quick' && (!event.imageUrl || imageError)
     ? '/assets/img/bitcoin-default.png'
     : event.imageUrl
+  const marketVolume = getMarketVolume(markets[0])
 
   const handleFavoriteClick = async (e: React.MouseEvent) => {
     e.preventDefault()
     e.stopPropagation()
 
-    // Check if user is logged in
     if (!getTokens('user')) {
       openAuthModal('LOGIN')
       return
@@ -89,10 +109,8 @@ export function EventCard({ event, isFavorite: initialIsFavorite = false, onFavo
       href={`/eventos/${event.slug}`}
       className="flex min-w-[341px] min-h-[198px] w-full flex-col rounded-xl border border-border/40 bg-card/50 px-3 pt-3 pb-3 text-start transition-all duration-300 ease-in-out hover:border-border/80 cursor-pointer"
     >
-      {/* Header */}
       <div className="flex h-auto w-full flex-col gap-y-2.5 lg:gap-y-3">
         <div className="flex gap-x-2.5 items-start">
-          {/* Event Image */}
           <div className="size-[40px] min-w-[40px] max-w-[40px] rounded-lg overflow-hidden bg-muted flex items-center justify-center">
             {displayImageSrc ? (
               <img
@@ -109,7 +127,6 @@ export function EventCard({ event, isFavorite: initialIsFavorite = false, onFavo
             )}
           </div>
 
-          {/* Title */}
           <span className="flex flex-1 flex-col">
             <span className="text-sm font-semibold dark:text-white line-clamp-2">
               {displayTitle}
@@ -125,9 +142,7 @@ export function EventCard({ event, isFavorite: initialIsFavorite = false, onFavo
             )}
           </span>
 
-          {/* Actions */}
           <div className="ml-auto flex items-center gap-x-2">
-            {/* Favorite Button */}
             <button
               className={`flex size-7 items-center justify-center rounded-lg transition-colors hover:bg-black/5 dark:hover:bg-white/5 ${isLoading ? 'opacity-50' : ''}`}
               onClick={handleFavoriteClick}
@@ -138,7 +153,6 @@ export function EventCard({ event, isFavorite: initialIsFavorite = false, onFavo
               </svg>
             </button>
 
-            {/* Time Tooltip */}
             {endDate && (
               <div className="flex size-7 items-center justify-center rounded-lg bg-black/5 dark:bg-white/5">
                 <svg width="12" height="13" viewBox="0 0 12 13" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -151,26 +165,21 @@ export function EventCard({ event, isFavorite: initialIsFavorite = false, onFavo
         </div>
       </div>
 
-      {/* Markets List */}
       <div className="w-full flex-1">
         {isSingleMarket ? (
           <div className="mt-4 flex flex-col w-full gap-2 font-medium">
-            {/* Probabilities Row */}
             <div className="flex justify-between items-center text-[15px] font-bold dark:text-white mb-0.5 px-0.5">
               <span>{Math.round(markets[0].probYes)}%</span>
               <span className="text-[13px] font-semibold text-[#606E85] dark:text-[#A1A7BB]">Chance</span>
               <span>{Math.round(markets[0].probNo)}%</span>
             </div>
 
-            {/* Progress Bar */}
             <div className="flex h-1.5 w-full rounded-full gap-0.5 overflow-hidden">
               <div className="bg-[#22c55e] h-full" style={{ width: `${markets[0].probYes}%` }} />
               <div className="bg-[#ef4444] h-full" style={{ width: `${markets[0].probNo}%` }} />
             </div>
 
-            {/* Buttons */}
             <div className="flex gap-2 mt-3">
-              {/* Sim Button Area */}
               <div className="flex flex-col flex-1 items-center gap-1.5">
                 <button
                   onClick={(e) => {
@@ -184,14 +193,10 @@ export function EventCard({ event, isFavorite: initialIsFavorite = false, onFavo
                     <path d="M6.99935 12.8332C10.2077 12.8332 12.8327 10.2082 12.8327 6.99984C12.8327 3.7915 10.2077 1.1665 6.99935 1.1665C3.79102 1.1665 1.16602 3.7915 1.16602 6.99984C1.16602 10.2082 3.79102 12.8332 6.99935 12.8332Z" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round" strokeLinejoin="round" />
                     <path d="M4.52051 6.99995L6.17134 8.65079L9.47884 5.34912" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round" strokeLinejoin="round" />
                   </svg>
-                  {event.type === 'quick' ? 'Sobe' : 'Sim'} - {calcMultiplier(markets[0].probYes)}
+                  {event.type === 'quick' ? 'Sobe' : 'Sim'}
                 </button>
-                <span className="text-[11px] font-bold text-black dark:text-white">
-                  R$10.00 <span className="text-[#606E85] dark:text-[#A1A7BB] font-normal px-0.5">→</span> <span className="text-[#22c55e]">R${(10 * (100 / (markets[0].probYes || 1))).toFixed(2)}</span>
-                </span>
               </div>
 
-              {/* Nao Button Area */}
               <div className="flex flex-col flex-1 items-center gap-1.5">
                 <button
                   onClick={(e) => {
@@ -206,12 +211,12 @@ export function EventCard({ event, isFavorite: initialIsFavorite = false, onFavo
                     <path d="M5.34863 8.65079L8.6503 5.34912" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round" strokeLinejoin="round" />
                     <path d="M8.6503 8.65079L5.34863 5.34912" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round" strokeLinejoin="round" />
                   </svg>
-                  {event.type === 'quick' ? 'Desce' : 'Não'} - {calcMultiplier(markets[0].probNo)}
+                  {event.type === 'quick' ? 'Desce' : 'Não'}
                 </button>
-                <span className="text-[11px] font-bold text-black dark:text-white">
-                  R$10.00 <span className="text-[#606E85] dark:text-[#A1A7BB] font-normal px-0.5">→</span> <span className="text-[#22c55e]">R${(10 * (100 / (markets[0].probNo || 1))).toFixed(2)}</span>
-                </span>
               </div>
+            </div>
+            <div className="mt-2 text-left text-[11px] font-medium text-[#606E85] dark:text-[#A1A7BB]">
+              {formatCompactVolume(marketVolume)}
             </div>
           </div>
         ) : (

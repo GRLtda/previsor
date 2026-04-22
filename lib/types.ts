@@ -80,6 +80,9 @@ export interface Event {
   imageUrl: string | null
   createdAt: string
   isFavorite?: boolean
+  volume?: number
+  totalVolume?: number
+  total_volume?: number
   markets?: Market[]
 }
 
@@ -148,6 +151,9 @@ export interface Market {
   qYes: number
   qNo: number
   liquidityB: number
+  volume?: number
+  totalVolume?: number
+  total_volume?: number
   probYes: number
   probNo: number
   result: 'YES' | 'NO' | null

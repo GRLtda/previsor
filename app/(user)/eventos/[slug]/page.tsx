@@ -44,13 +44,42 @@ function formatUsd(value: number): string {
 
 function formatVolume(amount: number): string {
   const value = amount / 100
+  const flooredValue = Math.floor(value)
   if (value >= 1000000) {
-    return `R$${(value / 1000000).toFixed(1)}m`
+    return `R$${Math.floor(value / 1000000)}m Vol.`
   }
   if (value >= 1000) {
-    return `R$${(value / 1000).toFixed(0)}k`
+    return `R$${Math.floor(value / 1000)}k Vol.`
   }
-  return `R$${value.toFixed(2)}`
+  return `R$${flooredValue} Vol.`
+}
+
+function getMarketVolume(market: Market | undefined): number {
+  if (!market) return 0
+
+  const candidates = [market.volume, market.totalVolume, market.total_volume]
+
+  for (const value of candidates) {
+    if (typeof value === 'number' && Number.isFinite(value) && value > 0) {
+      return value
+    }
+  }
+
+  return 0
+}
+
+function getEventTotalVolume(event: DomainEvent | null): number {
+  if (!event) return 0
+
+  const eventCandidates = [event.volume, event.totalVolume, event.total_volume]
+
+  for (const value of eventCandidates) {
+    if (typeof value === 'number' && Number.isFinite(value) && value > 0) {
+      return value
+    }
+  }
+
+  return (event.markets || []).reduce((acc, market) => acc + getMarketVolume(market), 0)
 }
 
 function getQuickEventTitle(title: string, isQuick: boolean): string {
@@ -361,8 +390,7 @@ export default function EventDetailPage({ params }: PageProps) {
     return null
   }
 
-  /* Volume calculation to be implemented for LMSR. Using 0 for now or liquidityB as placeholder? */
-  const totalVolume = 0 // event.markets?.reduce((acc, m) => acc + (m.liquidityB || 0), 0) || 0
+  const totalVolume = getEventTotalVolume(event)
   const displayTitle = getQuickEventTitle(event.title, event.type === 'quick')
   const displayImageSrc = event.type === 'quick' && (!event.imageUrl || imageError)
     ? '/assets/img/bitcoin-default.png'
@@ -453,7 +481,6 @@ export default function EventDetailPage({ params }: PageProps) {
                 <path d="M14.4803 3.71489H12.5603C12.0752 3.71252 11.6094 3.90461 11.267 4.24823L8.32033 7.19489V0.828226C8.31825 0.491057 8.1132 0.188365 7.80085 0.0613821C7.4885 -0.0656011 7.13041 0.00815054 6.89366 0.248225L3.67366 3.46823C3.51724 3.62709 3.30327 3.71605 3.08033 3.71489H1.16699C0.89085 3.71489 0.666992 3.93875 0.666992 4.21489C0.666992 4.49103 0.89085 4.71489 1.16699 4.71489H3.08033C3.57992 4.72484 4.06178 4.52969 4.41366 4.17489L7.30699 1.23489V7.60156C7.30631 7.93772 7.50925 8.24081 7.82033 8.36823C7.92115 8.41261 8.03017 8.43532 8.14033 8.43489C8.36111 8.43501 8.57262 8.34608 8.72699 8.18823L11.9737 4.95489C12.13 4.80074 12.3408 4.71449 12.5603 4.71489H14.4803C14.7565 4.71489 14.9803 4.49103 14.9803 4.21489C14.9803 3.93875 14.7565 3.71489 14.4803 3.71489V3.71489Z" fill="#606e85" />
               </svg>
             </div>
-            <span className="mr-1">Total Vol:</span>
             <span>{formatVolume(totalVolume)}</span>
           </div>
 

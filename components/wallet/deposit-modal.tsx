@@ -1,13 +1,12 @@
 'use client'
 
-import { useState, useEffect } from 'react'
-import { cn } from '@/lib/utils'
+import { useEffect, useState } from 'react'
 import { Copy, Check, Loader2, Flame } from 'lucide-react'
+import { cn } from '@/lib/utils'
 import { userApi, ApiClientError } from '@/lib/api/client'
 import { useAuth } from '@/contexts/auth-context'
-import type { Deposit, Banner } from '@/lib/types'
+import type { Banner, Deposit } from '@/lib/types'
 import { Dialog, DialogContent, DialogTitle } from '@/components/ui/dialog'
-import Image from 'next/image'
 
 interface DepositModalProps {
     isOpen: boolean
@@ -31,13 +30,50 @@ export function DepositModal({ isOpen, onOpenChange }: DepositModalProps) {
         setMounted(true)
         if (isOpen) {
             userApi.getBanners({ placement: 'modal_deposit' })
-                .then(res => {
-                    const activeBanner = res.data.banners.find(b => b.isActive)
+                .then((res) => {
+                    const activeBanner = res.data.banners.find((b) => b.isActive)
                     setBanner(activeBanner || null)
                 })
                 .catch(console.error)
         }
     }, [isOpen])
+
+    useEffect(() => {
+        if (!isOpen || step !== 'pix' || !deposit?.id) return
+
+        let cancelled = false
+
+        const checkDepositStatus = async () => {
+            try {
+                const response = await userApi.getDeposit(deposit.id)
+                const updatedDeposit = response.data.deposit
+
+                if (!updatedDeposit || cancelled) return
+
+                setDeposit((current) =>
+                    current?.id === updatedDeposit.id ? { ...current, ...updatedDeposit } : current
+                )
+
+                if (updatedDeposit.status === 'paid') {
+                    await refreshUser()
+
+                    if (!cancelled) {
+                        handleClose()
+                    }
+                }
+            } catch (pollError) {
+                console.error('Failed to check deposit status:', pollError)
+            }
+        }
+
+        checkDepositStatus()
+        const intervalId = window.setInterval(checkDepositStatus, 10000)
+
+        return () => {
+            cancelled = true
+            window.clearInterval(intervalId)
+        }
+    }, [isOpen, step, deposit?.id, refreshUser])
 
     const amountNumber = parseFloat(amount.replace(',', '.') || '0')
 
@@ -85,7 +121,7 @@ export function DepositModal({ isOpen, onOpenChange }: DepositModalProps) {
 
     const handleAmountSubmit = async () => {
         if (amountNumber < 10) {
-            setError('Valor mínimo: R$ 10,00')
+            setError('Valor minimo: R$ 10,00')
             return
         }
 
@@ -105,19 +141,19 @@ export function DepositModal({ isOpen, onOpenChange }: DepositModalProps) {
             if (err instanceof ApiClientError) {
                 switch (err.code) {
                     case 'DEPOSIT_MIN_AMOUNT':
-                        setError('Valor mínimo para depósito é R$ 10,00')
+                        setError('Valor minimo para deposito e R$ 10,00')
                         break
                     case 'DEPOSIT_MAX_AMOUNT':
-                        setError('Valor máximo para depósito excedido')
+                        setError('Valor maximo para deposito excedido')
                         break
                     case 'WALLET_FROZEN':
-                        setError('Sua carteira está congelada. Entre em contato com o suporte.')
+                        setError('Sua carteira esta congelada. Entre em contato com o suporte.')
                         break
                     default:
-                        setError(err.message || 'Não autorizado')
+                        setError(err.message || 'Nao autorizado')
                 }
             } else {
-                setError('Não autorizado')
+                setError('Nao autorizado')
             }
         } finally {
             setIsLoading(false)
@@ -126,12 +162,13 @@ export function DepositModal({ isOpen, onOpenChange }: DepositModalProps) {
 
     const handleCopyPixCode = async () => {
         if (!deposit?.pix_copy_paste) return
+
         try {
             await navigator.clipboard.writeText(deposit.pix_copy_paste)
             setCopied(true)
             setTimeout(() => setCopied(false), 2000)
-        } catch (error) {
-            console.error('Failed to copy:', error)
+        } catch (copyError) {
+            console.error('Failed to copy:', copyError)
         }
     }
 
@@ -142,24 +179,24 @@ export function DepositModal({ isOpen, onOpenChange }: DepositModalProps) {
 
     if (!mounted) return null
 
-    // Fallback balance reading logic
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const currentBalance = (user as any)?.balance ?? (user as any)?.wallet?.balance ?? 0.57;
+    const currentBalance = (user as any)?.balance ?? (user as any)?.wallet?.balance ?? 0.57
 
     return (
-        <Dialog open={isOpen} onOpenChange={(open) => {
-            if (!open) handleClose()
-        }}>
+        <Dialog
+            open={isOpen}
+            onOpenChange={(open) => {
+                if (!open) handleClose()
+            }}
+        >
             <DialogContent
                 className="flex flex-col h-fit max-h-[90vh] w-[95%] sm:max-w-[430px] max-w-[430px] overflow-hidden rounded-[24px] bg-white dark:bg-[#151515] p-0 shadow-xl border border-black/10 dark:border-white/5 outline-none duration-200 gap-0"
                 showCloseButton={false}
             >
                 <DialogTitle className="sr-only">Depositar</DialogTitle>
                 <div className="relative h-auto overflow-y-auto max-h-[90vh] custom-scrollbar text-black dark:text-white">
-
                     {step === 'form' && (
                         <div className="p-6 flex flex-col relative pt-8">
-                            {/* Close Button */}
                             <button
                                 onClick={handleClose}
                                 className="absolute right-4 top-4 z-10 text-black/40 dark:text-white/40 hover:text-black dark:hover:text-white transition-colors p-2 bg-black/10 dark:bg-white/10 rounded-full hover:bg-black/20 dark:hover:bg-white/20 backdrop-blur-sm"
@@ -169,7 +206,6 @@ export function DepositModal({ isOpen, onOpenChange }: DepositModalProps) {
                                 </svg>
                             </button>
 
-                            {/* Optional Banner */}
                             {banner && (
                                 <div className="mb-6 w-full rounded-xl overflow-hidden shadow-sm">
                                     {banner.linkUrl ? (
@@ -182,15 +218,13 @@ export function DepositModal({ isOpen, onOpenChange }: DepositModalProps) {
                                 </div>
                             )}
 
-                            {/* Header with Title and Balance */}
                             <div className="flex flex-col flex-1 items-center m-2">
-                                <h3 className="text-[18px] font-bold text-black dark:text-white mb-0.5">Valor do Depósito</h3>
+                                <h3 className="text-[18px] font-bold text-black dark:text-white mb-0.5">Valor do Deposito</h3>
                                 <span className="text-[13px] text-[#606E85] dark:text-[#A1A7BB] font-medium">
                                     Saldo Atual: R$ {(currentBalance / 100).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                                 </span>
                             </div>
 
-                            {/* Amount Input */}
                             <div className="flex w-full flex-col items-center bg-transparent mb-6">
                                 <div className="relative flex w-full items-center justify-center bg-transparent p-1 font-semibold">
                                     <input
@@ -209,14 +243,12 @@ export function DepositModal({ isOpen, onOpenChange }: DepositModalProps) {
                                 </div>
                             </div>
 
-                            {/* Error Display */}
                             {error && (
                                 <div className="flex items-center justify-center mb-6 animate-in fade-in zoom-in-95 duration-200">
                                     <span className="text-[12px] font-semibold text-[#FF3B30] text-center">{error}</span>
                                 </div>
                             )}
 
-                            {/* Quick Amount Buttons */}
                             <div className="w-full items-center gap-x-1 flex mb-8">
                                 <div className="w-full items-center justify-between gap-x-2 flex">
                                     {[20, 50, 100, 200, 500].map((val) => (
@@ -232,10 +264,10 @@ export function DepositModal({ isOpen, onOpenChange }: DepositModalProps) {
                                             <button
                                                 onClick={() => addAmount(val)}
                                                 className={cn(
-                                                    "flex w-full h-[40px] items-center transition-all duration-200 justify-center rounded-[12px] border text-[13px] font-bold bg-transparent",
+                                                    'flex w-full h-[40px] items-center transition-all duration-200 justify-center rounded-[12px] border text-[13px] font-bold bg-transparent',
                                                     val === 50
-                                                        ? "border-[#FF3B30] text-[#FF3B30] bg-[#FF3B30]/5 hover:bg-[#FF3B30]/10"
-                                                        : "border-black/10 dark:border-white/10 dark:text-white text-black hover:bg-black/5 dark:hover:bg-white/5"
+                                                        ? 'border-[#FF3B30] text-[#FF3B30] bg-[#FF3B30]/5 hover:bg-[#FF3B30]/10'
+                                                        : 'border-black/10 dark:border-white/10 dark:text-white text-black hover:bg-black/5 dark:hover:bg-white/5'
                                                 )}
                                             >
                                                 +R${val}
@@ -245,11 +277,10 @@ export function DepositModal({ isOpen, onOpenChange }: DepositModalProps) {
                                 </div>
                             </div>
 
-                            {/* Amount to Receive Display (Summary Box) */}
                             {amountNumber >= 10 && (
                                 <div className="w-full bg-black/5 dark:bg-white/5 rounded-[16px] p-4 mb-8 space-y-2.5 animate-in fade-in slide-in-from-top-1 duration-200">
                                     <div className="flex justify-between text-[13px] font-semibold text-black/60 dark:text-white/60">
-                                        <span>Valor do depósito:</span>
+                                        <span>Valor do deposito:</span>
                                         <span>R$ {amountNumber.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
                                     </div>
                                     <div className="flex justify-between text-[13px] font-semibold text-black/40 dark:text-white/40">
@@ -257,7 +288,7 @@ export function DepositModal({ isOpen, onOpenChange }: DepositModalProps) {
                                         <span>-R$ {(amountNumber * 0.02).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
                                     </div>
                                     <div className="flex justify-between text-[14px] font-bold border-t border-black/10 dark:border-white/10 pt-3 mt-1 text-black dark:text-white">
-                                        <span>Você recebe:</span>
+                                        <span>Voce recebe:</span>
                                         <span className="text-[#00B471]">
                                             R$ {(amountNumber * 0.98).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                                         </span>
@@ -265,27 +296,24 @@ export function DepositModal({ isOpen, onOpenChange }: DepositModalProps) {
                                 </div>
                             )}
 
-                            {/* Submit Button */}
                             <button
                                 onClick={handleAmountSubmit}
                                 disabled={amountNumber < 10 || isLoading}
                                 className={cn(
-                                    "w-full py-3.5 rounded-xl font-bold text-[15px] transition-all flex justify-center items-center outline-none",
+                                    'w-full py-3.5 rounded-xl font-bold text-[15px] transition-all flex justify-center items-center outline-none',
                                     amountNumber >= 10 && !isLoading
-                                        ? "text-white bg-[#2A75FF] hover:bg-[#1C60E6] active:bg-[#154BC0]"
-                                        : "text-black/40 dark:text-white/40 bg-black/5 dark:bg-white/5 cursor-not-allowed"
+                                        ? 'text-white bg-[#2A75FF] hover:bg-[#1C60E6] active:bg-[#154BC0]'
+                                        : 'text-black/40 dark:text-white/40 bg-black/5 dark:bg-white/5 cursor-not-allowed'
                                 )}
                             >
                                 {isLoading ? <Loader2 className="mr-2 h-5 w-5 animate-spin inline" /> : null}
-                                <svg key="icon-qr" className="w-5 h-5 mr-1.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M4 4h6v6H4z" /><path d="M14 4h6v6h-6z" /><path d="M4 14h6v6H4z" /><path d="M14 14h6v6h-6z" /><path d="M7 7h.01" /><path d="M17 7h.01" /><path d="M7 17h.01" /><path d="M17 17h.01" /></svg>
-                                Gerar QR Code
+                                Depositar
                             </button>
                         </div>
                     )}
 
                     {step === 'pix' && deposit && (
                         <div className="flex flex-col p-6 text-black dark:text-white">
-                            {/* Header with Back */}
                             <div className="flex items-center mb-8 relative">
                                 <button
                                     onClick={handleBack}
@@ -307,14 +335,9 @@ export function DepositModal({ isOpen, onOpenChange }: DepositModalProps) {
                             </div>
 
                             <div className="flex flex-col items-center">
-                                {/* QR Code */}
                                 <div className="bg-white p-3 rounded-[16px] mb-6">
                                     {deposit.pix_qrcode_image ? (
-                                        <img
-                                            src={deposit.pix_qrcode_image}
-                                            alt="PIX QR Code"
-                                            className="w-[180px] h-[180px]"
-                                        />
+                                        <img src={deposit.pix_qrcode_image} alt="PIX QR Code" className="w-[180px] h-[180px]" />
                                     ) : (
                                         <div className="w-[180px] h-[180px] bg-gray-100 flex items-center justify-center text-gray-400 font-semibold rounded-[12px]">
                                             QR Code
@@ -322,7 +345,6 @@ export function DepositModal({ isOpen, onOpenChange }: DepositModalProps) {
                                     )}
                                 </div>
 
-                                {/* Amount Display */}
                                 <div className="text-center mb-8">
                                     <p className="text-[14px] text-black/50 dark:text-white/50 font-semibold mb-1">Valor a pagar</p>
                                     <p className="text-[28px] font-black text-[#2A75FF] tracking-tight leading-none">
@@ -331,10 +353,9 @@ export function DepositModal({ isOpen, onOpenChange }: DepositModalProps) {
                                 </div>
                             </div>
 
-                            {/* Copy PIX Code */}
                             {deposit.pix_copy_paste && (
                                 <div className="w-full mb-6 relative">
-                                    <p className="text-[14px] font-bold text-black/60 dark:text-white/60 mb-2">Código PIX Copia e Cola</p>
+                                    <p className="text-[14px] font-bold text-black/60 dark:text-white/60 mb-2">Codigo PIX Copia e Cola</p>
                                     <div className="flex items-center">
                                         <input
                                             value={deposit.pix_copy_paste}
@@ -355,27 +376,25 @@ export function DepositModal({ isOpen, onOpenChange }: DepositModalProps) {
                                 </div>
                             )}
 
-                            {/* Recommendations */}
                             <div className="border border-black/5 dark:border-white/5 rounded-2xl p-5 mb-8 bg-transparent">
                                 <p className="text-[15px] font-bold text-black dark:text-white mb-3">Como pagar:</p>
                                 <ol className="text-[13px] text-black/70 dark:text-white/70 space-y-[10px] list-decimal list-outside ml-4 font-semibold">
                                     <li className="pl-1">Abra o app do seu banco</li>
                                     <li className="pl-1">Escolha pagar com PIX</li>
-                                    <li className="pl-1">Escaneie o QR Code ou cole o código</li>
+                                    <li className="pl-1">Escaneie o QR Code ou cole o codigo</li>
                                     <li className="pl-1">Confirme o pagamento</li>
                                 </ol>
                                 <div className="h-[1px] w-full bg-black/5 dark:bg-white/5 my-5"></div>
                                 <p className="text-[12px] font-semibold text-black/40 dark:text-white/40 text-center leading-relaxed max-w-[80%] mx-auto">
-                                    O saldo será creditado automaticamente após a confirmação.
+                                    O saldo sera creditado automaticamente apos a confirmacao.
                                 </p>
                             </div>
 
-                            {/* Complete Button */}
                             <button
                                 onClick={handleDepositComplete}
                                 className="w-full py-4 rounded-[12px] font-bold text-[15px] text-white bg-[#2A75FF] hover:bg-[#1C60E6] active:bg-[#154BC0] transition-all outline-none"
                             >
-                                Já fiz o pagamento
+                                Ja fiz o pagamento
                             </button>
                         </div>
                     )}
@@ -384,4 +403,3 @@ export function DepositModal({ isOpen, onOpenChange }: DepositModalProps) {
         </Dialog>
     )
 }
-

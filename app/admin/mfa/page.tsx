@@ -24,8 +24,8 @@ export default function AdminMFAPage() {
   const [useBackupCode, setUseBackupCode] = useState(false);
   const { verifyMfa, verifyMfaBackup, isAuthenticated, isMfaVerified, isLoading } = useAdminAuth();
 
-  // Se não estiver autenticado, redireciona para login
-  // Se MFA já estiver verificado, redireciona para dashboard
+  // Se nÃ£o estiver autenticado, redireciona para login
+  // Se MFA jÃ¡ estiver verificado, redireciona para dashboard
   useEffect(() => {
     if (!isLoading) {
       if (!isAuthenticated) {

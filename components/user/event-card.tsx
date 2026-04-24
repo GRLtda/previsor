@@ -30,6 +30,10 @@ function getMarketVolume(market: Market | undefined): number {
   return 0
 }
 
+function getEventVolume(markets: Market[]): number {
+  return markets.reduce((total, market) => total + getMarketVolume(market), 0)
+}
+
 function formatCompactVolume(amount: number): string {
   const value = amount / 100
   const flooredValue = Math.floor(value)
@@ -43,12 +47,6 @@ function formatCompactVolume(amount: number): string {
   }
 
   return `R$${flooredValue} Vol.`
-}
-
-function formatDate(dateStr: string): string {
-  const date = new Date(dateStr)
-  const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
-  return `${months[date.getMonth()]} ${date.getDate().toString().padStart(2, '0')}, ${date.getHours().toString().padStart(2, '0')}:${date.getMinutes().toString().padStart(2, '0')}`
 }
 
 function getQuickEventTitle(title: string, isQuick: boolean): string {
@@ -65,7 +63,6 @@ export function EventCard({ event, isFavorite: initialIsFavorite = false, onFavo
       : allMarkets.slice(-1))
     : allMarkets
   const hasMarkets = markets.length > 0
-  const endDate = event.endsAt ? formatDate(event.endsAt) : null
   const { openAuthModal } = useAuthModal()
 
   const [isFavorite, setIsFavorite] = useState(initialIsFavorite)
@@ -76,6 +73,7 @@ export function EventCard({ event, isFavorite: initialIsFavorite = false, onFavo
     ? '/assets/img/bitcoin-default.png'
     : event.imageUrl
   const marketVolume = getMarketVolume(markets[0])
+  const eventVolume = getEventVolume(markets)
 
   const handleFavoriteClick = async (e: React.MouseEvent) => {
     e.preventDefault()
@@ -153,14 +151,6 @@ export function EventCard({ event, isFavorite: initialIsFavorite = false, onFavo
               </svg>
             </button>
 
-            {endDate && (
-              <div className="flex size-7 items-center justify-center rounded-lg bg-black/5 dark:bg-white/5">
-                <svg width="12" height="13" viewBox="0 0 12 13" fill="none" xmlns="http://www.w3.org/2000/svg">
-                  <path d="M11 6.5C11 9.26 8.76 11.5 6 11.5C3.24 11.5 1 9.26 1 6.5C1 3.74 3.24 1.5 6 1.5C8.76 1.5 11 3.74 11 6.5Z" stroke="#606E85" strokeWidth="1" strokeLinecap="round" strokeLinejoin="round" />
-                  <path d="M7.85494 8.09L6.30494 7.165C6.03494 7.005 5.81494 6.62 5.81494 6.305V4.255" stroke="#606E85" strokeWidth="1" strokeLinecap="round" strokeLinejoin="round" />
-                </svg>
-              </div>
-            )}
           </div>
         </div>
       </div>
@@ -220,23 +210,30 @@ export function EventCard({ event, isFavorite: initialIsFavorite = false, onFavo
             </div>
           </div>
         ) : (
-          <div className="max-h-[135px] overflow-y-auto custom-scroll pr-1">
-            <div className="mt-3 flex size-full flex-col items-center justify-center gap-y-1">
-              {hasMarkets ? (
-                markets.map((market) => (
-                  <OutcomeRow
-                    key={market.id}
-                    market={market}
-                    onYesClick={() => router.push(`/eventos/${event.slug}?marketId=${market.id}&side=YES`)}
-                    onNoClick={() => router.push(`/eventos/${event.slug}?marketId=${market.id}&side=NO`)}
-                  />
-                ))
-              ) : (
-                <div className="py-4 text-xs text-muted-foreground text-center">
-                  Aguardando mercados
-                </div>
-              )}
+          <div className="mt-3 flex h-full flex-col">
+            <div className="max-h-[112px] overflow-y-auto custom-scroll pr-1">
+              <div className="flex size-full flex-col items-center justify-center gap-y-1">
+                {hasMarkets ? (
+                  markets.map((market) => (
+                    <OutcomeRow
+                      key={market.id}
+                      market={market}
+                      onYesClick={() => router.push(`/eventos/${event.slug}?marketId=${market.id}&side=YES`)}
+                      onNoClick={() => router.push(`/eventos/${event.slug}?marketId=${market.id}&side=NO`)}
+                    />
+                  ))
+                ) : (
+                  <div className="py-4 text-xs text-muted-foreground text-center">
+                    Aguardando mercados
+                  </div>
+                )}
+              </div>
             </div>
+            {hasMarkets && (
+              <div className="mt-3 text-left text-[11px] font-medium text-[#606E85] dark:text-[#A1A7BB]">
+                {formatCompactVolume(eventVolume)}
+              </div>
+            )}
           </div>
         )}
       </div>

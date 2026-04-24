@@ -1,7 +1,5 @@
 "use client";
 
-import React from "react"
-
 import { useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { AdminSidebar } from "@/components/admin/sidebar";
@@ -49,9 +47,9 @@ export default function AdminDashboardLayout({
   }
 
   return (
-    <div className="flex h-screen overflow-hidden">
+    <div className="flex h-screen overflow-hidden bg-background text-foreground transition-colors">
       <AdminSidebar />
-      <main className="flex-1 overflow-y-auto bg-muted/30 p-8">{children}</main>
+      <main className="flex-1 overflow-y-auto bg-muted/30 p-8 transition-colors">{children}</main>
     </div>
   );
 }

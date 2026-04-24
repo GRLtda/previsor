@@ -115,7 +115,7 @@ export function LoginForm({ onSuccess, onRegisterClick, onOtpRequired, onForgotP
                 <div className="pt-1.5">
                     <Button
                         type="submit"
-                        className="w-full h-11 font-semibold text-[14px] rounded-xl bg-black dark:bg-white text-white dark:text-black hover:bg-black/85 dark:hover:bg-white/90 transition-all"
+                        className="w-full h-11 font-medium text-[14px] rounded-xl bg-black dark:bg-white text-white dark:text-black hover:bg-black/85 dark:hover:bg-white/90 transition-all"
                         disabled={isLoading}
                     >
                         {isLoading ? (
@@ -138,7 +138,7 @@ export function LoginForm({ onSuccess, onRegisterClick, onOtpRequired, onForgotP
                 <span className="text-[#8A8C99]">Não tem uma conta? </span>
                 <button
                     onClick={onRegisterClick}
-                    className="font-semibold text-black dark:text-white hover:underline transition-colors focus:outline-none"
+                    className="font-medium text-black dark:text-white hover:underline transition-colors focus:outline-none"
                 >
                     Registrar
                 </button>

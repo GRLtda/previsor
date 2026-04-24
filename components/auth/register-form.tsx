@@ -210,7 +210,7 @@ export function RegisterForm({ onSuccess, onLoginClick }: RegisterFormProps) {
                 <span className="text-[#8A8C99]">Já tem uma conta? </span>
                 <button
                     onClick={onLoginClick}
-                    className="font-semibold text-black dark:text-white hover:underline transition-colors focus:outline-none"
+                    className="font-medium text-black dark:text-white hover:underline transition-colors focus:outline-none"
                 >
                     Entrar
                 </button>

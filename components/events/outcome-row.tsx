@@ -9,36 +9,8 @@ interface OutcomeRowProps {
     onNoClick?: () => void
 }
 
-function getMarketVolume(market: Market): number {
-    const candidates = [market.volume, market.totalVolume, market.total_volume]
-
-    for (const value of candidates) {
-        if (typeof value === 'number' && Number.isFinite(value) && value > 0) {
-            return value
-        }
-    }
-
-    return 0
-}
-
-function formatCompactVolume(amount: number): string {
-    const value = amount / 100
-    const flooredValue = Math.floor(value)
-
-    if (value >= 1000000) {
-        return `R$${Math.floor(value / 1000000)}m Vol.`
-    }
-
-    if (value >= 1000) {
-        return `R$${Math.floor(value / 1000)}k Vol.`
-    }
-
-    return `R$${flooredValue} Vol.`
-}
-
 export function OutcomeRow({ market, onYesClick, onNoClick }: OutcomeRowProps) {
     const isMarketOpen = market.status === 'open'
-    const marketVolume = getMarketVolume(market)
 
     return (
         <div className="relative h-8 w-full cursor-pointer rounded-md transition-all duration-300 ease-in-out">
@@ -103,9 +75,6 @@ export function OutcomeRow({ market, onYesClick, onNoClick }: OutcomeRowProps) {
                             <span>Não</span>
                         </button>
                     </div>
-                    <span className="ml-2 text-[11px] font-medium text-[#606E85] dark:text-[#A1A7BB] whitespace-nowrap">
-                        {formatCompactVolume(marketVolume)}
-                    </span>
                 </div>
             </div>
         </div>

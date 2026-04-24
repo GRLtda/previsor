@@ -60,7 +60,7 @@ export function AuthModal({ isOpen, onOpenChange, defaultView = 'LOGIN', resetTo
     return (
         <Dialog open={isOpen} onOpenChange={onOpenChange}>
             <DialogContent
-                className="sm:max-w-[440px] w-[calc(100%-2rem)] rounded-3xl p-0 gap-0 border border-black/10 dark:border-white/10 shadow-[0_20px_60px_rgba(0,0,0,0.3)] overflow-hidden"
+                className="sm:max-w-[440px] w-[calc(100%-2rem)] rounded-3xl p-0 gap-0 border-none dark:border-white/10 overflow-hidden"
             >
                 <DialogTitle className="sr-only">Autenticação</DialogTitle>
 

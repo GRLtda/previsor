@@ -55,7 +55,7 @@ export default function AdminMFASetupPage() {
             setBackupCodes(response.data.backup_codes);
             setStep("setup");
         } catch (err) {
-            setError(err instanceof Error ? err.message : "Erro ao iniciar configuração MFA");
+            setError(err instanceof Error ? err.message : "Erro ao iniciar configuraÃ§Ã£o MFA");
         } finally {
             setLoading(false);
         }
@@ -69,11 +69,11 @@ export default function AdminMFASetupPage() {
         try {
             const response = await adminApi.confirmMfa(code);
             if (response.data.enabled) {
-                // MFA habilitado com sucesso, mostrar códigos de backup
+                // MFA habilitado com sucesso, mostrar cÃ³digos de backup
                 setStep("backup");
             }
         } catch (err) {
-            setError(err instanceof Error ? err.message : "Código inválido");
+            setError(err instanceof Error ? err.message : "CÃ³digo invÃ¡lido");
         } finally {
             setLoading(false);
         }
@@ -120,8 +120,8 @@ export default function AdminMFASetupPage() {
                     </CardTitle>
                     <CardDescription>
                         {step === "setup" && "Escaneie o QR code com seu aplicativo autenticador"}
-                        {step === "confirm" && "Digite o código gerado pelo aplicativo"}
-                        {step === "backup" && "Guarde seus códigos de backup em local seguro"}
+                        {step === "confirm" && "Digite o cÃ³digo gerado pelo aplicativo"}
+                        {step === "backup" && "Guarde seus cÃ³digos de backup em local seguro"}
                     </CardDescription>
                 </CardHeader>
                 <CardContent>
@@ -191,7 +191,7 @@ export default function AdminMFASetupPage() {
                     {step === "confirm" && (
                         <form onSubmit={handleConfirm} className="space-y-4">
                             <div className="space-y-2">
-                                <Label htmlFor="code">Código do Autenticador</Label>
+                                <Label htmlFor="code">CÃ³digo do Autenticador</Label>
                                 <Input
                                     id="code"
                                     type="text"
@@ -203,7 +203,7 @@ export default function AdminMFASetupPage() {
                                     required
                                 />
                                 <p className="text-sm text-muted-foreground">
-                                    Digite o código de 6 dígitos do seu aplicativo autenticador
+                                    Digite o cÃ³digo de 6 dÃ­gitos do seu aplicativo autenticador
                                 </p>
                             </div>
 
@@ -239,13 +239,13 @@ export default function AdminMFASetupPage() {
                             <Alert>
                                 <KeyRound className="h-4 w-4" />
                                 <AlertDescription>
-                                    Guarde estes códigos em local seguro. Cada código só pode ser usado uma vez.
+                                    Guarde estes cÃ³digos em local seguro. Cada cÃ³digo sÃ³ pode ser usado uma vez.
                                 </AlertDescription>
                             </Alert>
 
                             <div className="space-y-2">
                                 <div className="flex items-center justify-between">
-                                    <Label>Códigos de Backup</Label>
+                                    <Label>CÃ³digos de Backup</Label>
                                     <Button
                                         variant="outline"
                                         size="sm"

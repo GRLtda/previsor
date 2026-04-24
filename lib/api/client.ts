@@ -571,6 +571,12 @@ export const userApi = {
       '/v1/wallet/deposits',
       { params }
     ),
+  getDeposit: (id: string) =>
+    baseFetch<{ success: true; data: { deposit: import('@/lib/types').Deposit } }>(
+      'user',
+      `/v1/wallet/deposits/${id}`
+    ),
+
 
   createWithdrawal: (amount: number, pix_key_type: string, pix_key_value: string) =>
     baseFetch<{ success: true; data: { withdrawal: import('@/lib/types').Withdrawal } }>(

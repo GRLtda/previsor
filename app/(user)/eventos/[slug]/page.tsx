@@ -5,7 +5,7 @@ import { useRouter, useSearchParams } from 'next/navigation'
 import { userApi, ApiClientError } from '@/lib/api/client'
 import type { Event as DomainEvent, Market } from '@/lib/types'
 import { Skeleton } from '@/components/ui/skeleton'
-import { ChevronLeft, ChevronDown, Star, Link as LinkIcon, ArrowUpRight, ArrowDownRight, RotateCw } from 'lucide-react'
+import { ChevronLeft, ChevronDown, Star, Link as LinkIcon } from 'lucide-react'
 import { format } from 'date-fns'
 import { ptBR } from 'date-fns/locale'
 import { toast } from 'sonner'
@@ -85,73 +85,6 @@ function getEventTotalVolume(event: DomainEvent | null): number {
 function getQuickEventTitle(title: string, isQuick: boolean): string {
   if (!isQuick) return title
   return title.replace(/\s+#\d+\s*$/, '').trim()
-}
-
-function getQuickRoundSummary(round: QuickRound) {
-  const closePrice = round.closePrice ?? null
-  const isAnnulled = round.roundStatus === 'annulled' || round.result === 'ANNULLED'
-  const movedUp = closePrice != null ? closePrice > round.openPrice : round.result === 'YES'
-  const movedDown = closePrice != null ? closePrice < round.openPrice : round.result === 'NO'
-  const change = closePrice != null ? closePrice - round.openPrice : 0
-  const changePct = round.openPrice > 0 ? (change / round.openPrice) * 100 : 0
-
-  if (isAnnulled) {
-    return {
-      title: 'Rodada finalizada sem vencedor',
-      subtitle: 'Mercado anulado',
-      detail: 'Empate no preço ou falha no feed. Todas as posições são reembolsadas.',
-      pillClass: 'border-amber-500/20 bg-amber-500/10 text-amber-300',
-      accentClass: 'text-amber-300',
-      surfaceClass: 'from-amber-500/20 via-amber-500/5 to-transparent',
-      Icon: RotateCw,
-      change,
-      changePct,
-      closePrice,
-    }
-  }
-
-  if (movedUp) {
-    return {
-      title: 'Rodada encerrada acima da abertura',
-      subtitle: 'Resultado: Sobe',
-      detail: 'O Bitcoin fechou acima do preço inicial desta rodada.',
-      pillClass: 'border-emerald-500/20 bg-emerald-500/10 text-emerald-300',
-      accentClass: 'text-emerald-300',
-      surfaceClass: 'from-emerald-500/20 via-emerald-500/5 to-transparent',
-      Icon: ArrowUpRight,
-      change,
-      changePct,
-      closePrice,
-    }
-  }
-
-  if (movedDown) {
-    return {
-      title: 'Rodada encerrada abaixo da abertura',
-      subtitle: 'Resultado: Desce',
-      detail: 'O Bitcoin fechou abaixo do preço inicial desta rodada.',
-      pillClass: 'border-rose-500/20 bg-rose-500/10 text-rose-300',
-      accentClass: 'text-rose-300',
-      surfaceClass: 'from-rose-500/20 via-rose-500/5 to-transparent',
-      Icon: ArrowDownRight,
-      change,
-      changePct,
-      closePrice,
-    }
-  }
-
-  return {
-    title: 'Rodada finalizada',
-    subtitle: 'Resultado indefinido',
-    detail: 'Aguardando atualização final do mercado.',
-    pillClass: 'border-zinc-500/20 bg-zinc-500/10 text-zinc-300',
-    accentClass: 'text-zinc-300',
-    surfaceClass: 'from-zinc-500/20 via-zinc-500/5 to-transparent',
-    Icon: RotateCw,
-    change,
-    changePct,
-    closePrice,
-  }
 }
 
 function appendBtcTick(history: BtcPriceTick[], nextTick: BtcPriceTick): BtcPriceTick[] {
@@ -511,7 +444,6 @@ export default function EventDetailPage({ params }: PageProps) {
         return open.length > 0 ? open.slice(-1) : allMkts.slice(-1)
       })()
     : (event.markets || [])
-  const quickRoundSummary = quickRound ? getQuickRoundSummary(quickRound) : null
 
   const closestMarketClose = displayMarkets.length
     ? new Date(Math.min(...displayMarkets.map(m => new Date(m.closesAt).getTime())))
@@ -706,72 +638,14 @@ export default function EventDetailPage({ params }: PageProps) {
                     className="h-[200px] sm:h-[260px]"
                   />
 
-                  {quickRound.roundStatus !== 'open' && quickRoundSummary && (
-                    <div className="absolute inset-0 z-20 overflow-hidden rounded-lg">
-                      <div className={cn(
-                        'absolute inset-0 bg-gradient-to-br opacity-95',
-                        quickRoundSummary.surfaceClass
-                      )} />
-                      <div className="absolute inset-0 bg-[#07111D]/72 backdrop-blur-[3px]" />
-
-                      <button
+                  {quickRound.roundStatus !== 'open' && (
+                    <div className="absolute inset-0 z-20 flex flex-col items-center justify-center bg-black/40 backdrop-blur-[2px] rounded-lg">
+                      <button 
                         onClick={fetchLiveMarket}
-                        className="absolute right-3 top-3 z-10 inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/10 px-4 py-2 text-[11px] font-semibold uppercase tracking-[0.16em] text-white shadow-lg transition-all hover:bg-white/15 hover:border-white/20"
+                        className="bg-blue-600 hover:bg-blue-500 text-white px-5 py-2.5 rounded-full font-bold shadow-lg transition-transform hover:scale-105 active:scale-95"
                       >
-                        <RotateCw className="size-3.5" />
-                        Novo mercado ao vivo
+                        Acompanhar Novo Mercado Ao Vivo
                       </button>
-
-                      <div className="relative flex h-full flex-col justify-end p-4 sm:p-5">
-                        <div className="max-w-[420px] rounded-[22px] border border-white/10 bg-[#0B1524]/88 p-4 shadow-2xl backdrop-blur-md">
-                          <div className="flex items-center gap-3">
-                            <div className={cn(
-                              'flex size-11 shrink-0 items-center justify-center rounded-2xl border',
-                              quickRoundSummary.pillClass
-                            )}>
-                              <quickRoundSummary.Icon className="size-5" />
-                            </div>
-                            <div>
-                              <div className={cn(
-                                'inline-flex items-center rounded-full border px-2.5 py-1 text-[10px] font-bold uppercase tracking-[0.18em]',
-                                quickRoundSummary.pillClass
-                              )}>
-                                {quickRoundSummary.subtitle}
-                              </div>
-                              <h3 className="mt-2 text-base font-bold text-white sm:text-lg">
-                                {quickRoundSummary.title}
-                              </h3>
-                            </div>
-                          </div>
-
-                          <p className="mt-3 text-sm leading-relaxed text-[#C8D2E0]">
-                            {quickRoundSummary.detail}
-                          </p>
-
-                          <div className="mt-4 grid grid-cols-2 gap-2.5 sm:grid-cols-3">
-                            <div className="rounded-2xl border border-white/8 bg-white/[0.04] px-3 py-2.5">
-                              <span className="text-[10px] uppercase tracking-[0.16em] text-[#7F8CA3]">Abertura</span>
-                              <div className="mt-1 text-sm font-semibold text-white">
-                                {formatUsd(quickRound.openPrice)}
-                              </div>
-                            </div>
-                            <div className="rounded-2xl border border-white/8 bg-white/[0.04] px-3 py-2.5">
-                              <span className="text-[10px] uppercase tracking-[0.16em] text-[#7F8CA3]">Fechamento</span>
-                              <div className="mt-1 text-sm font-semibold text-white">
-                                {quickRoundSummary.closePrice != null ? formatUsd(quickRoundSummary.closePrice) : '--'}
-                              </div>
-                            </div>
-                            <div className="col-span-2 rounded-2xl border border-white/8 bg-white/[0.04] px-3 py-2.5 sm:col-span-1">
-                              <span className="text-[10px] uppercase tracking-[0.16em] text-[#7F8CA3]">Variação</span>
-                              <div className={cn('mt-1 text-sm font-semibold', quickRoundSummary.accentClass)}>
-                                {quickRoundSummary.closePrice != null
-                                  ? `${quickRoundSummary.change >= 0 ? '+' : ''}${formatUsd(quickRoundSummary.change)} · ${quickRoundSummary.changePct >= 0 ? '+' : ''}${quickRoundSummary.changePct.toFixed(2)}%`
-                                  : '--'}
-                              </div>
-                            </div>
-                          </div>
-                        </div>
-                      </div>
                     </div>
                   )}
                 </div>
@@ -1042,8 +916,6 @@ export default function EventDetailPage({ params }: PageProps) {
               side={selectedSide}
               isMultiMarket={(event.markets?.length ?? 0) > 1}
               isQuickMarket={event.type === 'quick'}
-              quickRound={quickRound}
-              onFollowLiveMarket={fetchLiveMarket}
               onSideChange={(side) => setSelectedSide(side)}
               onSuccess={(updatedMarket) => {
                 handleMarketUpdate(updatedMarket)
@@ -1059,8 +931,6 @@ export default function EventDetailPage({ params }: PageProps) {
         open={mobileSheetOpen && !!selectedMarket}
         isMultiMarket={event.markets && event.markets.length > 1}
         isQuickMarket={event.type === 'quick'}
-        quickRound={quickRound}
-        onFollowLiveMarket={fetchLiveMarket}
         onSideChange={(side) => setSelectedSide(side)}
         onClose={() => setMobileSheetOpen(false)}
         onSuccess={(updatedMarket) => {

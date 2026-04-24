@@ -210,9 +210,9 @@ export function EventCard({ event, isFavorite: initialIsFavorite = false, onFavo
             </div>
           </div>
         ) : (
-            <div className="mt-3 flex h-full flex-col">
-              <div className="max-h-[112px] overflow-y-auto custom-scroll pr-1">
-              <div className="flex w-full flex-col items-stretch justify-start gap-y-1">
+          <div className="mt-3 flex h-full flex-col">
+            <div className="max-h-[112px] overflow-y-auto custom-scroll pr-1">
+              <div className="flex size-full flex-col items-center justify-center gap-y-1">
                 {hasMarkets ? (
                   markets.map((market) => (
                     <OutcomeRow

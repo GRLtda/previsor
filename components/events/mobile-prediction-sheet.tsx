@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { useAuth } from '@/contexts/auth-context'
 import { userApi, ApiClientError } from '@/lib/api/client'
-import type { Market, Position } from '@/lib/types'
+import type { Market, Position, QuickRound } from '@/lib/types'
 import { toast } from 'sonner'
 import { useRouter } from 'next/navigation'
 import { cn } from '@/lib/utils'
@@ -19,6 +19,8 @@ interface MobilePredictionSheetProps {
     isMultiMarket?: boolean
     isQuickMarket?: boolean
     onSideChange?: (side: 'YES' | 'NO') => void
+    quickRound?: QuickRound | null
+    onFollowLiveMarket?: () => void
 }
 
 interface Quote {
@@ -38,7 +40,7 @@ interface SellQuote {
     priceImpact: number
 }
 
-export function MobilePredictionSheet({ market, side, open, onClose, onSuccess, isMultiMarket, isQuickMarket, onSideChange }: MobilePredictionSheetProps) {
+export function MobilePredictionSheet({ market, side, open, onClose, onSuccess, isMultiMarket, isQuickMarket, onSideChange, quickRound, onFollowLiveMarket }: MobilePredictionSheetProps) {
     const router = useRouter()
     const { isAuthenticated, isOtpVerified, user } = useAuth()
     const { openAuthModal } = useAuthModal()
@@ -70,7 +72,12 @@ export function MobilePredictionSheet({ market, side, open, onClose, onSuccess, 
 
     // ── Reset when market/side/open changes ───────────────────────────
     useEffect(() => {
+        setShowSuccess(false)
+        setShowSellSuccess(false)
+        setTradeMode('buy')
+        setAmount('')
         setQuote(null)
+        setUserPosition(null)
         setSellQuote(null)
         setSellSharesInput('')
     }, [market?.id, side])
@@ -296,6 +303,112 @@ export function MobilePredictionSheet({ market, side, open, onClose, onSuccess, 
     const buttonColor = isYes ? 'bg-[#00B471] hover:bg-[#00A366]' : 'bg-[#EE5F67] hover:bg-[#D6555D]'
     const buttonDisabled = isLoading || amountCents < 100
     const isMarketOpen = market.status === 'open'
+    const quickOpenPrice = quickRound?.openPrice ?? 0
+    const quickClosePrice = quickRound?.closePrice ?? null
+    const quickIsAnnulled = quickRound?.roundStatus === 'annulled' || quickRound?.result === 'ANNULLED'
+    const quickMovedUp = quickClosePrice != null ? quickClosePrice > quickOpenPrice : quickRound?.result === 'YES'
+    const quickMovedDown = quickClosePrice != null ? quickClosePrice < quickOpenPrice : quickRound?.result === 'NO'
+    const quickChange = quickClosePrice != null ? quickClosePrice - quickOpenPrice : 0
+    const quickChangePct = quickClosePrice != null && quickOpenPrice > 0
+        ? (quickChange / quickOpenPrice) * 100
+        : 0
+
+    if (isQuickMarket && quickRound && quickRound.roundStatus !== 'open') {
+        const round = quickRound
+        const title = quickIsAnnulled
+            ? 'Rodada finalizada sem vencedor'
+            : quickMovedUp
+                ? 'Rodada encerrada acima da abertura'
+                : quickMovedDown
+                    ? 'Rodada encerrada abaixo da abertura'
+                    : 'Rodada finalizada'
+        const subtitle = quickIsAnnulled
+            ? 'Mercado anulado'
+            : quickMovedUp
+                ? 'Resultado: Sobe'
+                : quickMovedDown
+                    ? 'Resultado: Desce'
+                    : 'Resultado indisponível'
+        const description = quickIsAnnulled
+            ? 'Empate no preço ou falha no feed. As posições dessa rodada são reembolsadas.'
+            : quickMovedUp
+                ? 'O Bitcoin fechou acima do preço inicial desta rodada.'
+                : quickMovedDown
+                    ? 'O Bitcoin fechou abaixo do preço inicial desta rodada.'
+                    : 'Aguardando atualização final do fechamento.'
+        const accentClass = quickIsAnnulled
+            ? 'text-amber-400'
+            : quickMovedUp
+                ? 'text-[#00B471]'
+                : 'text-[#EE5F67]'
+        const badgeClass = quickIsAnnulled
+            ? 'border-amber-500/20 bg-amber-500/10 text-amber-300'
+            : quickMovedUp
+                ? 'border-[#00B471]/20 bg-[#00B471]/10 text-[#00D28E]'
+                : 'border-[#EE5F67]/20 bg-[#EE5F67]/10 text-[#FF8C93]'
+
+        return (
+            <div className="lg:hidden fixed inset-0 z-50">
+                <div className="absolute inset-0 bg-black/50" onClick={onClose} />
+                <div className="absolute bottom-0 left-0 right-0 animate-in slide-in-from-bottom duration-300">
+                    <div
+                        className="flex flex-col border border-black/10 rounded-t-[20px] bg-white p-5 dark:bg-[#0E1117] max-h-[calc(100vh-100px)]"
+                        style={{ boxShadow: 'rgba(0, 0, 0, 0.05) 0px -8px 20px' }}
+                    >
+                        <div className="flex items-center justify-end mb-2">
+                            <button
+                                onClick={onClose}
+                                className="flex size-9 items-center justify-center rounded-full bg-black/5 hover:bg-black/10 dark:bg-white/5 dark:hover:bg-white/10"
+                            >
+                                <X className="size-4 text-[#606E85]" />
+                            </button>
+                        </div>
+
+                        <div className="rounded-[24px] border border-black/10 bg-black/[0.02] p-5 dark:border-white/10 dark:bg-white/[0.03]">
+                            <span className={cn('inline-flex w-fit items-center rounded-full border px-3 py-1 text-[11px] font-bold uppercase tracking-[0.18em]', badgeClass)}>
+                                {subtitle}
+                            </span>
+                            <h2 className="mt-4 text-2xl font-bold text-black dark:text-white">{title}</h2>
+                            <p className="mt-3 text-sm leading-relaxed text-[#606E85] dark:text-[#A1A7BB]">{description}</p>
+
+                            <div className="mt-5 grid grid-cols-2 gap-3">
+                                <div className="rounded-2xl border border-black/10 bg-black/[0.03] px-3 py-3 dark:border-white/10 dark:bg-white/[0.04]">
+                                    <div className="text-[10px] font-semibold uppercase tracking-[0.16em] text-[#606E85] dark:text-[#A1A7BB]">Abertura</div>
+                                    <div className="mt-1 text-base font-bold text-black dark:text-white">
+                                        {round.openPrice.toLocaleString('pt-BR', { style: 'currency', currency: 'USD', minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                                    </div>
+                                </div>
+                                <div className="rounded-2xl border border-black/10 bg-black/[0.03] px-3 py-3 dark:border-white/10 dark:bg-white/[0.04]">
+                                    <div className="text-[10px] font-semibold uppercase tracking-[0.16em] text-[#606E85] dark:text-[#A1A7BB]">Fechamento</div>
+                                    <div className="mt-1 text-base font-bold text-black dark:text-white">
+                                        {quickClosePrice != null
+                                            ? quickClosePrice.toLocaleString('pt-BR', { style: 'currency', currency: 'USD', minimumFractionDigits: 2, maximumFractionDigits: 2 })
+                                            : '--'}
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div className="mt-3 rounded-2xl border border-black/10 bg-black/[0.03] px-3 py-3 dark:border-white/10 dark:bg-white/[0.04]">
+                                <div className="text-[10px] font-semibold uppercase tracking-[0.16em] text-[#606E85] dark:text-[#A1A7BB]">Variação da rodada</div>
+                                <div className={cn('mt-1 text-base font-bold', accentClass)}>
+                                    {quickClosePrice != null
+                                        ? `${quickChange >= 0 ? '+' : ''}${quickChange.toLocaleString('pt-BR', { style: 'currency', currency: 'USD', minimumFractionDigits: 2, maximumFractionDigits: 2 })} · ${quickChangePct >= 0 ? '+' : ''}${quickChangePct.toFixed(2)}%`
+                                        : '--'}
+                                </div>
+                            </div>
+
+                            <button
+                                onClick={onFollowLiveMarket}
+                                className="mt-6 w-full rounded-lg bg-[#0091FF] py-3 text-base font-bold text-white hover:bg-[#007ACC] transition-colors"
+                            >
+                                Acompanhar Novo Mercado Ao Vivo
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        )
+    }
 
     return (
         <div className="lg:hidden fixed inset-0 z-50">

@@ -17,12 +17,115 @@ interface Point {
     price: number
 }
 
+interface RenderPoint {
+    x: number
+    y: number
+}
+
+interface ViewportRange {
+    minY: number
+    maxY: number
+}
+
+interface HoverData {
+    x: number
+    y: number
+    timestamp: number
+    price: number
+}
+
 // Spring physics parameters
-const SPRING_STIFFNESS = 250 // Increased stiffness so it chases the soft target reliably
-const SPRING_DAMPING = 0.85
+const TARGET_BLEND_PER_FRAME = 0.085
+const DOMAIN_BLEND_PER_FRAME = 0.12
+const MIN_DOMAIN_SPAN = 120
+const BASE_SMOOTH_TIME = 0.26
+const MAX_CHASE_SPEED = 1800
+
+function blendByFps(perFrame: number, fpsScale: number): number {
+    return 1.0 - Math.pow(1.0 - perFrame, fpsScale)
+}
+
+function smoothDamp(
+    current: number,
+    target: number,
+    currentVelocity: number,
+    smoothTime: number,
+    maxSpeed: number,
+    deltaTime: number
+) {
+    const safeSmoothTime = Math.max(0.0001, smoothTime)
+    const omega = 2 / safeSmoothTime
+    const x = omega * deltaTime
+    const exp = 1 / (1 + x + 0.48 * x * x + 0.235 * x * x * x)
+
+    let change = current - target
+    const originalTarget = target
+    const maxChange = maxSpeed * safeSmoothTime
+    change = Math.max(-maxChange, Math.min(maxChange, change))
+    target = current - change
+
+    const temp = (currentVelocity + omega * change) * deltaTime
+    let nextVelocity = (currentVelocity - omega * temp) * exp
+    let output = target + (change + temp) * exp
+
+    const crossedTarget = (originalTarget - current > 0) === (output > originalTarget)
+    if (crossedTarget) {
+        output = originalTarget
+        nextVelocity = 0
+    }
+
+    return {
+        value: output,
+        velocity: nextVelocity,
+    }
+}
+
+function traceSmoothPath(
+    path: Pick<CanvasRenderingContext2D, 'moveTo' | 'lineTo' | 'quadraticCurveTo'>,
+    points: RenderPoint[],
+    options?: { startWithMove?: boolean }
+) {
+    if (points.length === 0) return
+    const startWithMove = options?.startWithMove ?? true
+
+    if (points.length === 1) {
+        if (startWithMove) {
+            path.moveTo(points[0].x, points[0].y)
+        } else {
+            path.lineTo(points[0].x, points[0].y)
+        }
+        return
+    }
+
+    if (startWithMove) {
+        path.moveTo(points[0].x, points[0].y)
+    } else {
+        path.lineTo(points[0].x, points[0].y)
+    }
+
+    for (let i = 1; i < points.length - 1; i++) {
+        const current = points[i]
+        const next = points[i + 1]
+        const midX = (current.x + next.x) / 2
+        const midY = (current.y + next.y) / 2
+        path.quadraticCurveTo(current.x, current.y, midX, midY)
+    }
+
+    const penultimate = points[points.length - 2]
+    const last = points[points.length - 1]
+    path.quadraticCurveTo(penultimate.x, penultimate.y, last.x, last.y)
+}
 
 function formatPriceShort(value: number): string {
     return value.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL', minimumFractionDigits: 2, maximumFractionDigits: 2 })
+}
+
+function formatHoverTime(timestamp: number): string {
+    return new Date(timestamp).toLocaleTimeString('pt-BR', {
+        hour: '2-digit',
+        minute: '2-digit',
+        second: '2-digit',
+    })
 }
 
 export function BtcPriceChart({ openPrice, initialHistory = [], live = true, endTime, className }: BtcPriceChartProps) {
@@ -38,9 +141,13 @@ export function BtcPriceChart({ openPrice, initialHistory = [], live = true, end
         velocity: 0,
         lastTickTime: Date.now()
     })
+    const viewportRef = useRef<ViewportRange | null>(null)
+    const hoverXRef = useRef<number | null>(null)
+    const lastHoverKeyRef = useRef<string | null>(null)
     
     // UI badge state (we still use React for the absolute floating DOM badge as requested)
     const [moveData, setMoveData] = useState({ isAbove: true, percent: 0, show: false })
+    const [hoverData, setHoverData] = useState<HoverData | null>(null)
 
     // Initialize history exactly once
     useEffect(() => {
@@ -55,6 +162,7 @@ export function BtcPriceChart({ openPrice, initialHistory = [], live = true, end
             simulatedRef.current.targetPrice = last.price
             simulatedRef.current.rawTargetPrice = last.price
             simulatedRef.current.lastTickTime = last.timestamp
+            viewportRef.current = null
             
             // Set initial React Badge safely
             const percent = ((last.price - openPrice) / openPrice) * 100
@@ -114,10 +222,11 @@ export function BtcPriceChart({ openPrice, initialHistory = [], live = true, end
         })
         resizeObserver.observe(container)
 
+        viewportRef.current = null
+
         // Viewport Math Constants
         const VIEW_DURATION_MS = 150_000 // 2.5 minutes width
         const RIGHT_PADDING_MS = 25_000   // Keep 25s visual padding on the right so dot isn't touching edge
-        const VOLATILITY_AMP = 3.5        // Micro-tick fake noise max amplitude
         
         let lastFrameTime = performance.now()
 
@@ -142,46 +251,35 @@ export function BtcPriceChart({ openPrice, initialHistory = [], live = true, end
             const fpsScale = dtSeconds * 60
 
             // Soft target moves gradually toward raw incoming price (~0.1 per frame independent of fps)
-            const blendFactor = 1.0 - Math.pow(1.0 - 0.1, fpsScale)
+            const blendFactor = blendByFps(TARGET_BLEND_PER_FRAME, fpsScale)
             physics.targetPrice += (physics.rawTargetPrice - physics.targetPrice) * blendFactor
 
-            // 2. Core Physics: Spring Model
             const distance = physics.targetPrice - physics.currentPrice
-            let force = distance * SPRING_STIFFNESS
-
-            // 3. Acceleration Clamping
-            const MAX_ACCEL = 50000
-            if (force > MAX_ACCEL) force = MAX_ACCEL
-            if (force < -MAX_ACCEL) force = -MAX_ACCEL
-
-            physics.velocity += force * dtSeconds
-
-            // 4. Adaptive Damping
-            let currentDamping = SPRING_DAMPING
             const absDist = Math.abs(distance)
-            if (absDist < 20) currentDamping = 0.7  // Extra damping
-            if (absDist < 5) currentDamping = 0.4   // Heavy damping near endpoint
-            
-            // Secondary Velocity Smoothing
-            const dampedVel = physics.velocity * Math.pow(currentDamping, fpsScale)
-            const velSmoothing = 1.0 - Math.pow(1.0 - 0.3, fpsScale)
-            physics.velocity += (dampedVel - physics.velocity) * velSmoothing
-            
-            // 5. Dead Zone
-            if (absDist < 0.05 && Math.abs(physics.velocity) < 0.5) {
+
+            // Critically damped chase keeps the head fluid without the end-of-move wobble.
+            let smoothTime = BASE_SMOOTH_TIME
+            if (absDist > 150) smoothTime = 0.18
+            else if (absDist < 18) smoothTime = 0.34
+
+            const damped = smoothDamp(
+                physics.currentPrice,
+                physics.targetPrice,
+                physics.velocity,
+                smoothTime,
+                MAX_CHASE_SPEED,
+                dtSeconds
+            )
+
+            physics.currentPrice = damped.value
+            physics.velocity = damped.velocity
+
+            if (absDist < 0.08 && Math.abs(physics.velocity) < 0.12) {
                 physics.currentPrice = physics.targetPrice
                 physics.velocity = 0
-            } else {
-                physics.currentPrice += physics.velocity * dtSeconds
             }
 
-            let visualCurrentPrice = physics.currentPrice
-
-            // 6. Corrected Noise (Only apply when technically at rest)
-            if (Math.abs(physics.velocity) < 0.1 && absDist < 0.1) {
-                const microNoise = Math.sin(now * 0.002) * Math.cos(now * 0.0039)
-                visualCurrentPrice += microNoise * (VOLATILITY_AMP * 0.01)
-            }
+            const visualCurrentPrice = physics.currentPrice
 
             const isAbove = visualCurrentPrice >= openPrice
             const themeColor = isAbove ? '#27CE88' : '#FF4040'
@@ -204,12 +302,32 @@ export function BtcPriceChart({ openPrice, initialHistory = [], live = true, end
             
             let pMin = Math.min(...visiblePrices)
             let pMax = Math.max(...visiblePrices)
-            if (pMin === pMax) { pMin -= 10; pMax += 10 }
+            if (pMin === pMax) { pMin -= MIN_DOMAIN_SPAN / 2; pMax += MIN_DOMAIN_SPAN / 2 }
             
+            const rawSpan = Math.max(pMax - pMin, MIN_DOMAIN_SPAN)
+            const center = (pMax + pMin) / 2
+            pMin = center - rawSpan / 2
+            pMax = center + rawSpan / 2
+
             // 10% vertical padding
-            const yPadding = (pMax - pMin) * 0.15 || 5
-            const finalMinY = pMin - yPadding
-            const finalMaxY = pMax + yPadding
+            const yPadding = rawSpan * 0.15
+            const targetMinY = pMin - yPadding
+            const targetMaxY = pMax + yPadding
+
+            const viewport = viewportRef.current
+            if (!viewport) {
+                viewportRef.current = {
+                    minY: targetMinY,
+                    maxY: targetMaxY,
+                }
+            } else {
+                const domainBlend = blendByFps(DOMAIN_BLEND_PER_FRAME, fpsScale)
+                viewport.minY += (targetMinY - viewport.minY) * domainBlend
+                viewport.maxY += (targetMaxY - viewport.maxY) * domainBlend
+            }
+
+            const finalMinY = viewportRef.current?.minY ?? targetMinY
+            const finalMaxY = viewportRef.current?.maxY ?? targetMaxY
             const getY = (p: number) => height - ((p - finalMinY) / (finalMaxY - finalMinY)) * height
 
             // 3. Draw Background Target Line (The Strike Baseline)
@@ -226,27 +344,30 @@ export function BtcPriceChart({ openPrice, initialHistory = [], live = true, end
             // 4. Trace the continuous path
             ctx.beginPath()
             let firstRenderedX = 0
-            
+            const renderPoints: RenderPoint[] = []
+
             if (visiblePoints.length > 0) {
                 firstRenderedX = getX(visiblePoints[0].timestamp)
-                ctx.moveTo(firstRenderedX, getY(visiblePoints[0].price))
+                renderPoints.push({ x: firstRenderedX, y: getY(visiblePoints[0].price) })
                 
                 // Exclude the very last incoming point from the hard static render 
                 // so the physics engine owns the visual tail completely.
                 // This eliminates the sharp snapping artifact when a new point arrives.
                 for (let i = 1; i < visiblePoints.length - 1; i++) {
                     const pt = visiblePoints[i]
-                    ctx.lineTo(getX(pt.timestamp), getY(pt.price))
+                    renderPoints.push({ x: getX(pt.timestamp), y: getY(pt.price) })
                 }
                 
                 // Connect history visually to our active simulated live point
                 // This treats the simulated value as the true visual head of the chart
-                ctx.lineTo(getX(now), getY(visualCurrentPrice))
+                renderPoints.push({ x: getX(now), y: getY(visualCurrentPrice) })
             } else {
                 // If history is totally empty, just start at the current point
                 firstRenderedX = getX(now)
-                ctx.moveTo(firstRenderedX, getY(visualCurrentPrice))
+                renderPoints.push({ x: firstRenderedX, y: getY(visualCurrentPrice) })
             }
+
+            traceSmoothPath(ctx, renderPoints)
 
             // 5. Draw Path Fill (Green or Red Polymarket Gradient)
             const pathXStart = firstRenderedX
@@ -257,12 +378,9 @@ export function BtcPriceChart({ openPrice, initialHistory = [], live = true, end
                 const fillPath = new Path2D()
                 fillPath.moveTo(pathXStart, height)
                 
-                if (visiblePoints.length > 0) {
-                    fillPath.lineTo(pathXStart, getY(visiblePoints[0].price))
-                    for (let i = 1; i < visiblePoints.length - 1; i++) {
-                        fillPath.lineTo(getX(visiblePoints[i].timestamp), getY(visiblePoints[i].price))
-                    }
-                    fillPath.lineTo(currentX, getY(visualCurrentPrice))
+                if (renderPoints.length > 0) {
+                    fillPath.lineTo(renderPoints[0].x, renderPoints[0].y)
+                    traceSmoothPath(fillPath, renderPoints, { startWithMove: false })
                 }
                 
                 fillPath.lineTo(currentX, height)
@@ -281,6 +399,61 @@ export function BtcPriceChart({ openPrice, initialHistory = [], live = true, end
             ctx.lineJoin = 'round'
             ctx.lineCap = 'round'
             ctx.stroke()
+
+            const hoverX = hoverXRef.current
+            if (hoverX != null && width > 0) {
+                const hoverTimestamp = timeMin + (Math.max(0, Math.min(width, hoverX)) / width) * (timeMax - timeMin)
+                const hoverCandidates = visiblePoints.concat({ timestamp: now, price: visualCurrentPrice })
+
+                let nearest = hoverCandidates[0] ?? null
+                for (let i = 1; i < hoverCandidates.length; i++) {
+                    const candidate = hoverCandidates[i]
+                    if (!nearest || Math.abs(candidate.timestamp - hoverTimestamp) < Math.abs(nearest.timestamp - hoverTimestamp)) {
+                        nearest = candidate
+                    }
+                }
+
+                if (nearest) {
+                    const hoverPointX = getX(nearest.timestamp)
+                    const hoverPointY = getY(nearest.price)
+                    const hoverKey = `${Math.round(hoverPointX)}:${nearest.timestamp}:${nearest.price.toFixed(2)}`
+
+                    if (hoverKey !== lastHoverKeyRef.current) {
+                        lastHoverKeyRef.current = hoverKey
+                        setHoverData({
+                            x: hoverPointX,
+                            y: hoverPointY,
+                            timestamp: nearest.timestamp,
+                            price: nearest.price,
+                        })
+                    }
+
+                    ctx.beginPath()
+                    ctx.setLineDash([3, 5])
+                    ctx.moveTo(hoverPointX, 0)
+                    ctx.lineTo(hoverPointX, height - 18)
+                    ctx.strokeStyle = 'rgba(161, 167, 187, 0.55)'
+                    ctx.lineWidth = 1
+                    ctx.stroke()
+                    ctx.setLineDash([])
+
+                    ctx.beginPath()
+                    ctx.arc(hoverPointX, hoverPointY, 4, 0, Math.PI * 2)
+                    ctx.fillStyle = '#F8FAFC'
+                    ctx.fill()
+
+                    ctx.beginPath()
+                    ctx.arc(hoverPointX, hoverPointY, 2.5, 0, Math.PI * 2)
+                    ctx.fillStyle = themeColor
+                    ctx.fill()
+                } else if (lastHoverKeyRef.current !== null) {
+                    lastHoverKeyRef.current = null
+                    setHoverData(null)
+                }
+            } else if (lastHoverKeyRef.current !== null) {
+                lastHoverKeyRef.current = null
+                setHoverData(null)
+            }
 
             // 7. Draw The "Bolinha" 
             const headX = currentX
@@ -338,8 +511,24 @@ export function BtcPriceChart({ openPrice, initialHistory = [], live = true, end
         }
     }, [live, openPrice, endTime])
 
+    const handleMouseMove = useCallback((event: React.MouseEvent<HTMLDivElement>) => {
+        const rect = event.currentTarget.getBoundingClientRect()
+        hoverXRef.current = event.clientX - rect.left
+    }, [])
+
+    const handleMouseLeave = useCallback(() => {
+        hoverXRef.current = null
+        lastHoverKeyRef.current = null
+        setHoverData(null)
+    }, [])
+
     return (
-        <div className={`relative ${className || ''}`} ref={containerRef}>
+        <div
+            className={`relative cursor-crosshair ${className || ''}`}
+            ref={containerRef}
+            onMouseMove={handleMouseMove}
+            onMouseLeave={handleMouseLeave}
+        >
             {/* The Floating % Badge precisely styled like Polymarket absolute positioned */}
             {moveData.show && (
                 <div 
@@ -351,6 +540,19 @@ export function BtcPriceChart({ openPrice, initialHistory = [], live = true, end
                 </div>
             )}
             
+            {hoverData && (
+                <div
+                    className="absolute z-20 -translate-x-1/2 rounded-xl border border-white/10 bg-[#0F1724]/92 px-3 py-2 text-[11px] shadow-2xl backdrop-blur-sm pointer-events-none"
+                    style={{
+                        left: `${hoverData.x}px`,
+                        top: `${Math.max(10, hoverData.y - 56)}px`,
+                    }}
+                >
+                    <div className="font-semibold text-white">{formatPriceShort(hoverData.price)}</div>
+                    <div className="mt-0.5 text-[#A1A7BB]">{formatHoverTime(hoverData.timestamp)}</div>
+                </div>
+            )}
+
             {/* The Raw Performance Canvas Element doing all the physical rendering isolated */}
             <canvas ref={canvasRef} className="block w-full h-full pointer-events-none touch-none" />
         </div>

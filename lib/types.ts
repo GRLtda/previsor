@@ -133,6 +133,9 @@ export interface BtcPriceTick {
 export interface BtcPriceResponse {
   currentPrice: number | null
   source: string | null
+  timestamp?: string | null
+  providerTimestamp?: string | null
+  isStale?: boolean
   history: BtcPriceTick[]
   isStreaming: boolean
 }

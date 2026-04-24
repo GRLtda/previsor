@@ -87,6 +87,22 @@ function getQuickEventTitle(title: string, isQuick: boolean): string {
   return title.replace(/\s+#\d+\s*$/, '').trim()
 }
 
+function appendBtcTick(history: BtcPriceTick[], nextTick: BtcPriceTick): BtcPriceTick[] {
+  const next = [...history]
+  const last = next[next.length - 1]
+
+  if (last?.timestamp === nextTick.timestamp) {
+    next[next.length - 1] = nextTick
+  } else {
+    next.push(nextTick)
+  }
+
+  const cutoff = Date.now() - 15 * 60 * 1000
+  return next
+    .filter((tick) => new Date(tick.timestamp).getTime() >= cutoff)
+    .slice(-2000)
+}
+
 export default function EventDetailPage({ params }: PageProps) {
   useMarketWs({ enabled: true })
   const { slug } = use(params)
@@ -167,14 +183,15 @@ export default function EventDetailPage({ params }: PageProps) {
   useEffect(() => {
     if (!event || event.type !== 'quick') return
     let mounted = true
+    let shouldLoadPriceHistory = true
 
     async function fetchQuickData() {
       try {
-        const [eventRes, historyRes, priceRes] = await Promise.all([
+        const [eventRes, historyRes] = await Promise.all([
           quickApi.getQuickMarketEvent(event!.id),
           quickApi.getQuickMarketHistory(10),
-          quickApi.getBtcPrice(),
         ])
+        const priceRes = shouldLoadPriceHistory ? await quickApi.getBtcPrice() : null
 
         if (!mounted) return
 
@@ -199,7 +216,7 @@ export default function EventDetailPage({ params }: PageProps) {
         if (historyRes.data?.rounds) {
           setQuickHistory(historyRes.data.rounds)
         }
-        if (priceRes.data) {
+        if (priceRes?.data) {
           setQuickRound(prev => {
              // Only update live price history if we are still tracking the live round
              if (!prev || prev.roundStatus === 'open') {
@@ -208,6 +225,7 @@ export default function EventDetailPage({ params }: PageProps) {
              }
              return prev
           })
+          shouldLoadPriceHistory = false
         }
       } catch {
         // Ignore — quick data is supplementary
@@ -215,10 +233,30 @@ export default function EventDetailPage({ params }: PageProps) {
     }
 
     fetchQuickData()
-    // Refresh quick data every 10s
-    const interval = setInterval(fetchQuickData, 10000)
+    // Reconcile state occasionally in case the client misses a websocket event.
+    const interval = setInterval(fetchQuickData, 60000)
     return () => { mounted = false; clearInterval(interval) }
   }, [event?.id, event?.type])
+
+  useEffect(() => {
+    if (!event || event.type !== 'quick' || quickRound?.roundStatus !== 'open') return
+
+    const handleBtcPriceUpdate = (e: Event) => {
+      const detail = (e as CustomEvent).detail as { price?: number; timestamp?: string }
+      if (typeof detail?.price !== 'number' || !detail.timestamp) return
+      const price = detail.price
+      const timestamp = detail.timestamp
+
+      setCurrentBtcPrice(price)
+      setBtcPriceHistory((prev) => appendBtcTick(prev, {
+        price,
+        timestamp,
+      }))
+    }
+
+    document.addEventListener('btc-price-update', handleBtcPriceUpdate)
+    return () => document.removeEventListener('btc-price-update', handleBtcPriceUpdate)
+  }, [event?.id, event?.type, quickRound?.roundStatus])
 
   const fetchLiveMarket = async () => {
     try {
@@ -267,12 +305,14 @@ export default function EventDetailPage({ params }: PageProps) {
       const detail = e.detail
       if (detail.marketId !== quickRound?.marketId) return
 
+      const resolvedPrice = detail.closePrice ?? detail.price ?? null
+
       setQuickRound(prev => prev ? { 
         ...prev, 
         roundStatus: e.type === 'quick-round-annulled' ? 'annulled' : 'settled',
-        closePrice: detail.price // freeze endpoint
+        closePrice: resolvedPrice,
       } : null)
-      if (detail.price) setCurrentBtcPrice(detail.price)
+      if (resolvedPrice != null) setCurrentBtcPrice(resolvedPrice)
     }
 
     document.addEventListener('quick-round-resolved', handleRoundSettled)
